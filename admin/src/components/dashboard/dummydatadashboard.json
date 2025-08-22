@@ -1,0 +1,35 @@
+{
+  "resorts": [
+    { "id": "R1", "name": "Vanvavihari", "vacantToday": 12 },
+    { "id": "R2", "name": "Junglestar", "vacantToday": 7 }
+  ],
+  "last5Bookings": [
+    { "id": "BK-1001", "guest": "John Doe", "resort": "Vanvavihari", "room": "A-101", "checkIn": "2025-08-10", "checkOut": "2025-08-12", "status": "Paid", "amount": 5000 },
+    { "id": "BK-1002", "guest": "Jane Smith", "resort": "Junglestar", "room": "B-202", "checkIn": "2025-08-11", "checkOut": "2025-08-14", "status": "Pending", "amount": 3500 },
+    { "id": "BK-1004", "guest": "Sara Khan", "resort": "Junglestar", "room": "D-404", "checkIn": "2025-08-12", "checkOut": "2025-08-13", "status": "Failed", "amount": 2800 },
+    { "id": "BK-1005", "guest": "Rahul Mehta", "resort": "Vanvavihari", "room": "E-505", "checkIn": "2025-08-10", "checkOut": "2025-08-15", "status": "Paid", "amount": 6000 }
+  ],
+  "paymentBreakdown": [
+    { "name": "Paid", "value": 55 },
+    { "name": "Pending", "value": 30 },
+    { "name": "Failed", "value": 15 }
+  ],
+  "occupancy7Day": [
+    { "day": "Mon", "occupancy": 65 },
+    { "day": "Tue", "occupancy": 72 },
+    { "day": "Wed", "occupancy": 58 },
+    { "day": "Thu", "occupancy": 81 },
+    { "day": "Fri", "occupancy": 74 },
+    { "day": "Sat", "occupancy": 90 },
+    { "day": "Sun", "occupancy": 85 }
+  ],
+  "calendarStatus": {
+    "available": "bg-green-500",
+    "booked": "bg-red-500",
+    "blocked": "bg-gray-400"
+  },
+  "resortCalendar": {
+    "R1": { "days": [ { "day": 1, "status": "available" }, { "day": 2, "status": "booked" }, { "day": 3, "status": "available" }, { "day": 4, "status": "blocked" } ] },
+    "R2": { "days": [ { "day": 1, "status": "booked" }, { "day": 2, "status": "available" }, { "day": 3, "status": "booked" }, { "day": 4, "status": "available" } ] }
+  }
+}
