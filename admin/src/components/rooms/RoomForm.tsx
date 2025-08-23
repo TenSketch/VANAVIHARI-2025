@@ -61,8 +61,55 @@ const AddRoomForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Room Form Data:", formData);
-    // Handle file upload and submit logic here
+    // build multipart/form-data and submit to backend
+    const form = new FormData()
+    Object.entries(formData).forEach(([key, val]) => {
+      if (val === null || val === undefined) return
+      if (key === 'roomImage' && val instanceof File) {
+        // backend expects field name 'images' (array)
+        form.append('images', val)
+      } else {
+        // append all other fields as strings
+        // skip file field handled above
+        if (typeof val === 'string') form.append(key, val)
+      }
+    })
+
+    // ensure backend-required field name 'roomNumber' is present (fallback to roomId)
+    if (!form.has('roomNumber') && form.get('roomId')) {
+      form.append('roomNumber', String(formData.roomId))
+    }
+
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+    fetch(apiBase + '/api/rooms/add', {
+      method: 'POST',
+      body: form,
+    })
+      .then(async (res) => {
+        let parsed = null
+        try {
+          const text = await res.text()
+          parsed = text ? JSON.parse(text) : null
+        } catch (e) {
+          parsed = null
+        }
+
+        if (!res.ok) {
+          const errMsg = (parsed && parsed.error) || res.statusText || 'Failed'
+          throw new Error(errMsg)
+        }
+
+        return parsed
+      })
+      .then(() => {
+        alert('Room created')
+        handleReset()
+      })
+      .catch((err) => {
+        console.error(err)
+        alert('Error: ' + err.message)
+      })
   };
 
   const handleReset = () => {

@@ -5,6 +5,7 @@ import connectDB from './config/mongodb.js'
 import userRouter from './routes/userRoutes.js'
 import resortRouter from './routes/resortRoutes.js'
 import cottageTypeRouter from './routes/cottageTypeRoutes.js'
+import roomRouter from './routes/roomRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 
 //App config
@@ -31,6 +32,7 @@ app.options(/.*/, cors())
 app.use('/api/user', userRouter)
 app.use('/api/resorts', resortRouter)
 app.use('/api/cottage-types', cottageTypeRouter)
+app.use('/api/rooms', roomRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'
