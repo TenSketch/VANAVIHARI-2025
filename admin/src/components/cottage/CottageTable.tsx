@@ -10,7 +10,6 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import cottageTypesData from "./cottagetypes.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -34,10 +33,42 @@ interface CottageType {
   roomAmenities: string[];
 }
 
-const cottageTypes: CottageType[] = cottageTypesData;
+// live data from backend
+const useCottageTypes = () => {
+  const [cottageTypes, setCottageTypes] = useState<CottageType[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+        const res = await fetch(apiBase + '/api/cottage-types')
+        if (!res.ok) throw new Error('Failed to fetch cottage types')
+        const json = await res.json()
+        const list = (json && (json.cottageTypes || json.cottage_types || json.data)) || []
+
+        const mapped = list.map((ct: any) => ({
+          id: ct._id || ct.id,
+          cottageName: ct.name || ct.cottageName || '',
+          resort: ct.resort && (typeof ct.resort === 'string' ? ct.resort : (ct.resort.resortName || ct.resort.name || ct.resort.resortName || '')) || '',
+          description: ct.description || '',
+          roomAmenities: Array.isArray(ct.amenities) ? ct.amenities : (ct.roomAmenities || []),
+        }))
+
+        setCottageTypes(mapped)
+      } catch (e) {
+        console.warn('Could not load cottage types', e)
+      }
+    }
+
+    load()
+  }, [])
+
+  return cottageTypes
+}
 
 export default function CottageDataTable() {
   const tableRef = useRef(null);
+  const cottageTypes = useCottageTypes()
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [editingCottage, setEditingCottage] = useState<CottageType | null>(null);

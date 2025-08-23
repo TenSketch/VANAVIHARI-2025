@@ -44,7 +44,12 @@ const AddCottageTypeForm = () => {
         const data = await res.json()
         // backend returns { resorts: [...] }
         const list = (data && data.resorts) || []
-        setResorts(list.map((r: any) => ({ id: r._id || r.id, resortName: r.resortName || r.name || r.resortName })))
+        // filter out unwanted test entry (e.g. 'test 1') then map
+        const filtered = list.filter((r: any) => {
+          const name = (r.resortName || r.name || '').toString().trim().toLowerCase()
+          return name !== 'test 1' && name !== 'test1'
+        })
+        setResorts(filtered.map((r: any) => ({ id: r._id || r.id, resortName: r.resortName || r.name || r.resortName })))
       } catch (e) {
         console.warn('Could not load resorts', e)
       } finally {
@@ -54,6 +59,21 @@ const AddCottageTypeForm = () => {
 
     load()
   }, [])
+
+  // Fallback options when backend hasn't provided resorts yet
+  const fallbackResorts = [
+    { id: 'legacy:vanavihari', resortName: 'Vanavihari' },
+    { id: 'legacy:jungle', resortName: 'Jungle Star' },
+  ]
+
+  const mergedResorts = (() => {
+    const map = new Map<string, { id: string; resortName: string }>()
+    // insert fallbacks first
+    for (const f of fallbackResorts) map.set(f.resortName.toLowerCase(), f)
+    // then override/insert fetched resorts
+    for (const r of resorts) map.set(r.resortName.toLowerCase(), { id: r.id, resortName: r.resortName })
+    return Array.from(map.values())
+  })()
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -73,8 +93,23 @@ const AddCottageTypeForm = () => {
     setMessage(null)
 
     try {
+      // resolve legacy selection to real resort id if possible
+      let resortToSend = formData.resort
+      if (resortToSend && resortToSend.startsWith('legacy:')) {
+        // try to find matching resort in fetched list by name
+        const name = resortToSend.replace('legacy:', '')
+        const found = resorts.find(r => r.resortName.toLowerCase().includes(name))
+        if (found) {
+          resortToSend = found.id
+        } else {
+          setMessage('Cannot submit: backend resorts not loaded. Start backend or pick a real resort.')
+          setLoading(false)
+          return
+        }
+      }
+
       const fd = new FormData()
-      fd.append('resort', formData.resort)
+      fd.append('resort', resortToSend)
       fd.append('name', formData.name)
       fd.append('description', formData.description)
       if (formData.basePrice) fd.append('basePrice', formData.basePrice)
@@ -147,7 +182,7 @@ const AddCottageTypeForm = () => {
               className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 bg-slate-50"
             >
               <option value="">-- Select Resort --</option>
-              {resorts.map((resort) => (
+              {mergedResorts.map((resort) => (
                 <option key={resort.id} value={resort.id}>
                   {resort.resortName}
                 </option>
