@@ -30,31 +30,72 @@ async function importRooms() {
   let created = 0
   for (const it of items) {
     try {
-      const resortDoc = it.resort ? await Resort.findOne({ resortName: it.resort }) : null
-      const ctDoc = it.cottageType ? await CottageType.findOne({ name: it.cottageType }) : null
+      // find or create resort
+      let resortDoc = null
+      if (it.resort) {
+        resortDoc = await Resort.findOne({ resortName: it.resort })
+        if (!resortDoc) {
+          resortDoc = new Resort({ resortName: it.resort })
+          await resortDoc.save()
+          console.log(`Created resort record for "${it.resort}"`)
+        }
+      }
+
+      // find or create cottage type
+      let ctDoc = null
+      if (it.cottageType) {
+        ctDoc = await CottageType.findOne({ name: it.cottageType, resort: resortDoc ? resortDoc._id : undefined })
+        if (!ctDoc) {
+          // basePrice fallback to weekdayRate or weekendRate
+          const basePrice = it.weekdayRate || it.weekendRate || 0
+          const ctPayload = { name: it.cottageType, basePrice }
+          if (resortDoc) ctPayload.resort = resortDoc._id
+          ctDoc = new CottageType(ctPayload)
+          await ctDoc.save()
+          console.log(`Created cottageType record for "${it.cottageType}"`)
+        }
+      }
 
       const roomNumber = it.roomId || it.id || it.roomName || `r-${Date.now()}`
       const price = it.weekdayRate ? Number(it.weekdayRate) : (it.weekendRate ? Number(it.weekendRate) : undefined)
 
+      // normalize images: allow string or array
+      let images = []
+      if (it.roomImage) {
+        if (Array.isArray(it.roomImage)) images = it.roomImage.map((u) => ({ url: u }))
+        else if (typeof it.roomImage === 'string') images = [{ url: it.roomImage }]
+      }
+
       const roomData = {
         roomNumber,
         roomId: it.roomId,
+        roomName: it.roomName,
         price,
-        images: it.roomImage ? [{ url: it.roomImage }] : [],
-        notes: `roomName:${it.roomName || ''}; guests:${it.guests || ''}; extraGuests:${it.extraGuests || ''}; bedChargeWeekday:${it.bedChargeWeekday || ''}; bedChargeWeekend:${it.bedChargeWeekend || ''}; sourceId:${it.id || ''}`,
+        weekdayRate: it.weekdayRate ? Number(it.weekdayRate) : undefined,
+        weekendRate: it.weekendRate ? Number(it.weekendRate) : undefined,
+        guests: it.guests ? Number(it.guests) : undefined,
+        extraGuests: it.extraGuests ? Number(it.extraGuests) : undefined,
+        bedChargeWeekday: it.bedChargeWeekday ? Number(it.bedChargeWeekday) : undefined,
+        bedChargeWeekend: it.bedChargeWeekend ? Number(it.bedChargeWeekend) : undefined,
+        images,
+        notes: `importedFrom:allrooms.json; sourceId:${it.id || ''}`,
+        rawSource: it,
       }
 
-      if (resortDoc) roomData.resort = resortDoc._id
-      else roomData.notes += `; resortName:${it.resort || ''}`
+  if (resortDoc) roomData.resort = resortDoc._id
+  else roomData.notes += `; resortName:${it.resort || ''}`
 
-      if (ctDoc) roomData.cottageType = ctDoc._id
-      else roomData.notes += `; cottageTypeName:${it.cottageType || ''}`
+  if (ctDoc) roomData.cottageType = ctDoc._id
+  else roomData.notes += `; cottageTypeName:${it.cottageType || ''}`
 
       // Skip duplicates by roomId if present
       if (it.roomId) {
         const exists = await Room.findOne({ roomId: it.roomId })
         if (exists) {
-          console.log(`Skipping existing room with roomId=${it.roomId}`)
+          // update existing document with any new fields instead of skipping
+          Object.assign(exists, roomData)
+          await exists.save()
+          console.log(`Updated existing room with roomId=${it.roomId}`)
           continue
         }
       }

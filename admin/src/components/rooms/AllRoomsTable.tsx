@@ -14,30 +14,27 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import AllRoomTypes from "./allrooms.json";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 DataTable.use(DT);
 
-interface Room {
-  id: string;
-  resort: string;
-  cottageType: string;
-  roomId: string;
-  roomName: string;
-  roomImage: string;
-  weekdayRate: number;
-  weekendRate: number;
-  guests: number;
-  extraGuests: number;
-  bedChargeWeekday: number;
-  bedChargeWeekend: number;
+interface ApiRoom {
+  _id: string;
+  roomNumber?: string;
+  roomId?: string;
+  status?: string;
+  price?: number;
+  resort?: any;
+  cottageType?: any;
+  images?: Array<{ url?: string }>;
+  createdAt?: string;
 }
-
-const roomsData: Room[] = AllRoomTypes;
 
 export default function RoomsTable() {
   const tableRef = useRef(null);
+  const [roomsData, setRoomsData] = useState<Record<string, any>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -92,6 +89,49 @@ export default function RoomsTable() {
       }
     `;
     document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4000";
+    setLoading(true);
+    fetch(apiBase + "/api/rooms")
+      .then(async (res) => {
+        const text = await res.text();
+        try {
+          return text ? JSON.parse(text) : null;
+        } catch {
+          return null;
+        }
+      })
+      .then((data) => {
+        if (!data || !Array.isArray(data.rooms)) {
+          throw new Error("Invalid response from server")
+        }
+
+        const mapped = data.rooms.map((r: ApiRoom) => ({
+          id: r._id,
+          // Resort model uses `resortName`; fallback to `name` or raw value
+          resort: r.resort?.resortName || r.resort?.name || r.resort || "-",
+          cottageType: r.cottageType?.name || r.cottageType || "-",
+          roomId: r.roomId || r.roomNumber || "-",
+          roomName: (r as any).roomName || "",
+          roomImage: r.images && r.images.length ? r.images[0].url : "/img/peacock/img-1.jpg",
+          price: r.price || 0,
+          status: r.status || "available",
+          createdAt: r.createdAt || "",
+        }));
+
+        setRoomsData(mapped);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || "Failed to load rooms");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const columns = [
@@ -103,32 +143,17 @@ export default function RoomsTable() {
     {
       data: "roomImage",
       title: "Room Image",
-      render: (data: string, _type: string, row: Room) =>
-        `<img src="${data}" alt="${row.roomName}" 
+      render: (data: string, _type: string, row: any) =>
+        `<img src="${data}" alt="${row.roomName || row.roomId}" 
               style="width: 64px; height: 48px; object-fit: cover; border-radius: 4px;" />`,
     },
     {
-      data: "weekdayRate",
-      title: "Weekday Rate",
-      render: (data: number) => `₹${data.toLocaleString()}`,
+      data: "price",
+      title: "Price",
+      render: (data: number) => `₹${(data || 0).toLocaleString()}`,
     },
-    {
-      data: "weekendRate",
-      title: "Weekend Rate",
-      render: (data: number) => `₹${data.toLocaleString()}`,
-    },
-    { data: "guests", title: "Guests" },
-    { data: "extraGuests", title: "Extra Guests" },
-    {
-      data: "bedChargeWeekday",
-      title: "Bed Charge (WD)",
-      render: (data: number) => `₹${data.toLocaleString()}`,
-    },
-    {
-      data: "bedChargeWeekend",
-      title: "Bed Charge (WE)",
-      render: (data: number) => `₹${data.toLocaleString()}`,
-    },
+    { data: "status", title: "Status" },
+    { data: "createdAt", title: "Created At" },
   ];
 
   return (
@@ -138,34 +163,38 @@ export default function RoomsTable() {
       </div>
 
       <div ref={tableRef} className="w-full">
-        <DataTable
-          data={roomsData}
-          columns={columns}
-          className="display nowrap w-full"
-          options={{
-            pageLength: 10,
-            lengthMenu: [5, 10, 25, 50, 100],
-            order: [[0, "asc"]],
-            searching: true,
-            paging: true,
-            info: true,
-            scrollX: true,
-            scrollCollapse: true,
-            scrollY: "400px",
-            layout: {
-              topStart: "buttons",
-              bottom1Start: "pageLength",
-            },
-            buttons: [
-              {
-                extend: "colvis",
-                text: "Column Visibility",
-                collectionLayout: "fixed two-column",
+        {loading && <div className="p-4">Loading rooms...</div>}
+        {error && <div className="p-4 text-red-600">Error: {error}</div>}
+        {!loading && !error && (
+          <DataTable
+            data={roomsData}
+            columns={columns}
+            className="display nowrap w-full"
+            options={{
+              pageLength: 10,
+              lengthMenu: [5, 10, 25, 50, 100],
+              order: [[0, "asc"]],
+              searching: true,
+              paging: true,
+              info: true,
+              scrollX: true,
+              scrollCollapse: true,
+              scrollY: "400px",
+              layout: {
+                topStart: "buttons",
+                bottom1Start: "pageLength",
               },
-            ],
-            columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
-          }}
-        />
+              buttons: [
+                {
+                  extend: "colvis",
+                  text: "Column Visibility",
+                  collectionLayout: "fixed two-column",
+                },
+              ],
+              columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
+            }}
+          />
+        )}
       </div>
     </div>
   );

@@ -63,17 +63,27 @@ const AddRoomForm = () => {
     e.preventDefault();
     // build multipart/form-data and submit to backend
     const form = new FormData()
-    Object.entries(formData).forEach(([key, val]) => {
-      if (val === null || val === undefined) return
-      if (key === 'roomImage' && val instanceof File) {
-        // backend expects field name 'images' (array)
-        form.append('images', val)
-      } else {
-        // append all other fields as strings
-        // skip file field handled above
-        if (typeof val === 'string') form.append(key, val)
-      }
-    })
+
+    // images field (backend expects 'images' array)
+    if (formData.roomImage instanceof File) {
+      form.append('images', formData.roomImage)
+    }
+
+    // map frontend names to backend expected names
+    if (formData.resortId) form.append('resort', formData.resortId)
+    if (formData.cottageTypeId) form.append('cottageType', formData.cottageTypeId)
+    if (formData.roomId) form.append('roomId', formData.roomId)
+    if (formData.roomName) form.append('roomName', formData.roomName)
+    if (formData.orderNumber) form.append('orderNumber', formData.orderNumber)
+
+    // backend uses 'price' field; use weekdays rate as primary price
+    if (formData.weekDaysRate) form.append('price', String(formData.weekDaysRate))
+
+    if (formData.weekEndRate) form.append('weekEndRate', String(formData.weekEndRate))
+    if (formData.noOfGuests) form.append('noOfGuests', String(formData.noOfGuests))
+    if (formData.extraGuests) form.append('extraGuests', String(formData.extraGuests))
+    if (formData.chargesPerBedWeekDays) form.append('chargesPerBedWeekDays', String(formData.chargesPerBedWeekDays))
+    if (formData.chargesPerBedWeekEnd) form.append('chargesPerBedWeekEnd', String(formData.chargesPerBedWeekEnd))
 
     // ensure backend-required field name 'roomNumber' is present (fallback to roomId)
     if (!form.has('roomNumber') && form.get('roomId')) {
