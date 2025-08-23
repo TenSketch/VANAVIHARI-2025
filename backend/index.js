@@ -4,6 +4,7 @@ import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import userRouter from './routes/userRoutes.js'
 import resortRouter from './routes/resortRoutes.js'
+import cottageTypeRouter from './routes/cottageTypeRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 
 //App config
@@ -29,6 +30,7 @@ app.options(/.*/, cors())
 //api-end points
 app.use('/api/user', userRouter)
 app.use('/api/resorts', resortRouter)
+app.use('/api/cottage-types', cottageTypeRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'
