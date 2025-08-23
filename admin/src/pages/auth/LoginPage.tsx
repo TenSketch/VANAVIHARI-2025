@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +9,44 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password });
+  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000'
+
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault()
+    console.log('handleLogin called', { email, password })
+    setError('')
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE}/api/user/admin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email, password })
+      })
+
+      // handle non-JSON responses (vite dev server 404 returns HTML)
+      const text = await res.text()
+      let data: any = {}
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { error: text }
+      }
+
+      if (!res.ok) throw new Error(data.error || 'Login failed')
+
+      // store token and redirect
+      localStorage.setItem('admin_token', data.token)
+      navigate('/dashboard/report')
+    } catch (err: any) {
+      console.error('Login error', err)
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   };
 
   return (
@@ -70,9 +105,14 @@ const LoginPage = () => {
           <Button
             type="submit"
             className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-4 rounded-lg transition-colors shadow-md hover:shadow-lg"
+            onClick={() => handleLogin()}
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
+
+          {error && (
+            <div className="text-red-600 text-sm text-center mt-2">{error}</div>
+          )}
         </form>
       </div>
     </div>

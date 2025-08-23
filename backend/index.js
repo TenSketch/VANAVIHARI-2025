@@ -3,6 +3,7 @@ import cors from 'cors'
 import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import userRouter from './routes/userRoutes.js'
+import adminAuth from './middlewares/adminAuth.js'
 
 //App config
 const app = express()
@@ -26,6 +27,11 @@ app.options(/.*/, cors())
 
 //api-end points
 app.use('/api/user', userRouter)
+
+// sample protected admin route
+app.get('/api/admin/me', adminAuth, (req, res) => {
+    res.json({ admin: req.admin })
+})
 
 
 app.get('/', (req, res)=>{
