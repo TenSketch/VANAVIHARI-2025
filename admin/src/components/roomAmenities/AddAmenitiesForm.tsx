@@ -7,9 +7,38 @@ const AddAmenityForm = () => {
   const [amenityName, setAmenityName] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Amenity Name:", amenityName);
-    // Submit amenity logic here
+    e.preventDefault()
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+    fetch(`${apiBase}/api/amenities/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: amenityName }),
+    })
+      .then(async (res) => {
+        let parsed = null
+        try {
+          const text = await res.text()
+          parsed = text ? JSON.parse(text) : null
+        } catch (e) {
+          parsed = null
+        }
+
+        if (!res.ok) {
+          const errMsg = (parsed && parsed.error) || res.statusText || 'Failed to add amenity'
+          throw new Error(errMsg)
+        }
+
+        return parsed
+      })
+      .then(() => {
+        alert('Amenity added')
+        handleReset()
+      })
+      .catch((err) => {
+        console.error(err)
+        alert('Error: ' + err.message)
+      })
   };
 
   const handleReset = () => {
