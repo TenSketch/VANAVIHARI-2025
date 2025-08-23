@@ -3,6 +3,7 @@ import cors from 'cors'
 import 'dotenv/config'
 import connectDB from './config/mongodb.js'
 import userRouter from './routes/userRoutes.js'
+import resortRouter from './routes/resortRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 
 //App config
@@ -27,6 +28,11 @@ app.options(/.*/, cors())
 
 //api-end points
 app.use('/api/user', userRouter)
+app.use('/api/resorts', resortRouter)
+
+// ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
+import path from 'path'
+app.use('/tmp', express.static(path.join(process.cwd(), 'tmp')))
 
 // sample protected admin route
 app.get('/api/admin/me', adminAuth, (req, res) => {

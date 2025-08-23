@@ -101,8 +101,59 @@ const ResortFormComp = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Resort form data:", formData);
-    // Handle form submission logic here
+    // submit multipart/form-data to backend
+    const form = new FormData()
+    Object.entries(formData).forEach(([key, val]) => {
+      if (val === null || val === undefined) return
+      // files handled separately
+      if (key === 'logo' && val instanceof File) {
+        form.append('logo', val)
+      } else if (typeof val === 'object') {
+        // skip nested address object; append flat fields
+      } else {
+        form.append(key, String(val))
+      }
+    })
+
+    // append address fields
+    form.append('addressLine1', formData.addressLine1)
+    form.append('addressLine2', formData.addressLine2)
+    form.append('cityDistrict', formData.cityDistrict)
+    form.append('stateProvince', formData.stateProvince)
+    form.append('postalCode', formData.postalCode)
+    form.append('country', formData.country)
+
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+  fetch(apiBase + '/api/resorts/add', {
+      method: 'POST',
+      body: form,
+    })
+      .then(async (res) => {
+        // parse JSON if present, otherwise handle empty body
+        let parsed = null
+        try {
+          const text = await res.text()
+          parsed = text ? JSON.parse(text) : null
+        } catch (e) {
+          parsed = null
+        }
+
+        if (!res.ok) {
+          const errMsg = (parsed && parsed.error) || res.statusText || 'Failed'
+          throw new Error(errMsg)
+        }
+
+        return parsed
+      })
+      .then(() => {
+        alert('Resort created')
+        handleReset()
+      })
+      .catch((err) => {
+        console.error(err)
+        alert('Error: ' + err.message)
+      })
   };
 
   const handleReset = () => {
