@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 
 const AddAmenityForm = () => {
   const [amenityName, setAmenityName] = useState("");
+  const [description, setDescription] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -13,7 +14,7 @@ const AddAmenityForm = () => {
     fetch(`${apiBase}/api/amenities/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: amenityName }),
+      body: JSON.stringify({ name: amenityName, description }),
     })
       .then(async (res) => {
         let parsed = null
@@ -43,6 +44,7 @@ const AddAmenityForm = () => {
 
   const handleReset = () => {
     setAmenityName("");
+  setDescription("");
   };
 
   return (
@@ -72,6 +74,22 @@ const AddAmenityForm = () => {
               onChange={(e) => setAmenityName(e.target.value)}
               required
               className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+            />
+          </div>
+
+          {/* Amenity Description */}
+          <div className="w-full max-w-md space-y-2">
+            <Label htmlFor="amenityDescription" className="text-sm font-medium text-slate-700">
+              Description (optional)
+            </Label>
+            <textarea
+              id="amenityDescription"
+              name="amenityDescription"
+              placeholder="Short description of the amenity"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50 resize-vertical"
+              rows={4}
             />
           </div>
 

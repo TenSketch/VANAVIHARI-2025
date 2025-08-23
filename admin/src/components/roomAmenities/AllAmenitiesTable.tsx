@@ -10,7 +10,6 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns"; 
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import Amenitydata from "./amenitydata.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -33,7 +32,9 @@ interface Amenity {
   isActive: boolean;
 }
 
-const amenities: Amenity[] = Amenitydata;
+// Load amenities from backend (MongoDB via API)
+const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_PATH = API_BASE ? `${API_BASE.replace(/\/$/, '')}/api/amenities` : '/api/amenities';
 
 export default function AllRoomAmenitiesTable() {
   const tableRef = useRef(null);
@@ -43,6 +44,10 @@ export default function AllRoomAmenitiesTable() {
   const [disablingAmenity, setDisablingAmenity] = useState<Amenity | null>(null);
   const [disabledAmenities, setDisabledAmenities] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Amenity>>({});
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const amenitiesRef = useRef<Amenity[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleEdit = (amenity: Amenity) => {
     setEditingAmenity(amenity);
@@ -186,8 +191,9 @@ export default function AllRoomAmenitiesTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const amenityId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const amenity = amenities.find(a => a.id === amenityId);
-      
+      if (!amenityId) return;
+      const amenity = amenitiesRef.current.find((a) => a.id === amenityId);
+
       if (amenity) {
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           handleEdit(amenity);
@@ -198,6 +204,40 @@ export default function AllRoomAmenitiesTable() {
     };
     // Add event listener for edit and disable buttons
     document.addEventListener('click', handleButtonClick);
+
+    return () => {
+      document.removeEventListener('click', handleButtonClick);
+    };
+  }, []);
+
+  // keep ref up-to-date for event handlers outside react lifecycle
+  useEffect(() => { amenitiesRef.current = amenities; }, [amenities]);
+
+  // Fetch amenities from backend once component mounts
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(API_PATH, { headers: { Accept: 'application/json' } });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const contentType = (res.headers.get('content-type') || '').toLowerCase();
+        if (!contentType.includes('application/json')) {
+          const text = await res.text();
+          // Likely an HTML response (index.html) — usually means backend not reachable or proxy not set up
+          throw new Error(`Expected JSON from ${API_PATH} but received: ${text.slice(0, 300)}`);
+        }
+        const json = await res.json();
+        if (!cancelled) setAmenities(Array.isArray(json.amenities) ? json.amenities : json);
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || 'Failed to load amenities');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   const columns = [
@@ -283,6 +323,11 @@ export default function AllRoomAmenitiesTable() {
     <div className="flex flex-col h-full max-h-screen overflow-hidden p-3 py-6">
       <h2 className="text-xl font-semibold text-slate-800 mb-4 flex-shrink-0">Room Amenities</h2>
       <div ref={tableRef} className="flex-1 overflow-hidden">
+        {loading ? (
+          <div className="p-4">Loading amenities…</div>
+        ) : error ? (
+          <div className="p-4 text-red-600">Error: {error}</div>
+        ) : (
         <DataTable
           data={amenities}
           columns={columns}
@@ -321,6 +366,7 @@ export default function AllRoomAmenitiesTable() {
             },
           }}
         />
+        )}
       </div>
 
       {/* Edit Dialog */}
