@@ -14,7 +14,6 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import reservationdata from "./reservationtable.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -53,10 +52,10 @@ interface Reservation {
   refundPercent: string;
 }
 
-const reservations: Reservation[] = reservationdata;
+
 
 // Export to CSV
-const exportToExcel = () => {
+const exportToExcel = (rows: Reservation[]) => {
   const headers = [
     "Full Name", "Phone", "Email", "Check In", "Check Out", "Guests",
     "Children", "Extra Guests", "Rooms", "Total Guests", "No. of Days",
@@ -66,26 +65,26 @@ const exportToExcel = () => {
 
   const csvContent = [
     headers.join(","),
-    ...reservations.map(row => [
-      `"${row.fullName}"`,
-      `"${row.phone}"`,
-      `"${row.email}"`,
-      `"${row.checkIn}"`,
-      `"${row.checkOut}"`,
-      row.guests,
-      row.children,
-      row.extraGuests,
-      row.rooms,
-      row.totalGuests,
-      row.noOfDays,
-      row.noOfFoods,
-      `"${row.resort}"`,
-      `"${row.roomTypes.join(', ')}"`,
-      `"${row.bookingId}"`,
-      `"${row.status}"`,
-      `"${row.reservationDate}"`,
-      `"${row.paymentStatus}"`,
-      `"${row.refundPercent}"`
+    ...rows.map((row: Reservation) => [
+      `"${row.fullName || ''}"`,
+      `"${row.phone || ''}"`,
+      `"${row.email || ''}"`,
+      `"${row.checkIn || ''}"`,
+      `"${row.checkOut || ''}"`,
+      row.guests || 0,
+      row.children || 0,
+      row.extraGuests || 0,
+      row.rooms || 0,
+      row.totalGuests || 0,
+      row.noOfDays || 0,
+      row.noOfFoods || 0,
+      `"${row.resort || ''}"`,
+      `"${(row.roomTypes || []).join(', ')}"`,
+      `"${row.bookingId || ''}"`,
+      `"${row.status || ''}"`,
+      `"${row.reservationDate || ''}"`,
+      `"${row.paymentStatus || ''}"`,
+      `"${row.refundPercent || ''}"`
     ].join(","))
   ].join("\n");
 
@@ -101,11 +100,40 @@ const exportToExcel = () => {
 
 export default function ReservationTable() {
   const tableRef = useRef(null);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [disablingReservation, setDisablingReservation] = useState<Reservation | null>(null);
-  const [disabledReservations, setDisabledReservations] = useState<Set<string>>(new Set());
+
+  // Enable a previously disabled reservation
+  const handleEnable = (reservation: Reservation) => {
+    (async () => {
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+        const res = await fetch(`${apiUrl}/api/reservations/${reservation.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ disabled: false })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to enable reservation')
+        const updated = {
+          ...data.reservation,
+          id: String(data.reservation._id || data.reservation.id || reservation.id),
+          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
+          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
+          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
+          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
+          disabled: Boolean(data.reservation.disabled),
+        }
+        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+      } catch (err: any) {
+        console.error('Error enabling reservation', err)
+        alert('Error enabling reservation: ' + (err.message || err))
+      }
+    })()
+  }
   const [formData, setFormData] = useState<Partial<Reservation>>({});
 
   const handleEdit = (reservation: Reservation) => {
@@ -120,12 +148,35 @@ export default function ReservationTable() {
   };
 
   const confirmDisable = () => {
-    if (disablingReservation) {
-      console.log('Disabling reservation:', disablingReservation.id);
-      setDisabledReservations(prev => new Set([...prev, disablingReservation.id]));
-      setIsConfirmDisableOpen(false);
-      setDisablingReservation(null);
-    }
+    (async () => {
+      if (!disablingReservation) return
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+        const res = await fetch(`${apiUrl}/api/reservations/${disablingReservation.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ disabled: true })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to disable reservation')
+        // mark disabled locally
+        const updated = {
+          ...data.reservation,
+          id: String(data.reservation._id || data.reservation.id || disablingReservation.id),
+          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
+          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
+          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
+          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
+          disabled: Boolean(data.reservation.disabled),
+        }
+        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+        setIsConfirmDisableOpen(false)
+        setDisablingReservation(null)
+      } catch (err: any) {
+        console.error('Error disabling reservation', err)
+        alert('Error disabling reservation: ' + (err.message || err))
+      }
+    })()
   };
 
   const cancelDisable = () => {
@@ -134,12 +185,36 @@ export default function ReservationTable() {
   };
 
   const handleUpdate = () => {
-    if (editingReservation && formData) {
-      console.log('Updating reservation:', formData);
-      setIsEditOpen(false);
-      setEditingReservation(null);
-      setFormData({});
-    }
+    (async () => {
+      if (!editingReservation || !formData) return
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+        const payload = { ...formData }
+        const res = await fetch(`${apiUrl}/api/reservations/${editingReservation.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Failed to update reservation')
+        // update local state with returned reservation
+        const updated = {
+          ...data.reservation,
+          id: String(data.reservation._id || data.reservation.id || editingReservation.id),
+          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
+          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
+          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
+          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
+        }
+        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+        setIsEditOpen(false)
+        setEditingReservation(null)
+        setFormData({})
+      } catch (err: any) {
+        console.error('Error updating reservation', err)
+        alert('Error updating reservation: ' + (err.message || err))
+      }
+    })()
   };
 
   const handleCancel = () => {
@@ -156,6 +231,52 @@ export default function ReservationTable() {
   };
 
   useEffect(() => {
+    // fetch reservations from backend (run once)
+    (async () => {
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+        const res = await fetch(`${apiUrl}/api/reservations`)
+        const data = await res.json()
+        if (res.ok && data && Array.isArray(data.reservations)) {
+          // normalize records into flat table rows with explicit keys expected by DataTable
+          const mapped = data.reservations.map((r: any) => {
+            const num = (v: any) => (v == null || v === '') ? 0 : Number(v)
+            const roomTypes = Array.isArray(r.roomTypes) ? r.roomTypes : (r.roomTypes ? [String(r.roomTypes)] : [])
+            const row = {
+              id: String(r._id || r.id || ''),
+              fullName: r.fullName || r.full_name || r.name || '',
+              phone: r.phone || r.contact || '',
+              email: r.email || '',
+              checkIn: r.checkIn ? new Date(r.checkIn).toISOString().slice(0,10) : (r.check_in ? new Date(r.check_in).toISOString().slice(0,10) : ''),
+              checkOut: r.checkOut ? new Date(r.checkOut).toISOString().slice(0,10) : (r.check_out ? new Date(r.check_out).toISOString().slice(0,10) : ''),
+              guests: num(r.guests || r.numberOfGuests || r.number_of_guests),
+              children: num(r.children),
+              extraGuests: num(r.extraGuests || r.extra_guests),
+              rooms: num(r.rooms || r.numberOfRooms || r.number_of_rooms),
+              totalGuests: num(r.totalGuests || r.total_guests || (r.guests ? r.guests : 0)),
+              noOfDays: num(r.noOfDays || r.numberOfDays || r.durationDays),
+              noOfFoods: num(r.noOfFoods || r.numberOfFoods),
+              resort: r.resort || '',
+              roomTypes: roomTypes,
+              bookingId: r.bookingId || r.booking_id || '',
+              status: r.status || '',
+              reservationDate: r.reservationDate ? new Date(r.reservationDate).toISOString().slice(0,10) : (r.reservationDateString || r.reservation_date ? new Date(r.reservation_date).toISOString().slice(0,10) : ''),
+              paymentStatus: r.paymentStatus || r.payment_status || '',
+              refundPercent: (r.refundPercent != null && r.refundPercent !== '') ? r.refundPercent : (r.refundPercentage != null ? r.refundPercentage : ''),
+              disabled: Boolean(r.disabled),
+            }
+            return row
+          })
+          if (mapped.length > 0) console.debug('First reservation row:', mapped[0])
+          setReservations(mapped)
+        } else {
+          console.warn('Unexpected reservations response', data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch reservations', err)
+      }
+    })()
+
     const style = document.createElement("style");
     style.innerHTML = `
       .dt-button-collection {
@@ -204,14 +325,26 @@ export default function ReservationTable() {
       table.dataTable thead tr td {
         font-weight: 700 !important;
       }
-      /* Disabled row styling */
+      /* Disabled row styling: dim content except action buttons */
       table.dataTable tbody tr.disabled-row {
         background-color: #f5f5f5 !important;
-        opacity: 0.6 !important;
+      }
+      /* Apply strike-through and muted color to all cells except the last (actions) */
+      table.dataTable tbody tr.disabled-row td:not(:last-child),
+      table.dataTable tbody tr.disabled-row td:not(:last-child) * {
+        color: #6b6b6b !important;
         text-decoration: line-through !important;
       }
       table.dataTable tbody tr.disabled-row:hover {
         background-color: #eeeeee !important;
+      }
+      /* Keep action cell buttons visible and interactive */
+      table.dataTable tbody tr.disabled-row td:last-child,
+      table.dataTable tbody tr.disabled-row td:last-child * {
+        opacity: 1 !important;
+        text-decoration: none !important;
+        color: inherit !important;
+        pointer-events: auto !important;
       }
       /* Action button styling */
       .edit-btn:active {
@@ -229,21 +362,22 @@ export default function ReservationTable() {
       const target = event.target as HTMLElement;
       const reservationId = target.getAttribute('data-id');
       const reservation = reservations.find(r => r.id === reservationId);
-      
+
       if (reservation) {
         if (target.classList.contains('edit-btn')) {
           handleEdit(reservation);
         } else if (target.classList.contains('disable-btn')) {
-          if (!disabledReservations.has(reservation.id)) {
-            handleDisable(reservation);
-          }
+          handleDisable(reservation);
+        } else if (target.classList.contains('enable-btn')) {
+          handleEnable(reservation);
         }
       }
     };
 
     // Add event listener for edit and disable buttons
     document.addEventListener('click', handleButtonClick);
-  }, []);
+    return () => document.removeEventListener('click', handleButtonClick);
+  }, [reservations]);
 
   const columns = [
     {
@@ -284,55 +418,52 @@ export default function ReservationTable() {
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Reservation) => {
-        const isDisabled = disabledReservations.has(row.id);
-        return `
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <button 
-              class="edit-btn" 
-              data-id="${row.id}" 
-              title="Edit Reservation"
-              style="
-                background: #3b82f6;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                ${isDisabled ? 'opacity: 0.5;' : ''}
-              "
-              onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
-              onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
-            >
-              Edit
-            </button>
-            <button 
-              class="disable-btn" 
-              data-id="${row.id}" 
-              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
-              style="
-                background: ${isDisabled ? '#6b7280' : '#dc2626'};
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              "
-              ${isDisabled ? 'disabled' : ''}
-              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
-              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
-            >
-              ${isDisabled ? 'Disabled' : 'Disable'}
-            </button>
-          </div>
-        `;
+          const isDisabled = Boolean((row as any).disabled);
+          if (isDisabled) {
+            // show green Enable button
+            return `
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button 
+                class="edit-btn" 
+                data-id="${row.id}" 
+                title="Edit Reservation"
+                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              >
+                Edit
+              </button>
+              <button 
+                class="enable-btn" 
+                data-id="${row.id}" 
+                title="Enable Reservation"
+                style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              >
+                Enable
+              </button>
+            </div>
+          `;
+          }
+
+          // not disabled -> show Disable button
+          return `
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button 
+                class="edit-btn" 
+                data-id="${row.id}" 
+                title="Edit Reservation"
+                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              >
+                Edit
+              </button>
+              <button 
+                class="disable-btn" 
+                data-id="${row.id}" 
+                title="Disable Record"
+                style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              >
+                Disable
+              </button>
+            </div>
+          `;
       },
     },
   ];
@@ -343,7 +474,7 @@ export default function ReservationTable() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-slate-800">Reservations</h2>
         <button
-          onClick={exportToExcel}
+          onClick={() => exportToExcel(reservations)}
           className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
         >
           ⬇ Export to Excel
@@ -378,11 +509,11 @@ export default function ReservationTable() {
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
             rowCallback: (row: any, data: any) => {
-              if (disabledReservations.has(data.id)) {
-                row.classList.add('disabled-row');
-              } else {
-                row.classList.remove('disabled-row');
-              }
+              if (data && data.disabled) {
+                  row.classList.add('disabled-row');
+                } else {
+                  row.classList.remove('disabled-row');
+                }
               return row;
             },
           }}

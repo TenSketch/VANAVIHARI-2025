@@ -28,6 +28,7 @@ const reservationSchema = new mongoose.Schema({
   postalCode: String,
   country: String,
   roomPrice: Number,
+  disabled: { type: Boolean, default: false },
   rawSource: { type: mongoose.Schema.Types.Mixed },
 }, { timestamps: true })
 
