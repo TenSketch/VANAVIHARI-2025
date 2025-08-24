@@ -10,7 +10,6 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import GuestData from "./guestdata.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -35,50 +34,65 @@ interface Guest {
   registrationDate: string;
   emailVerificationToken: string;
   accessToken: string;
+  disabled?: boolean;
 }
 
-const guests: Guest[] = GuestData;
-
-const exportToExcel = () => {
-  const headers = [
-    "S.No",
-    "Guest ID",
-    "Full Name",
-    "Phone",
-    "Email",
-    "Address",
-    "Reg. Date",
-    "Email Token",
-    "Access Token",
-  ];
-
-  const csvContent = [
-    headers.join(","),
-    ...guests.map((row, idx) => [
-      idx + 1,
-      `"${row.id}"`,
-      `"${row.fullName}"`,
-      `"${row.phone}"`,
-      `"${row.email}"`,
-      `"${row.address.replace(/"/g, '""')}"`,
-      `"${row.registrationDate}"`,
-      `"${row.emailVerificationToken}"`,
-      `"${row.accessToken}"`
-    ].join(","))
-  ].join("\n");
-
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", "Guest_Records.csv");
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-};
 
 export default function GuestTable() {
   const tableRef = useRef(null);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const guestsRef = useRef<Guest[]>([]);
+  // fetch guests
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
+    const url = apiUrl ? `${apiUrl}/api/guests` : '/api/guests'
+    fetch(url).then(res => res.json()).then((data) => {
+      if (data && data.success && Array.isArray(data.guests)) {
+        const mapped: Guest[] = data.guests.map((g: any) => ({
+          id: String(g._id || g.id || ''),
+          fullName: g.fullName || '',
+          phone: g.phone || '',
+          email: g.email || '',
+          address: [g.addressLine1, g.addressLine2, g.city, g.state, g.postalCode, g.country].filter(Boolean).join(', '),
+          registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
+          emailVerificationToken: '',
+          accessToken: '',
+          disabled: !!g.disabled,
+        }))
+        guestsRef.current = mapped
+        setGuests(mapped)
+        // initialize disabled set from data
+        const initialDisabled = new Set<string>(mapped.filter(m => m.disabled).map(m => m.id))
+        setDisabledGuests(initialDisabled)
+      }
+    }).catch(err => console.warn('Failed to load guests', err))
+  }, [])
+
+  // keep ref in sync
+  useEffect(() => { guestsRef.current = guests }, [guests])
+
+  const exportToExcel = () => {
+    const headers = ["S.No","Guest ID","Full Name","Phone","Email","Address","Reg. Date"]
+    const csvContent = [
+      headers.join(','),
+      ...guests.map((row, idx) => [
+        idx + 1,
+        `"${row.id}"`,
+        `"${row.fullName}"`,
+        `"${row.phone}"`,
+        `"${row.email}"`,
+        `"${(row.address||'').replace(/"/g,'""')}"`,
+        `"${row.registrationDate}"`
+      ].join(','))
+    ].join("\n")
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.setAttribute('href', URL.createObjectURL(blob))
+    link.setAttribute('download', 'Guest_Records.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -98,12 +112,24 @@ export default function GuestTable() {
   };
 
   const confirmDisable = () => {
-    if (disablingGuest) {
-      console.log('Disabling guest:', disablingGuest.id);
-      setDisabledGuests(prev => new Set([...prev, disablingGuest.id]));
+    if (!disablingGuest) return;
+    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
+    const url = apiUrl ? `${apiUrl}/api/guests/${disablingGuest.id}` : `/api/guests/${disablingGuest.id}`
+    fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled: true })
+    }).then(res => res.json()).then((data) => {
+      // optimistic UI update
+      setDisabledGuests(prev => new Set([...Array.from(prev), disablingGuest.id]));
+      setGuests(prev => prev.map(g => g.id === disablingGuest.id ? { ...g, disabled: true } : g));
       setIsConfirmDisableOpen(false);
       setDisablingGuest(null);
-    }
+    }).catch(err => {
+      console.warn('Failed to disable guest', err);
+      setIsConfirmDisableOpen(false);
+      setDisablingGuest(null);
+    })
   };
 
   const cancelDisable = () => {
@@ -112,12 +138,35 @@ export default function GuestTable() {
   };
 
   const handleUpdate = () => {
-    if (editingGuest && formData) {
-      console.log('Updating guest:', formData);
-      setIsEditOpen(false);
-      setEditingGuest(null);
-      setFormData({});
+    if (!editingGuest || !formData) return;
+    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
+    const url = apiUrl ? `${apiUrl}/api/guests/${editingGuest.id}` : `/api/guests/${editingGuest.id}`
+    // build payload - map address into addressLine1 to keep backend simple
+    const payload: any = {
+      fullName: formData.fullName,
+      phone: formData.phone,
+      email: formData.email,
+      registrationDate: formData.registrationDate,
+      addressLine1: (formData.address as string) || undefined,
     }
+    fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(res => res.json()).then((data) => {
+      // update local state
+      const updatedGuests = guests.map(g => g.id === editingGuest.id ? ({ ...g, ...payload }) : g)
+      guestsRef.current = updatedGuests
+      setGuests(updatedGuests)
+      setIsEditOpen(false)
+      setEditingGuest(null)
+      setFormData({})
+    }).catch(err => {
+      console.warn('Failed to update guest', err)
+      setIsEditOpen(false)
+      setEditingGuest(null)
+      setFormData({})
+    })
   };
 
   const handleCancel = () => {
@@ -224,7 +273,7 @@ export default function GuestTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const guestId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const guest = guests.find(g => g.id === guestId);
+      const guest = guestsRef.current.find(g => g.id === guestId);
       
       if (guest) {
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {

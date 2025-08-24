@@ -58,8 +58,38 @@ const AddGuestForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Guest data submitted:", formData);
-    // TODO: Submit data to API
+    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
+    const url = apiUrl ? `${apiUrl}/api/guests` : '/api/guests'
+
+    const form = new FormData()
+    form.append('fullName', formData.fullName)
+    form.append('phone', formData.phone)
+    form.append('email', formData.email)
+    if (formData.profileImage) form.append('profileImage', formData.profileImage)
+    if (formData.dateOfBirth) form.append('dateOfBirth', formData.dateOfBirth)
+    if (formData.nationality) form.append('nationality', formData.nationality)
+    if (formData.addressLine1) form.append('addressLine1', formData.addressLine1)
+    if (formData.addressLine2) form.append('addressLine2', formData.addressLine2)
+    if (formData.city) form.append('city', formData.city)
+    if (formData.state) form.append('state', formData.state)
+    if (formData.postalCode) form.append('postalCode', formData.postalCode)
+    if (formData.country) form.append('country', formData.country)
+    if (formData.registrationDate) form.append('registrationDate', formData.registrationDate)
+    if (formData.registerThrough) form.append('registerThrough', formData.registerThrough)
+    if (formData.emailVerification) form.append('emailVerification', formData.emailVerification)
+
+    fetch(url, {
+      method: 'POST',
+      body: form,
+    }).then(async (res) => {
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Failed to save guest')
+      alert('Guest saved successfully')
+      handleReset()
+    }).catch((err) => {
+      console.error('Error saving guest', err)
+      alert('Error saving guest: ' + (err.message || err))
+    })
   };
 
   const handleReset = () => {

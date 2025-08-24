@@ -102,8 +102,9 @@ const exportToExcel = (rows: Reservation[]) => {
 };
 
 export default function ReservationTable() {
-  const tableRef = useRef(null);
+  const tableRef = useRef<HTMLDivElement | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const reservationsRef = useRef<Reservation[]>([]);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
@@ -132,7 +133,7 @@ export default function ReservationTable() {
         }
         setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
       } catch (err: any) {
-        console.error('Error enabling reservation', err)
+  // ...removed console.error...
         alert('Error enabling reservation: ' + (err.message || err))
       }
     })()
@@ -176,7 +177,7 @@ export default function ReservationTable() {
         setIsConfirmDisableOpen(false)
         setDisablingReservation(null)
       } catch (err: any) {
-        console.error('Error disabling reservation', err)
+  // ...removed console.error...
         alert('Error disabling reservation: ' + (err.message || err))
       }
     })()
@@ -214,7 +215,7 @@ export default function ReservationTable() {
         setEditingReservation(null)
         setFormData({})
       } catch (err: any) {
-        console.error('Error updating reservation', err)
+  // ...removed console.error...
         alert('Error updating reservation: ' + (err.message || err))
       }
     })()
@@ -233,19 +234,20 @@ export default function ReservationTable() {
     }));
   };
 
+  // Effect #1: run once on mount — fetch data, inject styles, attach delegated listener
   useEffect(() => {
-    // fetch reservations from backend (run once)
+    let mounted = true;
+
     (async () => {
       try {
         const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
         const res = await fetch(`${apiUrl}/api/reservations`)
         const data = await res.json()
-        if (res.ok && data && Array.isArray(data.reservations)) {
-          // normalize records into flat table rows with explicit keys expected by DataTable
+        if (mounted && res.ok && data && Array.isArray(data.reservations)) {
           const mapped = data.reservations.map((r: any) => {
             const num = (v: any) => (v == null || v === '') ? 0 : Number(v)
             const roomTypes = Array.isArray(r.roomTypes) ? r.roomTypes : (r.roomTypes ? [String(r.roomTypes)] : [])
-            const row = {
+            return {
               id: String(r._id || r.id || ''),
               fullName: r.fullName || r.full_name || r.name || '',
               phone: r.phone || r.contact || '',
@@ -256,7 +258,7 @@ export default function ReservationTable() {
               children: num(r.children),
               extraGuests: num(r.extraGuests || r.extra_guests),
               rooms: num(r.rooms || r.numberOfRooms || r.number_of_rooms),
-              totalGuests: num(r.totalGuests || r.total_guests || (r.guests ? r.guests : 0)),
+              totalGuests: num(r.totalGuests || r.total_gruests || (r.guests ? r.guests : 0)),
               noOfDays: num(r.noOfDays || r.numberOfDays || r.durationDays),
               noOfFoods: num(r.noOfFoods || r.numberOfFoods),
               resort: r.resort || '',
@@ -268,118 +270,67 @@ export default function ReservationTable() {
               refundPercent: (r.refundPercent != null && r.refundPercent !== '') ? r.refundPercent : (r.refundPercentage != null ? r.refundPercentage : ''),
               disabled: Boolean(r.disabled),
             }
-            return row
           })
-          if (mapped.length > 0) console.debug('First reservation row:', mapped[0])
           setReservations(mapped)
-        } else {
-          console.warn('Unexpected reservations response', data)
         }
       } catch (err) {
-        console.error('Failed to fetch reservations', err)
+        // swallow, UI will show empty state
       }
     })()
 
     const style = document.createElement("style");
     style.innerHTML = `
-      .dt-button-collection {
-        position: fixed !important;
-        z-index: 9999 !important;
-        background: white !important;
-        border: 1px solid #ddd !important;
-        border-radius: 4px !important;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
-      }
-      .dataTables_wrapper .dataTables_filter {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 1rem;
-      }
-      .dataTables_wrapper .dataTables_length {
-        margin-bottom: 1rem;
-      }
-      .dataTables_wrapper {
-        width: 100%;
-        overflow: visible;
-      }
-      /* Fixed header + scrollable body */
-      .dataTables_wrapper .dataTables_scrollBody {
-        overflow-y: auto !important;
-        overflow-x: auto !important;
-        border: 1px solid #ddd;
-        border-radius: 0.5rem;
-      }
-      .dataTables_wrapper table {
-        width: max-content !important;
-        min-width: 100%;
-        margin: 0 !important;
-      }
-      .dataTables_wrapper .dataTables_scrollHead {
-        border-radius: 0.5rem 0.5rem 0 0;
-        position: sticky;
-        top: 0;
-        z-index: 5;
-      }
-      .dataTables_wrapper .dataTables_scrollHeadInner {
-        width: 100% !important;
-      }
-      table.dataTable thead tr th,
-      table.dataTable thead tr td {
-        font-weight: 700 !important;
-      }
-      /* Disabled row styling: dim content except action buttons */
-      table.dataTable tbody tr.disabled-row {
-        background-color: #f5f5f5 !important;
-      }
-      /* Apply strike-through and muted color to all cells except the last (actions) */
-      table.dataTable tbody tr.disabled-row td:not(:last-child),
-      table.dataTable tbody tr.disabled-row td:not(:last-child) * {
-        color: #6b6b6b !important;
-        text-decoration: line-through !important;
-      }
-      table.dataTable tbody tr.disabled-row:hover {
-        background-color: #eeeeee !important;
-      }
-      /* Keep action cell buttons visible and interactive */
-      table.dataTable tbody tr.disabled-row td:last-child,
-      table.dataTable tbody tr.disabled-row td:last-child * {
-        opacity: 1 !important;
-        text-decoration: none !important;
-        color: inherit !important;
-        pointer-events: auto !important;
-      }
-      /* Action button styling */
-      .edit-btn:active {
-        transform: translateY(0) !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-      }
-      .disable-btn:active:not([disabled]) {
-        transform: translateY(0) !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-      }
+      .dt-button-collection { position: fixed !important; z-index: 9999 !important; background: white !important; border: 1px solid #ddd !important; border-radius: 4px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; }
+      .dataTables_wrapper .dataTables_filter { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
+      .dataTables_wrapper .dataTables_length { margin-bottom: 1rem; }
+      .dataTables_wrapper { width: 100%; overflow: visible; }
+      .dataTables_wrapper .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; border: 1px solid #ddd; border-radius: 0.5rem; }
+      .dataTables_wrapper table { width: max-content !important; min-width: 100%; margin: 0 !important; }
+      .dataTables_wrapper .dataTables_scrollHead { border-radius: 0.5rem 0.5rem 0 0; position: sticky; top: 0; z-index: 5; }
+      .dataTables_wrapper .dataTables_scrollHeadInner { width: 100% !important; }
+      table.dataTable thead tr th, table.dataTable thead tr td { font-weight: 700 !important; }
+      table.dataTable tbody tr.disabled-row { background-color: #f5f5f5 !important; }
+      table.dataTable tbody tr.disabled-row td:not(:last-child), table.dataTable tbody tr.disabled-row td:not(:last-child) * { color: #6b6b6b !important; text-decoration: line-through !important; }
+      table.dataTable tbody tr.disabled-row:hover { background-color: #eeeeee !important; }
+      table.dataTable tbody tr.disabled-row td:last-child, table.dataTable tbody tr.disabled-row td:last-child * { opacity: 1 !important; text-decoration: none !important; color: inherit !important; pointer-events: auto !important; }
+      .edit-btn:active { transform: translateY(0) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; }
+      .disable-btn:active:not([disabled]) { transform: translateY(0) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; }
     `;
     document.head.appendChild(style);
 
     const handleButtonClick = (event: Event) => {
-      const target = event.target as HTMLElement;
-      const reservationId = target.getAttribute('data-id');
-      const reservation = reservations.find(r => r.id === reservationId);
+      const target = (event as PointerEvent).target as HTMLElement;
+      const btn = target.closest('[data-id]') as HTMLElement | null;
+      if (!btn) return;
+      const reservationId = btn.getAttribute('data-id');
+      if (!reservationId) return;
 
-      if (reservation) {
-        if (target.classList.contains('edit-btn')) {
-          handleEdit(reservation);
-        } else if (target.classList.contains('disable-btn')) {
-          handleDisable(reservation);
-        } else if (target.classList.contains('enable-btn')) {
-          handleEnable(reservation);
-        }
+      const reservation = reservationsRef.current.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      if (btn.classList.contains('edit-btn')) {
+        handleEdit(reservation);
+      } else if (btn.classList.contains('disable-btn')) {
+        handleDisable(reservation);
+      } else if (btn.classList.contains('enable-btn')) {
+        handleEnable(reservation);
       }
     };
 
-    // Add event listener for edit and disable buttons
-    document.addEventListener('click', handleButtonClick);
-    return () => document.removeEventListener('click', handleButtonClick);
+    const container = tableRef.current ?? document;
+    const eventName = 'pointerdown';
+    container.addEventListener(eventName, handleButtonClick as EventListener);
+
+    return () => {
+      mounted = false;
+      container.removeEventListener(eventName, handleButtonClick as EventListener);
+      if (style && style.parentNode) style.parentNode.removeChild(style);
+    };
+  }, []);
+
+  // Effect #2: keep reservationsRef up to date without re-running heavy DOM work
+  useEffect(() => {
+    reservationsRef.current = reservations;
   }, [reservations]);
 
   const columns = [
