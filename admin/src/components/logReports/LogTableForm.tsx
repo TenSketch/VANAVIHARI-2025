@@ -32,8 +32,40 @@ const AddLogForm = () => {
   // submit handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Log Form Data:", formData);
-    // API call or logic to save log entry
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+
+    // prepare payload
+    const payload = { ...formData }
+
+    fetch(`${apiBase}/api/logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        let parsed = null
+        try {
+          const text = await res.text()
+          parsed = text ? JSON.parse(text) : null
+        } catch (e) {
+          parsed = null
+        }
+
+        if (!res.ok) {
+          const errMsg = (parsed && parsed.error) || res.statusText || 'Failed to save log'
+          throw new Error(errMsg)
+        }
+
+        return parsed
+      })
+      .then(() => {
+        alert('Log saved')
+        handleReset()
+      })
+      .catch((err) => {
+        console.error('Save log error', err)
+        alert('Error: ' + err.message)
+      })
   };
 
   // reset handler

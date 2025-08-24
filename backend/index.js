@@ -8,6 +8,7 @@ import cottageTypeRouter from './routes/cottageTypeRoutes.js'
 import roomRouter from './routes/roomRoutes.js'
 import amenityRouter from './routes/amenityRoutes.js'
 import reservationRouter from './routes/reservationRoutes.js'
+import logRouter from './routes/logRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 
 //App config
@@ -37,6 +38,7 @@ app.use('/api/cottage-types', cottageTypeRouter)
 app.use('/api/rooms', roomRouter)
 app.use('/api/amenities', amenityRouter)
 app.use('/api/reservations', reservationRouter)
+app.use('/api/logs', logRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'
