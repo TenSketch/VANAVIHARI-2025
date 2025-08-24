@@ -10,23 +10,55 @@ import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import AllLogs from "./logs.json";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 DataTable.use(DT);
 
 interface LogEntry {
+  _id?: string;
   bookingId: string;
   username: string;
   logType: string;
   logMessage: string;
   logEntryDate: string; // ISO date string
+  createdAt?: string;
+  updatedAt?: string;
 }
-
-const logsData: LogEntry[] = AllLogs;
 
 export default function LogsTable() {
   const tableRef = useRef(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch logs from API
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setLoading(true);
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+        const res = await fetch(`${apiBase}/api/logs`);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch logs: ${res.status} ${res.statusText}`);
+        }
+
+        const data = await res.json();
+        if (data.success && Array.isArray(data.logs)) {
+          setLogs(data.logs);
+        } else {
+          throw new Error('Invalid response format');
+        }
+      } catch (err) {
+        console.error('Error fetching logs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch logs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, []);
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -147,38 +179,50 @@ export default function LogsTable() {
         <h2 className="text-xl font-semibold text-slate-800">Logs Table</h2>
       </div>
       <div className="flex-1 px-3 py-4 overflow-hidden">
-        <div ref={tableRef} className="h-full">
-          <DataTable
-            data={logsData}
-            columns={columns}
-            className="display nowrap w-full"
-            options={{
-              pageLength: 10,
-              lengthMenu: [5, 10, 25, 50, 100],
-              order: [[0, 'desc']], // Updated index for date column
-              searching: true,
-              paging: true,
-              info: true,
-              scrollX: true,
-              scrollY: "400px",
-              scrollCollapse: true,
-              layout: {
-                topStart: 'buttons',
-                topEnd: 'search',
-                bottomStart: 'pageLength',
-                bottomEnd: 'paging'
-              },
-              buttons: [
-                {
-                  extend: 'colvis',
-                  text: 'Column Visibility',
-                  collectionLayout: 'fixed two-column'
-                }
-              ],
-              columnControl: ['order', ['orderAsc', 'orderDesc', 'spacer', 'search']],
-            }}
-          />
-        </div>
+        {loading && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-slate-600">Loading logs...</div>
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-red-600">Error: {error}</div>
+          </div>
+        )}
+        {!loading && !error && (
+          <div ref={tableRef} className="h-full">
+            <DataTable
+              data={logs}
+              columns={columns}
+              className="display nowrap w-full"
+              options={{
+                pageLength: 10,
+                lengthMenu: [5, 10, 25, 50, 100],
+                order: [[5, 'desc']], // Order by log entry date (index 5)
+                searching: true,
+                paging: true,
+                info: true,
+                scrollX: true,
+                scrollY: "400px",
+                scrollCollapse: true,
+                layout: {
+                  topStart: 'buttons',
+                  topEnd: 'search',
+                  bottomStart: 'pageLength',
+                  bottomEnd: 'paging'
+                },
+                buttons: [
+                  {
+                    extend: 'colvis',
+                    text: 'Column Visibility',
+                    collectionLayout: 'fixed two-column'
+                  }
+                ],
+                columnControl: ['order', ['orderAsc', 'orderDesc', 'spacer', 'search']],
+              }}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
