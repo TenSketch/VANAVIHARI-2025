@@ -56,7 +56,62 @@ export default function AddReservationForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
+    // send to backend
+    (async () => {
+      try {
+        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+        const res = await fetch(`${apiUrl}/api/reservations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+        const contentType = res.headers.get('content-type') || ''
+        let data: any = null
+        if (contentType.includes('application/json')) {
+          data = await res.json()
+        } else {
+          // if server returns HTML (e.g. index.html) or plain text, capture it for debugging
+          const text = await res.text()
+          throw new Error(`Unexpected response from server: ${text.slice(0, 200)}`)
+        }
+        if (!res.ok) throw new Error(data.error || 'Failed to save reservation')
+        // simple feedback
+        alert('Reservation saved successfully')
+        // reset form
+        setFormData({
+          resort: "",
+          cottageType: "",
+          room: "",
+          checkIn: "",
+          checkOut: "",
+          guests: "",
+          extraGuests: "",
+          children: "",
+          status: "reserved",
+          bookingId: "",
+          reservationDate: format(new Date(), "yyyy-MM-dd"),
+          numberOfRooms: "",
+          totalPayable: "₹0",
+          paymentStatus: "Paid",
+          refundPercentage: "",
+          existingGuest: "",
+          fullName: "",
+          phone: "",
+          altPhone: "",
+          email: "",
+          address1: "",
+          address2: "",
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "",
+          roomPrice: "₹0",
+        })
+      } catch (err: any) {
+        console.error(err)
+        alert('Error saving reservation: ' + (err.message || err))
+      }
+    })()
   };
 
   return (
