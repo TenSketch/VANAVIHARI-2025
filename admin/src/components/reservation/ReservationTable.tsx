@@ -50,12 +50,15 @@ interface Reservation {
   reservationDate: string;
   paymentStatus: string;
   refundPercent: string;
+  disabled?: boolean;
 }
 
 
 
 // Export to CSV
 const exportToExcel = (rows: Reservation[]) => {
+  // Filter out disabled reservations
+  const enabledRows = rows.filter((row) => !row.disabled);
   const headers = [
     "Full Name", "Phone", "Email", "Check In", "Check Out", "Guests",
     "Children", "Extra Guests", "Rooms", "Total Guests", "No. of Days",
@@ -65,7 +68,7 @@ const exportToExcel = (rows: Reservation[]) => {
 
   const csvContent = [
     headers.join(","),
-    ...rows.map((row: Reservation) => [
+    ...enabledRows.map((row: Reservation) => [
       `"${row.fullName || ''}"`,
       `"${row.phone || ''}"`,
       `"${row.email || ''}"`,
