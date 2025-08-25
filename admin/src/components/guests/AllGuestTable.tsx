@@ -10,6 +10,7 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
+import GuestData from "./guestdata.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -19,9 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
@@ -34,69 +43,56 @@ interface Guest {
   registrationDate: string;
   emailVerificationToken: string;
   accessToken: string;
-  disabled?: boolean;
 }
 
+const guests: Guest[] = GuestData;
+
+const exportToExcel = () => {
+  const headers = [
+    "S.No",
+    "Guest ID",
+    "Full Name",
+    "Phone",
+    "Email",
+    "Address",
+    "Reg. Date",
+    "Email Token",
+    "Access Token",
+  ];
+
+  const csvContent = [
+    headers.join(","),
+    ...guests.map((row, idx) => [
+      idx + 1,
+      `"${row.id}"`,
+      `"${row.fullName}"`,
+      `"${row.phone}"`,
+      `"${row.email}"`,
+      `"${row.address.replace(/"/g, '""')}"`,
+      `"${row.registrationDate}"`,
+      `"${row.emailVerificationToken}"`,
+      `"${row.accessToken}"`
+    ].join(","))
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", "Guest_Records.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export default function GuestTable() {
   const tableRef = useRef(null);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const guestsRef = useRef<Guest[]>([]);
-  // fetch guests
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
-    const url = apiUrl ? `${apiUrl}/api/guests` : '/api/guests'
-    fetch(url).then(res => res.json()).then((data) => {
-      if (data && data.success && Array.isArray(data.guests)) {
-        const mapped: Guest[] = data.guests.map((g: any) => ({
-          id: String(g._id || g.id || ''),
-          fullName: g.fullName || '',
-          phone: g.phone || '',
-          email: g.email || '',
-          address: [g.addressLine1, g.addressLine2, g.city, g.state, g.postalCode, g.country].filter(Boolean).join(', '),
-          registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
-          emailVerificationToken: '',
-          accessToken: '',
-          disabled: !!g.disabled,
-        }))
-        guestsRef.current = mapped
-        setGuests(mapped)
-        // initialize disabled set from data
-        const initialDisabled = new Set<string>(mapped.filter(m => m.disabled).map(m => m.id))
-        setDisabledGuests(initialDisabled)
-      }
-    }).catch(err => console.warn('Failed to load guests', err))
-  }, [])
-
-  // keep ref in sync
-  useEffect(() => { guestsRef.current = guests }, [guests])
-
-  const exportToExcel = () => {
-    const headers = ["S.No","Guest ID","Full Name","Phone","Email","Address","Reg. Date"]
-    const csvContent = [
-      headers.join(','),
-      ...guests.map((row, idx) => [
-        idx + 1,
-        `"${row.id}"`,
-        `"${row.fullName}"`,
-        `"${row.phone}"`,
-        `"${row.email}"`,
-        `"${(row.address||'').replace(/"/g,'""')}"`,
-        `"${row.registrationDate}"`
-      ].join(','))
-    ].join("\n")
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.setAttribute('href', URL.createObjectURL(blob))
-    link.setAttribute('download', 'Guest_Records.csv')
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [disablingGuest, setDisablingGuest] = useState<Guest | null>(null);
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [disabledGuests, setDisabledGuests] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Guest>>({});
 
@@ -111,25 +107,18 @@ export default function GuestTable() {
     setIsConfirmDisableOpen(true);
   };
 
+  const handleRowClick = (guest: Guest) => {
+    setSelectedGuest(guest);
+    setIsDetailSheetOpen(true);
+  };
+
   const confirmDisable = () => {
-    if (!disablingGuest) return;
-    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
-    const url = apiUrl ? `${apiUrl}/api/guests/${disablingGuest.id}` : `/api/guests/${disablingGuest.id}`
-    fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ disabled: true })
-    }).then(res => res.json()).then((data) => {
-      // optimistic UI update
-      setDisabledGuests(prev => new Set([...Array.from(prev), disablingGuest.id]));
-      setGuests(prev => prev.map(g => g.id === disablingGuest.id ? { ...g, disabled: true } : g));
+    if (disablingGuest) {
+      console.log('Disabling guest:', disablingGuest.id);
+      setDisabledGuests(prev => new Set([...prev, disablingGuest.id]));
       setIsConfirmDisableOpen(false);
       setDisablingGuest(null);
-    }).catch(err => {
-      console.warn('Failed to disable guest', err);
-      setIsConfirmDisableOpen(false);
-      setDisablingGuest(null);
-    })
+    }
   };
 
   const cancelDisable = () => {
@@ -138,35 +127,12 @@ export default function GuestTable() {
   };
 
   const handleUpdate = () => {
-    if (!editingGuest || !formData) return;
-    const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_ADMIN_API || ''
-    const url = apiUrl ? `${apiUrl}/api/guests/${editingGuest.id}` : `/api/guests/${editingGuest.id}`
-    // build payload - map address into addressLine1 to keep backend simple
-    const payload: any = {
-      fullName: formData.fullName,
-      phone: formData.phone,
-      email: formData.email,
-      registrationDate: formData.registrationDate,
-      addressLine1: (formData.address as string) || undefined,
+    if (editingGuest && formData) {
+      console.log('Updating guest:', formData);
+      setIsEditOpen(false);
+      setEditingGuest(null);
+      setFormData({});
     }
-    fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).then(res => res.json()).then((data) => {
-      // update local state
-      const updatedGuests = guests.map(g => g.id === editingGuest.id ? ({ ...g, ...payload }) : g)
-      guestsRef.current = updatedGuests
-      setGuests(updatedGuests)
-      setIsEditOpen(false)
-      setEditingGuest(null)
-      setFormData({})
-    }).catch(err => {
-      console.warn('Failed to update guest', err)
-      setIsEditOpen(false)
-      setEditingGuest(null)
-      setFormData({})
-    })
   };
 
   const handleCancel = () => {
@@ -267,15 +233,29 @@ export default function GuestTable() {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
+      /* Clickable row styling */
+      table.dataTable tbody tr {
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+      }
+      table.dataTable tbody tr:hover:not(.disabled-row) {
+        background-color: #f8fafc !important;
+      }
+      table.dataTable tbody tr:hover.disabled-row {
+        background-color: #eeeeee !important;
+      }
     `;
     document.head.appendChild(style);
 
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const guestId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const guest = guestsRef.current.find(g => g.id === guestId);
+      const guest = guests.find(g => g.id === guestId);
       
       if (guest) {
+        // Stop propagation to prevent row click when button is clicked
+        event.stopPropagation();
+        
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           handleEdit(guest);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
@@ -284,7 +264,31 @@ export default function GuestTable() {
       }
     };
 
+    const handleTableRowClick = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't trigger row click if a button was clicked
+      if (target.closest('.edit-btn, .disable-btn')) {
+        return;
+      }
+      
+      const row = target.closest('tr');
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+        const guest = guests[rowIndex];
+        if (guest) {
+          handleRowClick(guest);
+        }
+      }
+    };
+
     document.addEventListener('click', handleButtonClick);
+    document.addEventListener('click', handleTableRowClick);
+
+    return () => {
+      document.removeEventListener('click', handleButtonClick);
+      document.removeEventListener('click', handleTableRowClick);
+    };
 
   }, []);
 
@@ -370,7 +374,7 @@ export default function GuestTable() {
   ];
 
   return (
-    <div className="flex flex-col h-full max-h-screen overflow-hidden p-3 py-6">
+    <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-800">Guest Records</h2>
         <button
@@ -389,7 +393,7 @@ export default function GuestTable() {
         <DataTable
           data={guests}
           columns={columns}
-          className="display nowrap w-full"
+          className="display nowrap w-full border border-gray-400"
           options={{
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50, 100],
@@ -535,6 +539,119 @@ export default function GuestTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Guest Details Sheet */}
+      <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
+        <SheetContent className="w-[400px] sm:max-w-[600px] sm:w-[700px] lg:w-[800px] flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Guest Details</SheetTitle>
+            <SheetDescription>
+              Complete information about the selected guest
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedGuest && (
+            <>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Guest ID</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedGuest.id}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedGuest.fullName}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedGuest.phone}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedGuest.email}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Address</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
+                      <span className="text-sm text-gray-900">{selectedGuest.address}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedGuest.registrationDate}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Email Verification Token</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.emailVerificationToken}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Access Token</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.accessToken}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Status</Label>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={disabledGuests.has(selectedGuest.id) ? "destructive" : "default"}
+                        className="px-2 py-1"
+                      >
+                        {disabledGuests.has(selectedGuest.id) ? "Disabled" : "Active"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Fixed Action Buttons */}
+              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
+                <Button 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleEdit(selectedGuest);
+                  }}
+                  className="flex-1"
+                  disabled={disabledGuests.has(selectedGuest.id)}
+                >
+                  Edit Guest
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleDisable(selectedGuest);
+                  }}
+                  disabled={disabledGuests.has(selectedGuest.id)}
+                >
+                  Disable
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

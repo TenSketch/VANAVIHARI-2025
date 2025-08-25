@@ -128,6 +128,15 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       ],
     },
     {
+      id: "touristspots",
+      label: "Tourist Spots",
+      icon: Calendar,
+      children: [
+        { label: "Add Tourist Spots", path: "/touristspots/add", icon: Plus },
+        { label: "All Tourist Spots", path: "/touristspots/all", icon: Calendar },
+      ],
+    },
+    {
       id: "log-reports",
       label: "Log Reports",
       icon: FileText,

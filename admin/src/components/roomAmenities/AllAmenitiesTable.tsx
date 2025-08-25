@@ -10,6 +10,7 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns"; 
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
+import Amenitydata from "./amenitydata.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -19,9 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
@@ -32,22 +41,18 @@ interface Amenity {
   isActive: boolean;
 }
 
-// Load amenities from backend (MongoDB via API)
-const API_BASE = import.meta.env.VITE_API_URL || '';
-const API_PATH = API_BASE ? `${API_BASE.replace(/\/$/, '')}/api/amenities` : '/api/amenities';
+const amenities: Amenity[] = Amenitydata;
 
 export default function AllRoomAmenitiesTable() {
   const tableRef = useRef(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState<Amenity | null>(null);
   const [disablingAmenity, setDisablingAmenity] = useState<Amenity | null>(null);
+  const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
   const [disabledAmenities, setDisabledAmenities] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Amenity>>({});
-  const [amenities, setAmenities] = useState<Amenity[]>([]);
-  const amenitiesRef = useRef<Amenity[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleEdit = (amenity: Amenity) => {
     setEditingAmenity(amenity);
@@ -58,6 +63,11 @@ export default function AllRoomAmenitiesTable() {
   const handleDisable = (amenity: Amenity) => {
     setDisablingAmenity(amenity);
     setIsConfirmDisableOpen(true);
+  };
+
+  const handleRowClick = (amenity: Amenity) => {
+    setSelectedAmenity(amenity);
+    setIsDetailSheetOpen(true);
   };
 
   const confirmDisable = () => {
@@ -185,16 +195,29 @@ export default function AllRoomAmenitiesTable() {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
+      /* Clickable row styling */
+      table.dataTable tbody tr {
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+      }
+      table.dataTable tbody tr:hover:not(.disabled-row) {
+        background-color: #f8fafc !important;
+      }
+      table.dataTable tbody tr:hover.disabled-row {
+        background-color: #eeeeee !important;
+      }
     `;
     document.head.appendChild(style);
 
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const amenityId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      if (!amenityId) return;
-      const amenity = amenitiesRef.current.find((a) => a.id === amenityId);
-
+      const amenity = amenities.find(a => a.id === amenityId);
+      
       if (amenity) {
+        // Stop propagation to prevent row click when button is clicked
+        event.stopPropagation();
+        
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           handleEdit(amenity);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
@@ -202,42 +225,33 @@ export default function AllRoomAmenitiesTable() {
         }
       }
     };
+
+    const handleTableRowClick = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't trigger row click if a button was clicked
+      if (target.closest('.edit-btn, .disable-btn')) {
+        return;
+      }
+      
+      const row = target.closest('tr');
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+        const amenity = amenities[rowIndex];
+        if (amenity) {
+          handleRowClick(amenity);
+        }
+      }
+    };
+
     // Add event listener for edit and disable buttons
     document.addEventListener('click', handleButtonClick);
+    document.addEventListener('click', handleTableRowClick);
 
     return () => {
       document.removeEventListener('click', handleButtonClick);
+      document.removeEventListener('click', handleTableRowClick);
     };
-  }, []);
-
-  // keep ref up-to-date for event handlers outside react lifecycle
-  useEffect(() => { amenitiesRef.current = amenities; }, [amenities]);
-
-  // Fetch amenities from backend once component mounts
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(API_PATH, { headers: { Accept: 'application/json' } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const contentType = (res.headers.get('content-type') || '').toLowerCase();
-        if (!contentType.includes('application/json')) {
-          const text = await res.text();
-          // Likely an HTML response (index.html) — usually means backend not reachable or proxy not set up
-          throw new Error(`Expected JSON from ${API_PATH} but received: ${text.slice(0, 300)}`);
-        }
-        const json = await res.json();
-        if (!cancelled) setAmenities(Array.isArray(json.amenities) ? json.amenities : json);
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load amenities');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => { cancelled = true; };
   }, []);
 
   const columns = [
@@ -320,18 +334,13 @@ export default function AllRoomAmenitiesTable() {
   ];
 
   return (
-    <div className="flex flex-col h-full max-h-screen overflow-hidden p-3 py-6">
+    <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
       <h2 className="text-xl font-semibold text-slate-800 mb-4 flex-shrink-0">Room Amenities</h2>
       <div ref={tableRef} className="flex-1 overflow-hidden">
-        {loading ? (
-          <div className="p-4">Loading amenities…</div>
-        ) : error ? (
-          <div className="p-4 text-red-600">Error: {error}</div>
-        ) : (
         <DataTable
           data={amenities}
           columns={columns}
-          className="display nowrap w-full"
+          className="display nowrap w-full border border-gray-400"
           options={{
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50],
@@ -366,7 +375,6 @@ export default function AllRoomAmenitiesTable() {
             },
           }}
         />
-        )}
       </div>
 
       {/* Edit Dialog */}
@@ -474,6 +482,98 @@ export default function AllRoomAmenitiesTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Amenity Details Sheet */}
+      <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
+        <SheetContent className="w-[400px] sm:w-[600px] lg:w-[800px] flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Amenity Details</SheetTitle>
+            <SheetDescription>
+              Complete information about the selected room amenity
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedAmenity && (
+            <>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Amenity ID</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedAmenity.id}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Amenity Name</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <span className="text-sm text-gray-900">{selectedAmenity.name}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Description</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
+                      <span className="text-sm text-gray-900">
+                        {selectedAmenity.description || "No description provided"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Status</Label>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={selectedAmenity.isActive ? "default" : "destructive"}
+                        className="px-2 py-1"
+                      >
+                        {selectedAmenity.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700">Record Status</Label>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={disabledAmenities.has(selectedAmenity.id) ? "destructive" : "default"}
+                        className="px-2 py-1"
+                      >
+                        {disabledAmenities.has(selectedAmenity.id) ? "Disabled" : "Enabled"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Fixed Action Buttons */}
+              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
+                <Button 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleEdit(selectedAmenity);
+                  }}
+                  className="flex-1"
+                  disabled={disabledAmenities.has(selectedAmenity.id)}
+                >
+                  Edit Amenity
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleDisable(selectedAmenity);
+                  }}
+                  disabled={disabledAmenities.has(selectedAmenity.id)}
+                >
+                  Disable
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

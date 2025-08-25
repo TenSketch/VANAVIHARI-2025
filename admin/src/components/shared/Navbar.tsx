@@ -1,8 +1,9 @@
 
-import { Menu, User, Home, LogOut, Bell } from "lucide-react";
+import { Menu, User, Home, LogOut} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router";
 import Breadcrumb from "./Breadcrumb";
+import NotificationDropdown from "./NotificationDropDown";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,8 @@ const breadcrumbMap: Record<string, string[]> = {
   "/cottage-types/add": ["Cottage Types", "Add Type"],
   "/room-amenities/all": ["Room Amenities", "All Amenities"],
   "/room-amenities/add": ["Room Amenities", "Add Amenity"],
+  "/touristspots/add": ["Tourist Spots", "Add Tourist Spots"],
+  "/touristspots/all": ["Tourist Spots", "Add Tourist Spots"],
 };
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
@@ -79,10 +82,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
 
         {/* Right side */}
         <div className="flex items-center">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
-
+          <NotificationDropdown/>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2">

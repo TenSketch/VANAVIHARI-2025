@@ -10,6 +10,7 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
+import cottageTypesData from "./cottagetypes.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -19,9 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
@@ -33,46 +42,16 @@ interface CottageType {
   roomAmenities: string[];
 }
 
-// live data from backend
-const useCottageTypes = () => {
-  const [cottageTypes, setCottageTypes] = useState<CottageType[]>([])
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-        const res = await fetch(apiBase + '/api/cottage-types')
-        if (!res.ok) throw new Error('Failed to fetch cottage types')
-        const json = await res.json()
-        const list = (json && (json.cottageTypes || json.cottage_types || json.data)) || []
-
-        const mapped = list.map((ct: any) => ({
-          id: ct._id || ct.id,
-          cottageName: ct.name || ct.cottageName || '',
-          resort: ct.resort && (typeof ct.resort === 'string' ? ct.resort : (ct.resort.resortName || ct.resort.name || ct.resort.resortName || '')) || '',
-          description: ct.description || '',
-          roomAmenities: Array.isArray(ct.amenities) ? ct.amenities : (ct.roomAmenities || []),
-        }))
-
-        setCottageTypes(mapped)
-      } catch (e) {
-        console.warn('Could not load cottage types', e)
-      }
-    }
-
-    load()
-  }, [])
-
-  return cottageTypes
-}
+const cottageTypes: CottageType[] = cottageTypesData;
 
 export default function CottageDataTable() {
   const tableRef = useRef(null);
-  const cottageTypes = useCottageTypes()
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingCottage, setEditingCottage] = useState<CottageType | null>(null);
   const [disablingCottage, setDisablingCottage] = useState<CottageType | null>(null);
+  const [selectedCottage, setSelectedCottage] = useState<CottageType | null>(null);
   const [disabledCottages, setDisabledCottages] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<CottageType>>({});
 
@@ -85,6 +64,11 @@ export default function CottageDataTable() {
   const handleDisable = (cottage: CottageType) => {
     setDisablingCottage(cottage);
     setIsConfirmDisableOpen(true);
+  };
+
+  const handleRowClick = (cottage: CottageType) => {
+    setSelectedCottage(cottage);
+    setIsDetailSheetOpen(true);
   };
 
   const confirmDisable = () => {
@@ -209,6 +193,17 @@ export default function CottageDataTable() {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
+      /* Clickable row styling */
+      table.dataTable tbody tr {
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+      }
+      table.dataTable tbody tr:hover:not(.disabled-row) {
+        background-color: #f8fafc !important;
+      }
+      table.dataTable tbody tr:hover.disabled-row {
+        background-color: #eeeeee !important;
+      }
     `;
     document.head.appendChild(style);
 
@@ -218,6 +213,9 @@ export default function CottageDataTable() {
       const cottage = cottageTypes.find(c => c.id === cottageId);
       
       if (cottage) {
+        // Stop propagation to prevent row click when button is clicked
+        event.stopPropagation();
+        
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           handleEdit(cottage);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
@@ -226,7 +224,31 @@ export default function CottageDataTable() {
       }
     };
 
+    const handleTableRowClick = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't trigger row click if a button was clicked
+      if (target.closest('.edit-btn, .disable-btn')) {
+        return;
+      }
+      
+      const row = target.closest('tr');
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+        const cottage = cottageTypes[rowIndex];
+        if (cottage) {
+          handleRowClick(cottage);
+        }
+      }
+    };
+
     document.addEventListener('click', handleButtonClick);
+    document.addEventListener('click', handleTableRowClick);
+
+    return () => {
+      document.removeEventListener('click', handleButtonClick);
+      document.removeEventListener('click', handleTableRowClick);
+    };
 
   }, []);
 
@@ -335,13 +357,13 @@ export default function CottageDataTable() {
 
 
   return (
-    <div className="flex flex-col h-full max-h-screen overflow-hidden p-3 py-8">
+    <div className="flex flex-col h-full max-h-screen overflow-hidden py-8">
       <h2 className="text-xl font-semibold text-slate-800 mb-4">Cottage Types</h2>
       <div ref={tableRef} className="flex-1 overflow-hidden">
         <DataTable
           data={cottageTypes}
           columns={columns}
-          className="display nowrap w-full"
+          className="display nowrap w-full border border-gray-400"
           options={{
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50, 100],
@@ -485,6 +507,100 @@ export default function CottageDataTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cottage Details Sheet */}
+      <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
+        <SheetContent className="w-[400px] sm:max-w-[600px] sm:w-[700px] lg:w-[800px]">
+          <SheetHeader>
+            <SheetTitle>Cottage Details</SheetTitle>
+            <SheetDescription>
+              Complete information about the selected cottage type
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedCottage && (
+            <div className="flex flex-col gap-6 py-4 p-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Cottage ID</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                    <span className="text-sm text-gray-900">{selectedCottage.id}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Cottage Name</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                    <span className="text-sm text-gray-900">{selectedCottage.cottageName}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Resort</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                    <span className="text-sm text-gray-900">{selectedCottage.resort}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Description</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
+                    <span className="text-sm text-gray-900">{selectedCottage.description}</span>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Room Amenities</Label>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedCottage.roomAmenities.map((amenity, index) => (
+                      <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
+                        {amenity}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Status</Label>
+                  <div className="mt-1">
+                    <Badge 
+                      variant={disabledCottages.has(selectedCottage.id) ? "destructive" : "default"}
+                      className="px-2 py-1"
+                    >
+                      {disabledCottages.has(selectedCottage.id) ? "Disabled" : "Active"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleEdit(selectedCottage);
+                  }}
+                  className="flex-1"
+                  disabled={disabledCottages.has(selectedCottage.id)}
+                >
+                  Edit Cottage
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleDisable(selectedCottage);
+                  }}
+                  disabled={disabledCottages.has(selectedCottage.id)}
+                >
+                  Disable
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

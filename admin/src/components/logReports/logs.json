@@ -1,0 +1,37 @@
+[
+  {
+    "bookingId": "BKG-1001",
+    "username": "john_doe",
+    "logType": "INFO",
+    "logMessage": "Booking confirmed successfully.",
+    "logEntryDate": "2025-08-10T14:23:00Z"
+  },
+  {
+    "bookingId": "BKG-1002",
+    "username": "jane_smith",
+    "logType": "WARNING",
+    "logMessage": "Payment delayed. Awaiting confirmation.",
+    "logEntryDate": "2025-08-10T16:45:12Z"
+  },
+  {
+    "bookingId": "BKG-1003",
+    "username": "admin_user",
+    "logType": "ERROR",
+    "logMessage": "System failed to update booking status.",
+    "logEntryDate": "2025-08-11T09:12:45Z"
+  },
+  {
+    "bookingId": "BKG-1004",
+    "username": "mike_lee",
+    "logType": "INFO",
+    "logMessage": "Guest checked in successfully.",
+    "logEntryDate": "2025-08-12T08:30:00Z"
+  },
+  {
+    "bookingId": "BKG-1005",
+    "username": "linda_white",
+    "logType": "INFO",
+    "logMessage": "Booking cancelled by user.",
+    "logEntryDate": "2025-08-12T11:05:30Z"
+  }
+]

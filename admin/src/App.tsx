@@ -38,6 +38,9 @@ const AddRoomAmenitiesPage = lazy(
   () => import("./pages/roomAmenities/AddRoomAmenitiesPage")
 );
 
+const AddTouristSpot = lazy(() => import("./pages/TouristSpot/AddTouristSpot"));
+const AllTouristSpot = lazy(() => import("./pages/TouristSpot/AllTouristSpot"));
+
 function App() {
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -64,6 +67,8 @@ function App() {
           <Route path="cottage-types/add" element={<AddCottageTypePage />} />
           <Route path="room-amenities/all" element={<AllRoomAmenitiesPage />} />
           <Route path="room-amenities/add" element={<AddRoomAmenitiesPage />} />
+          <Route path="touristspots/add" element={<AddTouristSpot />} />
+          <Route path="touristspots/all" element={<AllTouristSpot />} />
         </Route>
       </Routes>
     </Suspense>

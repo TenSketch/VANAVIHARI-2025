@@ -14,6 +14,7 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
+import reservationdata from "./reservationtable.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -23,9 +24,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
@@ -50,15 +59,12 @@ interface Reservation {
   reservationDate: string;
   paymentStatus: string;
   refundPercent: string;
-  disabled?: boolean;
 }
 
-
+const reservations: Reservation[] = reservationdata;
 
 // Export to CSV
-const exportToExcel = (rows: Reservation[]) => {
-  // Filter out disabled reservations
-  const enabledRows = rows.filter((row) => !row.disabled);
+const exportToExcel = () => {
   const headers = [
     "Full Name", "Phone", "Email", "Check In", "Check Out", "Guests",
     "Children", "Extra Guests", "Rooms", "Total Guests", "No. of Days",
@@ -68,26 +74,26 @@ const exportToExcel = (rows: Reservation[]) => {
 
   const csvContent = [
     headers.join(","),
-    ...enabledRows.map((row: Reservation) => [
-      `"${row.fullName || ''}"`,
-      `"${row.phone || ''}"`,
-      `"${row.email || ''}"`,
-      `"${row.checkIn || ''}"`,
-      `"${row.checkOut || ''}"`,
-      row.guests || 0,
-      row.children || 0,
-      row.extraGuests || 0,
-      row.rooms || 0,
-      row.totalGuests || 0,
-      row.noOfDays || 0,
-      row.noOfFoods || 0,
-      `"${row.resort || ''}"`,
-      `"${(row.roomTypes || []).join(', ')}"`,
-      `"${row.bookingId || ''}"`,
-      `"${row.status || ''}"`,
-      `"${row.reservationDate || ''}"`,
-      `"${row.paymentStatus || ''}"`,
-      `"${row.refundPercent || ''}"`
+    ...reservations.map(row => [
+      `"${row.fullName}"`,
+      `"${row.phone}"`,
+      `"${row.email}"`,
+      `"${row.checkIn}"`,
+      `"${row.checkOut}"`,
+      row.guests,
+      row.children,
+      row.extraGuests,
+      row.rooms,
+      row.totalGuests,
+      row.noOfDays,
+      row.noOfFoods,
+      `"${row.resort}"`,
+      `"${row.roomTypes.join(', ')}"`,
+      `"${row.bookingId}"`,
+      `"${row.status}"`,
+      `"${row.reservationDate}"`,
+      `"${row.paymentStatus}"`,
+      `"${row.refundPercent}"`
     ].join(","))
   ].join("\n");
 
@@ -102,42 +108,14 @@ const exportToExcel = (rows: Reservation[]) => {
 };
 
 export default function ReservationTable() {
-  const tableRef = useRef<HTMLDivElement | null>(null);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const reservationsRef = useRef<Reservation[]>([]);
+  const tableRef = useRef(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [disablingReservation, setDisablingReservation] = useState<Reservation | null>(null);
-
-  // Enable a previously disabled reservation
-  const handleEnable = (reservation: Reservation) => {
-    (async () => {
-      try {
-        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
-        const res = await fetch(`${apiUrl}/api/reservations/${reservation.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ disabled: false })
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Failed to enable reservation')
-        const updated = {
-          ...data.reservation,
-          id: String(data.reservation._id || data.reservation.id || reservation.id),
-          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
-          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
-          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
-          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
-          disabled: Boolean(data.reservation.disabled),
-        }
-        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
-      } catch (err: any) {
-  // ...removed console.error...
-        alert('Error enabling reservation: ' + (err.message || err))
-      }
-    })()
-  }
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [disabledReservations, setDisabledReservations] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Reservation>>({});
 
   const handleEdit = (reservation: Reservation) => {
@@ -151,36 +129,18 @@ export default function ReservationTable() {
     setIsConfirmDisableOpen(true);
   };
 
+  const handleRowClick = (reservation: Reservation) => {
+    setSelectedReservation(reservation);
+    setIsDetailSheetOpen(true);
+  };
+
   const confirmDisable = () => {
-    (async () => {
-      if (!disablingReservation) return
-      try {
-        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
-        const res = await fetch(`${apiUrl}/api/reservations/${disablingReservation.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ disabled: true })
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Failed to disable reservation')
-        // mark disabled locally
-        const updated = {
-          ...data.reservation,
-          id: String(data.reservation._id || data.reservation.id || disablingReservation.id),
-          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
-          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
-          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
-          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
-          disabled: Boolean(data.reservation.disabled),
-        }
-        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
-        setIsConfirmDisableOpen(false)
-        setDisablingReservation(null)
-      } catch (err: any) {
-  // ...removed console.error...
-        alert('Error disabling reservation: ' + (err.message || err))
-      }
-    })()
+    if (disablingReservation) {
+      console.log('Disabling reservation:', disablingReservation.id);
+      setDisabledReservations(prev => new Set([...prev, disablingReservation.id]));
+      setIsConfirmDisableOpen(false);
+      setDisablingReservation(null);
+    }
   };
 
   const cancelDisable = () => {
@@ -189,36 +149,12 @@ export default function ReservationTable() {
   };
 
   const handleUpdate = () => {
-    (async () => {
-      if (!editingReservation || !formData) return
-      try {
-        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
-        const payload = { ...formData }
-        const res = await fetch(`${apiUrl}/api/reservations/${editingReservation.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || 'Failed to update reservation')
-        // update local state with returned reservation
-        const updated = {
-          ...data.reservation,
-          id: String(data.reservation._id || data.reservation.id || editingReservation.id),
-          checkIn: data.reservation.checkIn ? new Date(data.reservation.checkIn).toISOString().slice(0,10) : '',
-          checkOut: data.reservation.checkOut ? new Date(data.reservation.checkOut).toISOString().slice(0,10) : '',
-          reservationDate: data.reservation.reservationDate ? new Date(data.reservation.reservationDate).toISOString().slice(0,10) : '',
-          roomTypes: Array.isArray(data.reservation.roomTypes) ? data.reservation.roomTypes : (data.reservation.roomTypes ? [String(data.reservation.roomTypes)] : []),
-        }
-        setReservations(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
-        setIsEditOpen(false)
-        setEditingReservation(null)
-        setFormData({})
-      } catch (err: any) {
-  // ...removed console.error...
-        alert('Error updating reservation: ' + (err.message || err))
-      }
-    })()
+    if (editingReservation && formData) {
+      console.log('Updating reservation:', formData);
+      setIsEditOpen(false);
+      setEditingReservation(null);
+      setFormData({});
+    }
   };
 
   const handleCancel = () => {
@@ -234,104 +170,133 @@ export default function ReservationTable() {
     }));
   };
 
-  // Effect #1: run once on mount — fetch data, inject styles, attach delegated listener
   useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
-        const res = await fetch(`${apiUrl}/api/reservations`)
-        const data = await res.json()
-        if (mounted && res.ok && data && Array.isArray(data.reservations)) {
-          const mapped = data.reservations.map((r: any) => {
-            const num = (v: any) => (v == null || v === '') ? 0 : Number(v)
-            const roomTypes = Array.isArray(r.roomTypes) ? r.roomTypes : (r.roomTypes ? [String(r.roomTypes)] : [])
-            return {
-              id: String(r._id || r.id || ''),
-              fullName: r.fullName || r.full_name || r.name || '',
-              phone: r.phone || r.contact || '',
-              email: r.email || '',
-              checkIn: r.checkIn ? new Date(r.checkIn).toISOString().slice(0,10) : (r.check_in ? new Date(r.check_in).toISOString().slice(0,10) : ''),
-              checkOut: r.checkOut ? new Date(r.checkOut).toISOString().slice(0,10) : (r.check_out ? new Date(r.check_out).toISOString().slice(0,10) : ''),
-              guests: num(r.guests || r.numberOfGuests || r.number_of_guests),
-              children: num(r.children),
-              extraGuests: num(r.extraGuests || r.extra_guests),
-              rooms: num(r.rooms || r.numberOfRooms || r.number_of_rooms),
-              totalGuests: num(r.totalGuests || r.total_gruests || (r.guests ? r.guests : 0)),
-              noOfDays: num(r.noOfDays || r.numberOfDays || r.durationDays),
-              noOfFoods: num(r.noOfFoods || r.numberOfFoods),
-              resort: r.resort || '',
-              roomTypes: roomTypes,
-              bookingId: r.bookingId || r.booking_id || '',
-              status: r.status || '',
-              reservationDate: r.reservationDate ? new Date(r.reservationDate).toISOString().slice(0,10) : (r.reservationDateString || r.reservation_date ? new Date(r.reservation_date).toISOString().slice(0,10) : ''),
-              paymentStatus: r.paymentStatus || r.payment_status || '',
-              refundPercent: (r.refundPercent != null && r.refundPercent !== '') ? r.refundPercent : (r.refundPercentage != null ? r.refundPercentage : ''),
-              disabled: Boolean(r.disabled),
-            }
-          })
-          setReservations(mapped)
-        }
-      } catch (err) {
-        // swallow, UI will show empty state
-      }
-    })()
-
     const style = document.createElement("style");
     style.innerHTML = `
-      .dt-button-collection { position: fixed !important; z-index: 9999 !important; background: white !important; border: 1px solid #ddd !important; border-radius: 4px !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important; }
-      .dataTables_wrapper .dataTables_filter { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 1rem; }
-      .dataTables_wrapper .dataTables_length { margin-bottom: 1rem; }
-      .dataTables_wrapper { width: 100%; overflow: visible; }
-      .dataTables_wrapper .dataTables_scrollBody { overflow-y: auto !important; overflow-x: auto !important; border: 1px solid #ddd; border-radius: 0.5rem; }
-      .dataTables_wrapper table { width: max-content !important; min-width: 100%; margin: 0 !important; }
-      .dataTables_wrapper .dataTables_scrollHead { border-radius: 0.5rem 0.5rem 0 0; position: sticky; top: 0; z-index: 5; }
-      .dataTables_wrapper .dataTables_scrollHeadInner { width: 100% !important; }
-      table.dataTable thead tr th, table.dataTable thead tr td { font-weight: 700 !important; }
-      table.dataTable tbody tr.disabled-row { background-color: #f5f5f5 !important; }
-      table.dataTable tbody tr.disabled-row td:not(:last-child), table.dataTable tbody tr.disabled-row td:not(:last-child) * { color: #6b6b6b !important; text-decoration: line-through !important; }
-      table.dataTable tbody tr.disabled-row:hover { background-color: #eeeeee !important; }
-      table.dataTable tbody tr.disabled-row td:last-child, table.dataTable tbody tr.disabled-row td:last-child * { opacity: 1 !important; text-decoration: none !important; color: inherit !important; pointer-events: auto !important; }
-      .edit-btn:active { transform: translateY(0) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; }
-      .disable-btn:active:not([disabled]) { transform: translateY(0) !important; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; }
+      .dt-button-collection {
+        position: fixed !important;
+        z-index: 9999 !important;
+        background: white !important;
+        border: 1px solid #ddd !important;
+        border-radius: 4px !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+      }
+      .dataTables_wrapper .dataTables_filter {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 1rem;
+      }
+      .dataTables_wrapper .dataTables_length {
+        margin-bottom: 1rem;
+      }
+      .dataTables_wrapper {
+        width: 100%;
+        overflow: visible;
+      }
+      /* Fixed header + scrollable body */
+      .dataTables_wrapper .dataTables_scrollBody {
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+        border: 1px solid #ddd;
+        border-radius: 0.5rem;
+      }
+      .dataTables_wrapper table {
+        width: max-content !important;
+        min-width: 100%;
+        margin: 0 !important;
+      }
+      .dataTables_wrapper .dataTables_scrollHead {
+        border-radius: 0.5rem 0.5rem 0 0;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      .dataTables_wrapper .dataTables_scrollHeadInner {
+        width: 100% !important;
+      }
+      table.dataTable thead tr th,
+      table.dataTable thead tr td {
+        font-weight: 700 !important;
+      }
+      /* Disabled row styling */
+      table.dataTable tbody tr.disabled-row {
+        background-color: #f5f5f5 !important;
+        opacity: 0.6 !important;
+        text-decoration: line-through !important;
+      }
+      table.dataTable tbody tr.disabled-row:hover {
+        background-color: #eeeeee !important;
+      }
+      /* Action button styling */
+      .edit-btn:active {
+        transform: translateY(0) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+      }
+      .disable-btn:active:not([disabled]) {
+        transform: translateY(0) !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+      }
+      /* Clickable row styling */
+      table.dataTable tbody tr {
+        cursor: pointer !important;
+        transition: background-color 0.2s ease !important;
+      }
+      table.dataTable tbody tr:hover:not(.disabled-row) {
+        background-color: #f8fafc !important;
+      }
+      table.dataTable tbody tr:hover.disabled-row {
+        background-color: #eeeeee !important;
+      }
     `;
     document.head.appendChild(style);
 
     const handleButtonClick = (event: Event) => {
-      const target = (event as PointerEvent).target as HTMLElement;
-      const btn = target.closest('[data-id]') as HTMLElement | null;
-      if (!btn) return;
-      const reservationId = btn.getAttribute('data-id');
-      if (!reservationId) return;
-
-      const reservation = reservationsRef.current.find(r => r.id === reservationId);
-      if (!reservation) return;
-
-      if (btn.classList.contains('edit-btn')) {
-        handleEdit(reservation);
-      } else if (btn.classList.contains('disable-btn')) {
-        handleDisable(reservation);
-      } else if (btn.classList.contains('enable-btn')) {
-        handleEnable(reservation);
+      const target = event.target as HTMLElement;
+      const reservationId = target.getAttribute('data-id');
+      const reservation = reservations.find(r => r.id === reservationId);
+      
+      if (reservation) {
+        // Stop propagation to prevent row click when button is clicked
+        event.stopPropagation();
+        
+        if (target.classList.contains('edit-btn')) {
+          handleEdit(reservation);
+        } else if (target.classList.contains('disable-btn')) {
+          if (!disabledReservations.has(reservation.id)) {
+            handleDisable(reservation);
+          }
+        }
       }
     };
 
-    const container = tableRef.current ?? document;
-    const eventName = 'pointerdown';
-    container.addEventListener(eventName, handleButtonClick as EventListener);
+    const handleTableRowClick = (event: Event) => {
+      const target = event.target as HTMLElement;
+      
+      // Don't trigger row click if a button was clicked
+      if (target.closest('.edit-btn, .disable-btn')) {
+        return;
+      }
+      
+      const row = target.closest('tr');
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row);
+        const reservation = reservations[rowIndex];
+        if (reservation) {
+          handleRowClick(reservation);
+        }
+      }
+    };
+
+    // Add event listener for edit and disable buttons
+    document.addEventListener('click', handleButtonClick);
+    document.addEventListener('click', handleTableRowClick);
 
     return () => {
-      mounted = false;
-      container.removeEventListener(eventName, handleButtonClick as EventListener);
-      if (style && style.parentNode) style.parentNode.removeChild(style);
+      document.removeEventListener('click', handleButtonClick);
+      document.removeEventListener('click', handleTableRowClick);
     };
   }, []);
-
-  // Effect #2: keep reservationsRef up to date without re-running heavy DOM work
-  useEffect(() => {
-    reservationsRef.current = reservations;
-  }, [reservations]);
 
   const columns = [
     {
@@ -372,63 +337,66 @@ export default function ReservationTable() {
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Reservation) => {
-          const isDisabled = Boolean((row as any).disabled);
-          if (isDisabled) {
-            // show green Enable button
-            return `
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button 
-                class="edit-btn" 
-                data-id="${row.id}" 
-                title="Edit Reservation"
-                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
-              >
-                Edit
-              </button>
-              <button 
-                class="enable-btn" 
-                data-id="${row.id}" 
-                title="Enable Reservation"
-                style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
-              >
-                Enable
-              </button>
-            </div>
-          `;
-          }
-
-          // not disabled -> show Disable button
-          return `
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <button 
-                class="edit-btn" 
-                data-id="${row.id}" 
-                title="Edit Reservation"
-                style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
-              >
-                Edit
-              </button>
-              <button 
-                class="disable-btn" 
-                data-id="${row.id}" 
-                title="Disable Record"
-                style="background: #dc2626; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
-              >
-                Disable
-              </button>
-            </div>
-          `;
+        const isDisabled = disabledReservations.has(row.id);
+        return `
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button 
+              class="edit-btn" 
+              data-id="${row.id}" 
+              title="Edit Reservation"
+              style="
+                background: #3b82f6;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                ${isDisabled ? 'opacity: 0.5;' : ''}
+              "
+              onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
+              onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
+            >
+              Edit
+            </button>
+            <button 
+              class="disable-btn" 
+              data-id="${row.id}" 
+              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
+              style="
+                background: ${isDisabled ? '#6b7280' : '#dc2626'};
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              "
+              ${isDisabled ? 'disabled' : ''}
+              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
+              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
+            >
+              ${isDisabled ? 'Disabled' : 'Disable'}
+            </button>
+          </div>
+        `;
       },
     },
   ];
 
 
   return (
-    <div className="p-6 w-full max-w-full overflow-hidden">
+    <div className="w-full max-w-full overflow-hidden">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-slate-800">Reservations</h2>
         <button
-          onClick={() => exportToExcel(reservations)}
+          onClick={exportToExcel}
           className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
         >
           ⬇ Export to Excel
@@ -439,7 +407,7 @@ export default function ReservationTable() {
         <DataTable
           data={reservations}
           columns={columns}
-          className="display nowrap w-full"
+          className="display nowrap w-full border border-gray-400"
           options={{
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50, 100],
@@ -463,11 +431,11 @@ export default function ReservationTable() {
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
             rowCallback: (row: any, data: any) => {
-              if (data && data.disabled) {
-                  row.classList.add('disabled-row');
-                } else {
-                  row.classList.remove('disabled-row');
-                }
+              if (disabledReservations.has(data.id)) {
+                row.classList.add('disabled-row');
+              } else {
+                row.classList.remove('disabled-row');
+              }
               return row;
             },
           }}
@@ -647,6 +615,240 @@ export default function ReservationTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reservation Details Sheet */}
+      <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
+        <SheetContent className="w-[400px] sm:w-[700px] lg:w-[800px] flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Reservation Details</SheetTitle>
+            <SheetDescription>
+              Complete information about the selected reservation
+            </SheetDescription>
+          </SheetHeader>
+          
+          {selectedReservation && (
+            <>
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="space-y-4">
+                  {/* Guest Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Guest Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.fullName}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Phone</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.phone}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Email</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Booking Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Booking Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Booking ID</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900 font-mono">{selectedReservation.bookingId}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Reservation Date</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.reservationDate}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Check In</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.checkIn}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Check Out</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.checkOut}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">No. of Days</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.noOfDays}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Resort</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.resort}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Guest Details */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Guest Details</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Guests</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                          <span className="text-lg font-semibold text-gray-900">{selectedReservation.guests}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Children</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                          <span className="text-lg font-semibold text-gray-900">{selectedReservation.children}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Extra Guests</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                          <span className="text-lg font-semibold text-gray-900">{selectedReservation.extraGuests}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Total Guests</Label>
+                        <div className="mt-1 p-3 bg-blue-50 rounded-md border border-blue-200 text-center">
+                          <span className="text-lg font-bold text-blue-900">{selectedReservation.totalGuests}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Room & Food Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Room & Food Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Rooms</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                          <span className="text-lg font-semibold text-gray-900">{selectedReservation.rooms}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">No. of Foods</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                          <span className="text-lg font-semibold text-gray-900">{selectedReservation.noOfFoods}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Room Types</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {selectedReservation.roomTypes.map((roomType, index) => (
+                            <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
+                              {roomType}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Status Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Status Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Reservation Status</Label>
+                        <div className="mt-1">
+                          <Badge 
+                            variant={selectedReservation.status === 'Confirmed' ? "default" : "secondary"}
+                            className="px-2 py-1"
+                          >
+                            {selectedReservation.status}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Payment Status</Label>
+                        <div className="mt-1">
+                          <Badge 
+                            variant={selectedReservation.paymentStatus === 'Paid' ? "default" : "destructive"}
+                            className="px-2 py-1"
+                          >
+                            {selectedReservation.paymentStatus}
+                          </Badge>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Refund Percentage</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.refundPercent}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Record Status</Label>
+                        <div className="mt-1">
+                          <Badge 
+                            variant={disabledReservations.has(selectedReservation.id) ? "destructive" : "default"}
+                            className="px-2 py-1"
+                          >
+                            {disabledReservations.has(selectedReservation.id) ? "Disabled" : "Active"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Fixed Action Buttons */}
+              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
+                <Button 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleEdit(selectedReservation);
+                  }}
+                  className="flex-1"
+                  disabled={disabledReservations.has(selectedReservation.id)}
+                >
+                  Edit Reservation
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => {
+                    setIsDetailSheetOpen(false);
+                    handleDisable(selectedReservation);
+                  }}
+                  disabled={disabledReservations.has(selectedReservation.id)}
+                >
+                  Disable
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
