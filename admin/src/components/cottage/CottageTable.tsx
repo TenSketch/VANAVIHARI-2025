@@ -10,16 +10,9 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import cottageTypesData from "./cottagetypes.json";
+// Removed static JSON import; now fetching from API
 import { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// Removed Dialog imports (edit & confirmation modals) per requirement to keep only side details sheet
 import {
   Sheet,
   SheetContent,
@@ -28,86 +21,118 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
 interface CottageType {
-  id: string;
-  cottageName: string;
-  resort: string;
-  description: string;
-  roomAmenities: string[];
+  _id: string;
+  name: string;
+  description?: string;
+  maxGuests?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  basePrice?: number;
+  amenities: string[];
+  resort?: { _id: string; name: string } | string | null;
+  isDisabled?: boolean;
+  images?: { url: string; public_id: string }[];
+  createdAt?: string;
+  updatedAt?: string;
 }
-
-const cottageTypes: CottageType[] = cottageTypesData;
 
 export default function CottageDataTable() {
   const tableRef = useRef(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  // Removed modal state (edit & confirm) – only side sheet remains
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [editingCottage, setEditingCottage] = useState<CottageType | null>(null);
-  const [disablingCottage, setDisablingCottage] = useState<CottageType | null>(null);
+  // Track selected cottage only (editing handled inside sheet or via direct disable)
+  const [cottageTypes, setCottageTypes] = useState<CottageType[]>([]);
   const [selectedCottage, setSelectedCottage] = useState<CottageType | null>(null);
-  const [disabledCottages, setDisabledCottages] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState<Partial<CottageType>>({});
+  const [version, setVersion] = useState(0); // force table re-render when data changes
+  const [amenityDraft, setAmenityDraft] = useState('');
+
+  const addAmenity = () => {
+    const val = amenityDraft.trim();
+    if (!val) return;
+    setFormData(f => ({ ...f, amenities: [ ...(f.amenities || []), val ] }));
+    setAmenityDraft('');
+  };
+  const removeAmenity = (amenity: string) => {
+    setFormData(f => ({ ...f, amenities: (f.amenities || []).filter(a => a !== amenity) }));
+  };
+  // Form data not needed since edit modal removed – we show read-only info in sheet
 
   const handleEdit = (cottage: CottageType) => {
-    setEditingCottage(cottage);
-    setFormData({ ...cottage });
-    setIsEditOpen(true);
+    setSelectedCottage(cottage);
+    setFormData(cottage);
+    setEditMode(true);
+    setIsDetailSheetOpen(true);
   };
 
-  const handleDisable = (cottage: CottageType) => {
-    setDisablingCottage(cottage);
-    setIsConfirmDisableOpen(true);
+  const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:4000";
+
+  const handleDisable = async (cottage: CottageType) => {
+    try {
+      const target = !cottage.isDisabled;
+      const res = await fetch(`${API_BASE}/api/cottage-types/${cottage._id}/disable`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDisabled: target })
+      });
+      if (!res.ok) throw new Error('Failed to update disable state');
+      const data = await res.json();
+      setCottageTypes(prev => prev.map(c => c._id === data.cottageType._id ? data.cottageType : c));
+      if (selectedCottage && selectedCottage._id === cottage._id) {
+        setSelectedCottage(data.cottageType);
+        setFormData(data.cottageType);
+      }
+      setVersion(v => v + 1);
+    } catch (e:any) {
+      console.error(e);
+      alert(e.message || 'Disable failed');
+    }
   };
 
   const handleRowClick = (cottage: CottageType) => {
     setSelectedCottage(cottage);
+    setFormData(cottage);
+    setEditMode(false);
     setIsDetailSheetOpen(true);
   };
 
-  const confirmDisable = () => {
-    if (disablingCottage) {
-      console.log('Disabling cottage:', disablingCottage.id);
-      setDisabledCottages(prev => new Set([...prev, disablingCottage.id]));
-      
-      setIsConfirmDisableOpen(false);
-      setDisablingCottage(null);
-    }
-  };
+  // Removed confirm/cancel/update/input change logic (modals removed)
 
-  const cancelDisable = () => {
-    setIsConfirmDisableOpen(false);
-    setDisablingCottage(null);
-  };
+  // Fetch data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true); setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/cottage-types`);
+        if (!res.ok) throw new Error('Failed to load cottage types');
+        const json = await res.json();
+        const list: CottageType[] = json.cottageTypes?.map((ct: any) => ({
+          ...ct,
+          resort: ct.resort || null,
+          amenities: ct.amenities || [],
+        })) || [];
+        setCottageTypes(list);
+        setVersion(v=>v+1);
+      } catch (e:any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const handleUpdate = () => {
-    if (editingCottage && formData) {
-      console.log('Updating cottage:', formData);
-      setIsEditOpen(false);
-      setEditingCottage(null);
-      setFormData({});
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditOpen(false);
-    setEditingCottage(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (field: keyof CottageType, value: string | string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
+  // Styles & delegated event handlers
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -210,7 +235,7 @@ export default function CottageDataTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const cottageId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const cottage = cottageTypes.find(c => c.id === cottageId);
+      const cottage = cottageTypes.find(c => c._id === cottageId);
       
       if (cottage) {
         // Stop propagation to prevent row click when button is clicked
@@ -224,7 +249,7 @@ export default function CottageDataTable() {
       }
     };
 
-    const handleTableRowClick = (event: Event) => {
+  const handleTableRowClick = (event: Event) => {
       const target = event.target as HTMLElement;
       
       // Don't trigger row click if a button was clicked
@@ -235,7 +260,7 @@ export default function CottageDataTable() {
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-        const cottage = cottageTypes[rowIndex];
+    const cottage = cottageTypes[rowIndex];
         if (cottage) {
           handleRowClick(cottage);
         }
@@ -250,7 +275,7 @@ export default function CottageDataTable() {
       document.removeEventListener('click', handleTableRowClick);
     };
 
-  }, []);
+  }, [cottageTypes]);
 
   const columns = [
     {
@@ -261,11 +286,11 @@ export default function CottageDataTable() {
       orderable: false,
       searchable: false,
     },
-    { data: "cottageName", title: "Cottage Name" },
+    { data: "name", title: "Cottage Name" },
     {
       data: "resort",
       title: "Resort",
-      render: (data: string) => data.split(",")[0],
+      render: (data: any) => typeof data === 'string' ? data : (data?.name || ''),
     },
     {
       data: "description",
@@ -274,7 +299,7 @@ export default function CottageDataTable() {
         `<div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data}">${data}</div>`,
     },
     {
-      data: "roomAmenities",
+  data: "amenities",
       title: "Amenities",
       render: (data: string[]) =>
         `<div style="display: flex; flex-wrap: wrap; gap: 4px;">
@@ -301,13 +326,13 @@ export default function CottageDataTable() {
       title: "Actions",
       orderable: false,
       searchable: false,
-      render: (_data: any, _type: any, row: CottageType) => {
-        const isDisabled = disabledCottages.has(row.id);
+  render: (_data: any, _type: any, row: CottageType) => {
+    const isDisabled = !!row.isDisabled;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
             <button 
               class="edit-btn" 
-              data-id="${row.id}" 
+      data-id="${row._id}" 
               title="Edit Cottage"
               style="
                 background: #3b82f6;
@@ -329,7 +354,7 @@ export default function CottageDataTable() {
             </button>
             <button 
               class="disable-btn" 
-              data-id="${row.id}" 
+              data-id="${row._id}" 
               title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
               style="
                 background: ${isDisabled ? '#6b7280' : '#dc2626'};
@@ -360,7 +385,10 @@ export default function CottageDataTable() {
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-8">
       <h2 className="text-xl font-semibold text-slate-800 mb-4">Cottage Types</h2>
       <div ref={tableRef} className="flex-1 overflow-hidden">
+        {error && <div className="text-red-600 p-2">{error}</div>}
+        {loading && <div className="p-2">Loading...</div>}
         <DataTable
+          key={version}
           data={cottageTypes}
           columns={columns}
           className="display nowrap w-full border border-gray-400"
@@ -389,124 +417,14 @@ export default function CottageDataTable() {
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
             rowCallback: (row: any, data: any) => {
-              if (disabledCottages.has(data.id)) {
-                row.classList.add('disabled-row');
-              } else {
-                row.classList.remove('disabled-row');
-              }
+              if (data.isDisabled) row.classList.add('disabled-row'); else row.classList.remove('disabled-row');
               return row;
             },
           }}
         />
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Cottage Type</DialogTitle>
-            <DialogDescription>
-              Make changes to the cottage type details below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {formData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="cottageName">Cottage Name</Label>
-                <Input
-                  id="cottageName"
-                  value={formData.cottageName || ''}
-                  onChange={(e) => handleInputChange('cottageName', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="resort">Resort</Label>
-                <Input
-                  id="resort"
-                  value={formData.resort || ''}
-                  onChange={(e) => handleInputChange('resort', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="roomAmenities">Room Amenities (comma-separated)</Label>
-                <Input
-                  id="roomAmenities"
-                  value={formData.roomAmenities?.join(', ') || ''}
-                  onChange={(e) => handleInputChange('roomAmenities', e.target.value.split(',').map(s => s.trim()))}
-                  placeholder="WiFi, AC, TV, Mini Fridge"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="id">Cottage ID</Label>
-                <Input
-                  id="id"
-                  value={formData.id || ''}
-                  onChange={(e) => handleInputChange('id', e.target.value)}
-                  disabled
-                  className="bg-gray-100"
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>
-              Update
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog for Disable Action */}
-      <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Disable</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disable this cottage type? This action will hide the record from the database.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {disablingCottage && (
-            <div className="py-4">
-              <p className="text-sm text-gray-600">
-                <strong>Cottage ID:</strong> {disablingCottage.id}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Name:</strong> {disablingCottage.cottageName}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Resort:</strong> {disablingCottage.resort}
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelDisable}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDisable}>
-              Yes, Disable
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  {/* Removed Edit & Confirmation dialogs */}
 
       {/* Cottage Details Sheet */}
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
@@ -525,50 +443,83 @@ export default function CottageDataTable() {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Cottage ID</Label>
                   <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                    <span className="text-sm text-gray-900">{selectedCottage.id}</span>
+                    <span className="text-sm text-gray-900">{selectedCottage._id}</span>
                   </div>
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Cottage Name</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                    <span className="text-sm text-gray-900">{selectedCottage.cottageName}</span>
-                  </div>
+                  {editMode ? (
+                    <Input value={formData.name || ''} onChange={e=> setFormData(f=>({...f, name: e.target.value}))} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border"><span className="text-sm text-gray-900">{selectedCottage.name}</span></div>
+                  )}
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Resort</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                    <span className="text-sm text-gray-900">{selectedCottage.resort}</span>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[48px]">
+                    <span className="text-sm text-gray-900">{typeof selectedCottage.resort === 'string' ? selectedCottage.resort : (selectedCottage.resort?.name || '')}</span>
                   </div>
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Description</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
-                    <span className="text-sm text-gray-900">{selectedCottage.description}</span>
-                  </div>
+                  {editMode ? (
+                    <Input value={formData.description || ''} onChange={e=> setFormData(f=>({...f, description: e.target.value}))} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]"><span className="text-sm text-gray-900">{selectedCottage.description}</span></div>
+                  )}
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Room Amenities</Label>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedCottage.roomAmenities.map((amenity, index) => (
-                      <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
-                        {amenity}
-                      </Badge>
-                    ))}
-                  </div>
+                  {editMode ? (
+                    <div className="mt-1 flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {(formData.amenities || []).map((amenity, idx) => (
+                          <Badge key={amenity+idx} variant="secondary" className="px-2 py-1 text-xs flex items-center gap-1">
+                            <span>{amenity}</span>
+                            <button
+                              type="button"
+                              className="text-red-500 hover:text-red-700 leading-none"
+                              onClick={() => removeAmenity(amenity)}
+                              aria-label={`Remove ${amenity}`}
+                            >×</button>
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input
+                          value={amenityDraft}
+                          onChange={e => setAmenityDraft(e.target.value)}
+                          onKeyDown={e => {
+                            if ((e.key === 'Enter' || e.key === ',') && amenityDraft.trim()) {
+                              e.preventDefault();
+                              addAmenity();
+                            }
+                          }}
+                          placeholder="Type amenity & press Enter"
+                        />
+                        <Button type="button" onClick={addAmenity} disabled={!amenityDraft.trim()}>Add</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedCottage.amenities.map((amenity, index) => (
+                        <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Status</Label>
                   <div className="mt-1">
-                    <Badge 
-                      variant={disabledCottages.has(selectedCottage.id) ? "destructive" : "default"}
-                      className="px-2 py-1"
-                    >
-                      {disabledCottages.has(selectedCottage.id) ? "Disabled" : "Active"}
+                    <Badge variant={selectedCottage.isDisabled ? "destructive" : "default"} className="px-2 py-1">
+                      {selectedCottage.isDisabled ? 'Disabled' : 'Active'}
                     </Badge>
                   </div>
                 </div>
@@ -576,25 +527,30 @@ export default function CottageDataTable() {
               
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleEdit(selectedCottage);
-                  }}
-                  className="flex-1"
-                  disabled={disabledCottages.has(selectedCottage.id)}
-                >
-                  Edit Cottage
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleDisable(selectedCottage);
-                  }}
-                  disabled={disabledCottages.has(selectedCottage.id)}
-                >
-                  Disable
+                {!editMode && (
+                  <Button onClick={()=> { setEditMode(true); setFormData(selectedCottage); }} className="flex-1" disabled={selectedCottage.isDisabled}>Edit</Button>
+                )}
+                {editMode && (
+                  <>
+                    <Button variant="outline" onClick={()=> { setEditMode(false); setFormData(selectedCottage); }}>Cancel</Button>
+                    <Button onClick={async ()=> {
+                      try {
+                        const res = await fetch(`${API_BASE}/api/cottage-types/${selectedCottage._id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: formData.name, description: formData.description, amenities: formData.amenities }) });
+                        if(!res.ok) throw new Error('Update failed');
+                        const data = await res.json();
+                        setCottageTypes(prev => prev.map(c => c._id === data.cottageType._id ? data.cottageType : c));
+                        setSelectedCottage(data.cottageType);
+                        setFormData(data.cottageType);
+                        setEditMode(false);
+                        setVersion(v=>v+1);
+                      } catch(e:any){
+                        alert(e.message || 'Update failed');
+                      }
+                    }}>Save</Button>
+                  </>
+                )}
+                <Button variant={selectedCottage.isDisabled? 'default':'destructive'} onClick={()=> handleDisable(selectedCottage)}>
+                  {selectedCottage.isDisabled? 'Enable':'Disable'}
                 </Button>
               </div>
             </div>

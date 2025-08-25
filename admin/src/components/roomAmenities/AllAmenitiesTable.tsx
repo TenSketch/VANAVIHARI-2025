@@ -10,16 +10,9 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns"; 
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import Amenitydata from "./amenitydata.json";
+// Remote data fetched from backend API
 import { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// Dialog imports removed (small modals no longer used)
 import {
   Sheet,
   SheetContent,
@@ -28,89 +21,86 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
 interface Amenity {
-  id: string;
+  _id: string;
   name: string;
   description?: string;
   isActive: boolean;
 }
 
-const amenities: Amenity[] = Amenitydata;
-
 export default function AllRoomAmenitiesTable() {
   const tableRef = useRef(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [editingAmenity, setEditingAmenity] = useState<Amenity | null>(null);
-  const [disablingAmenity, setDisablingAmenity] = useState<Amenity | null>(null);
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
-  const [disabledAmenities, setDisabledAmenities] = useState<Set<string>>(new Set());
-  const [formData, setFormData] = useState<Partial<Amenity>>({});
+  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  // keep a live ref to amenities to avoid stale closure in global event handlers
+  const amenitiesRef = useRef<Amenity[]>([]);
+  useEffect(() => { amenitiesRef.current = amenities; }, [amenities]);
 
   const handleEdit = (amenity: Amenity) => {
-    setEditingAmenity(amenity);
-    setFormData({ ...amenity });
-    setIsEditOpen(true);
+    // Open details sheet instead of a modal
+    setSelectedAmenity(amenity);
+  setEditName(amenity.name || "");
+  setEditDescription(amenity.description || "");
+    setIsDetailSheetOpen(true);
   };
 
-  const handleDisable = (amenity: Amenity) => {
-    setDisablingAmenity(amenity);
-    setIsConfirmDisableOpen(true);
+  const toggleActiveStatus = async (amenity: Amenity) => {
+    try {
+      setUpdatingId(amenity._id);
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities/${amenity._id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !amenity.isActive })
+      });
+      if (!res.ok) throw new Error('Failed to update amenity status');
+      const data = await res.json();
+      setAmenities(prev => prev.map(a => a._id === data.amenity._id ? data.amenity : a));
+      if (selectedAmenity && selectedAmenity._id === amenity._id) setSelectedAmenity(data.amenity);
+    } catch (e:any) {
+      console.error(e);
+      setError(e.message || 'Update failed');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const handleRowClick = (amenity: Amenity) => {
     setSelectedAmenity(amenity);
+  setEditName(amenity.name || "");
+  setEditDescription(amenity.description || "");
     setIsDetailSheetOpen(true);
   };
 
-  const confirmDisable = () => {
-    if (disablingAmenity) {
-      // Here you would typically make an API call to disable/hide the amenity
-      console.log('Disabling amenity:', disablingAmenity.id);
-      
-      // Add the amenity to the disabled list for visual feedback
-      setDisabledAmenities(prev => new Set([...prev, disablingAmenity.id]));
-      
-      setIsConfirmDisableOpen(false);
-      setDisablingAmenity(null);
-    }
-  };
-
-  const cancelDisable = () => {
-    setIsConfirmDisableOpen(false);
-    setDisablingAmenity(null);
-  };
-
-  const handleUpdate = () => {
-    if (editingAmenity && formData) {
-      console.log('Updating amenity:', formData);
-      setIsEditOpen(false);
-      setEditingAmenity(null);
-      setFormData({});
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditOpen(false);
-    setEditingAmenity(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (field: keyof Amenity, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  // Removed modal-specific handlers (confirm/cancel/update/input changes)
 
   useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities`);
+        if (!res.ok) throw new Error('Failed to fetch amenities');
+        const data = await res.json();
+        setAmenities(data.amenities || []);
+      } catch (e:any) {
+        setError(e.message || 'Error fetching amenities');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
     const style = document.createElement("style");
     style.innerHTML = `
       .dt-button-collection {
@@ -212,7 +202,7 @@ export default function AllRoomAmenitiesTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const amenityId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const amenity = amenities.find(a => a.id === amenityId);
+      const amenity = amenitiesRef.current.find(a => a._id === amenityId);
       
       if (amenity) {
         // Stop propagation to prevent row click when button is clicked
@@ -221,12 +211,12 @@ export default function AllRoomAmenitiesTable() {
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           handleEdit(amenity);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
-          handleDisable(amenity);
+          toggleActiveStatus(amenity);
         }
       }
     };
 
-    const handleTableRowClick = (event: Event) => {
+  const handleTableRowClick = (event: Event) => {
       const target = event.target as HTMLElement;
       
       // Don't trigger row click if a button was clicked
@@ -236,10 +226,10 @@ export default function AllRoomAmenitiesTable() {
       
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
-        const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-        const amenity = amenities[rowIndex];
-        if (amenity) {
-          handleRowClick(amenity);
+        const rowId = row.getAttribute('data-id');
+        if (rowId) {
+          const amenity = amenitiesRef.current.find(a => a._id === rowId);
+          if (amenity) handleRowClick(amenity);
         }
       }
     };
@@ -280,12 +270,12 @@ export default function AllRoomAmenitiesTable() {
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Amenity) => {
-        const isDisabled = disabledAmenities.has(row.id);
+    const isDisabled = !row.isActive;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
             <button 
               class="edit-btn" 
-              data-id="${row.id}" 
+      data-id="${row._id}" 
               title="Edit Amenity"
               style="
                 background: #3b82f6;
@@ -307,8 +297,8 @@ export default function AllRoomAmenitiesTable() {
             </button>
             <button 
               class="disable-btn" 
-              data-id="${row.id}" 
-              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
+              data-id="${row._id}" 
+              title="Toggle Active Status"
               style="
                 background: ${isDisabled ? '#6b7280' : '#dc2626'};
                 color: white;
@@ -317,15 +307,14 @@ export default function AllRoomAmenitiesTable() {
                 border-radius: 6px;
                 font-size: 12px;
                 font-weight: 500;
-                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               "
-              ${isDisabled ? 'disabled' : ''}
               onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
               onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
             >
-              ${isDisabled ? 'Disabled' : 'Disable'}
+              ${isDisabled ? 'Inactive' : 'Deactivate'}
             </button>
           </div>
         `;
@@ -336,6 +325,8 @@ export default function AllRoomAmenitiesTable() {
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
       <h2 className="text-xl font-semibold text-slate-800 mb-4 flex-shrink-0">Room Amenities</h2>
+  {loading && <div className="text-sm text-slate-500 mb-2">Loading amenities...</div>}
+  {error && <div className="text-sm text-red-600 mb-2">{error}</div>}
       <div ref={tableRef} className="flex-1 overflow-hidden">
         <DataTable
           data={amenities}
@@ -366,7 +357,11 @@ export default function AllRoomAmenitiesTable() {
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
             rowCallback: (row: any, data: any) => {
-              if (disabledAmenities.has(data.id)) {
+              // attach id for reliable lookup regardless of sorting/filtering
+              if (data && data._id) {
+                row.setAttribute('data-id', data._id);
+              }
+              if (!data.isActive) {
                 row.classList.add('disabled-row');
               } else {
                 row.classList.remove('disabled-row');
@@ -377,111 +372,7 @@ export default function AllRoomAmenitiesTable() {
         />
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Room Amenity</DialogTitle>
-            <DialogDescription>
-              Make changes to the room amenity details below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {formData && (
-            <div className="grid grid-cols-1 gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Amenity Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name || ''}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description || ''}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  placeholder="Optional description"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="isActive">Status</Label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive || false}
-                    onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="isActive" className="text-sm font-medium text-gray-900">
-                    Active
-                  </label>
-                </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="id">Amenity ID</Label>
-                <Input
-                  id="id"
-                  value={formData.id || ''}
-                  onChange={(e) => handleInputChange('id', e.target.value)}
-                  disabled
-                  className="bg-gray-100"
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>
-              Update
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog for Disable Action */}
-      <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Disable</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disable this room amenity? This action will hide the record from the database.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {disablingAmenity && (
-            <div className="py-4">
-              <p className="text-sm text-gray-600">
-                <strong>Amenity ID:</strong> {disablingAmenity.id}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Name:</strong> {disablingAmenity.name}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Status:</strong> {disablingAmenity.isActive ? 'Active' : 'Inactive'}
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelDisable}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDisable}>
-              Yes, Disable
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  {/* Small modals removed; actions now handled directly and via detail sheet */}
 
       {/* Amenity Details Sheet */}
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
@@ -501,24 +392,29 @@ export default function AllRoomAmenitiesTable() {
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Amenity ID</Label>
                     <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedAmenity.id}</span>
+                      <span className="text-sm text-gray-900">{selectedAmenity._id}</span>
                     </div>
                   </div>
                   
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Amenity Name</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedAmenity.name}</span>
-                    </div>
+                    <Input
+                      className="mt-1"
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      placeholder="Enter name"
+                    />
                   </div>
-                  
+
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Description</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
-                      <span className="text-sm text-gray-900">
-                        {selectedAmenity.description || "No description provided"}
-                      </span>
-                    </div>
+                    <textarea
+                      className="mt-1 w-full min-h-[90px] rounded-md border border-gray-300 bg-white p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      placeholder="Enter description"
+                    />
+                    {!editDescription && <p className="mt-1 text-xs text-slate-400">Optional</p>}
                   </div>
                   
                   <div>
@@ -537,10 +433,10 @@ export default function AllRoomAmenitiesTable() {
                     <Label className="text-sm font-medium text-gray-700">Record Status</Label>
                     <div className="mt-1">
                       <Badge 
-                        variant={disabledAmenities.has(selectedAmenity.id) ? "destructive" : "default"}
+                        variant={selectedAmenity.isActive ? "default" : "destructive"}
                         className="px-2 py-1"
                       >
-                        {disabledAmenities.has(selectedAmenity.id) ? "Disabled" : "Enabled"}
+                        {selectedAmenity.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
                   </div>
@@ -548,27 +444,43 @@ export default function AllRoomAmenitiesTable() {
               </div>
               
               {/* Fixed Action Buttons */}
-              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
-                <Button 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleEdit(selectedAmenity);
+              <div className="flex-shrink-0 flex flex-wrap gap-2 p-6 pt-4 border-t bg-white">
+                <Button
+                  onClick={async () => {
+                    if (!editName.trim()) { setError('Name is required'); return; }
+                    try {
+                      setSaving(true);
+                      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities/${selectedAmenity._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: editName, description: editDescription })
+                      });
+                      if (!res.ok) throw new Error('Save failed');
+                      const data = await res.json();
+                      setAmenities(prev => prev.map(a => a._id === data.amenity._id ? data.amenity : a));
+                      setSelectedAmenity(data.amenity);
+                      setEditName(data.amenity.name || '');
+                      setEditDescription(data.amenity.description || '');
+                      setError(null);
+                    } catch (e:any) {
+                      setError(e.message || 'Save error');
+                    } finally {
+                      setSaving(false);
+                    }
                   }}
+                  disabled={saving}
                   className="flex-1"
-                  disabled={disabledAmenities.has(selectedAmenity.id)}
                 >
-                  Edit Amenity
+                  {saving ? 'Saving...' : 'Save'}
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleDisable(selectedAmenity);
-                  }}
-                  disabled={disabledAmenities.has(selectedAmenity.id)}
+                <Button
+                  onClick={() => toggleActiveStatus(selectedAmenity)}
+                  variant={selectedAmenity.isActive ? 'destructive' : 'default'}
+                  disabled={updatingId === selectedAmenity._id}
                 >
-                  Disable
+                  {updatingId === selectedAmenity._id ? 'Updating...' : (selectedAmenity.isActive ? 'Deactivate' : 'Activate')}
                 </Button>
+                <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>Close</Button>
               </div>
             </>
           )}

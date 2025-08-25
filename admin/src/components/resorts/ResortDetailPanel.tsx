@@ -15,65 +15,140 @@ import {
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
+// Match backend data (flattened for existing component usage)
 interface ResortDetailData {
-  resortName: string;
-  contactPersonName: string;
-  contactNumber: string;
-  email: string;
-  addressLine1: string;
-  addressLine2: string;
-  cityDistrict: string;
-  stateProvince: string;
-  postalCode: string;
-  country: string;
-  logo?: string | null;
-  website: string;
-  foodProviding: string;
-  foodDetails: string;
-  roomIdPrefix: string;
-  extraGuestCharges: string;
-  supportNumber: string;
-  imageUrl?: string;
+  _id: string;
+  resortName?: string;
+  contactPersonName?: string;
+  contactNumber?: string;
+  email?: string;
+  address?: {
+    line1?: string;
+    line2?: string;
+    cityDistrict?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  website?: string;
+  foodProviding?: string;
+  foodDetails?: string;
+  roomIdPrefix?: string;
+  extraGuestCharges?: number;
+  supportNumber?: string;
+  logo?: { url?: string } | string | null;
 }
 
 interface ResortDetailPanelProps {
   resort: ResortDetailData;
   isOpen: boolean;
   onClose: () => void;
+  onResortUpdated?: (resort: ResortDetailData) => void;
 }
-
-const ResortDetailPanel = ({ resort, isOpen, onClose }: ResortDetailPanelProps) => {
+const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortDetailPanelProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(resort);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState(() => flatten(resort));
+
+  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+
+  // flatten nested address for form editing
+  function flatten(r: ResortDetailData) {
+    return {
+      _id: r._id,
+      resortName: r.resortName || '',
+      contactPersonName: r.contactPersonName || '',
+      contactNumber: r.contactNumber || '',
+      email: r.email || '',
+      addressLine1: r.address?.line1 || '',
+      addressLine2: r.address?.line2 || '',
+      cityDistrict: r.address?.cityDistrict || '',
+      stateProvince: r.address?.stateProvince || '',
+      postalCode: r.address?.postalCode || '',
+      country: r.address?.country || '',
+      website: r.website || '',
+      foodProviding: r.foodProviding || '',
+      foodDetails: r.foodDetails || '',
+      roomIdPrefix: r.roomIdPrefix || '',
+      extraGuestCharges: r.extraGuestCharges !== undefined && r.extraGuestCharges !== null ? String(r.extraGuestCharges) : '',
+      supportNumber: r.supportNumber || '',
+      logo: typeof r.logo === 'string' ? r.logo : r.logo?.url || '',
+    }
+  }
+
+  function unflatten(fd: any): Partial<ResortDetailData> {
+    return {
+      resortName: fd.resortName,
+      contactPersonName: fd.contactPersonName,
+      contactNumber: fd.contactNumber,
+      email: fd.email,
+      address: {
+        line1: fd.addressLine1,
+        line2: fd.addressLine2,
+        cityDistrict: fd.cityDistrict,
+        stateProvince: fd.stateProvince,
+        postalCode: fd.postalCode,
+        country: fd.country,
+      },
+      website: fd.website,
+      foodProviding: fd.foodProviding,
+      foodDetails: fd.foodDetails,
+      roomIdPrefix: fd.roomIdPrefix,
+      extraGuestCharges: fd.extraGuestCharges ? Number(fd.extraGuestCharges) : undefined,
+      supportNumber: fd.supportNumber,
+    }
+  }
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = unflatten(formData);
+      const res = await fetch(`${apiBase}/api/resorts/${formData._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`Save failed: ${res.status}`);
+      const data = await res.json();
+      if (onResortUpdated) onResortUpdated(data.resort);
+      setIsEditing(false);
+    } catch (e: any) {
+      setError(e.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (!isOpen) return null;
 
   const basicInfoData = [
-    { field: "Resort Name", value: resort.resortName },
-    { field: "Contact Person Name", value: resort.contactPersonName },
-    { field: "Contact Number", value: resort.contactNumber },
-    { field: "Email", value: resort.email },
-    { field: "Website", value: resort.website },
-    { field: "Support Number", value: resort.supportNumber },
-    { field: "Room ID Prefix", value: resort.roomIdPrefix },
+    { field: "Resort Name", value: resort.resortName || '' },
+    { field: "Contact Person Name", value: resort.contactPersonName || '' },
+    { field: "Contact Number", value: resort.contactNumber || '' },
+    { field: "Email", value: resort.email || '' },
+    { field: "Website", value: resort.website || '' },
+    { field: "Support Number", value: resort.supportNumber || '' },
+    { field: "Room ID Prefix", value: resort.roomIdPrefix || '' },
   ];
 
   const addressData = [
-    { field: "Address Line 1", value: resort.addressLine1 },
-    { field: "Address Line 2", value: resort.addressLine2 },
-    { field: "City / District", value: resort.cityDistrict },
-    { field: "State / Province", value: resort.stateProvince },
-    { field: "Postal Code", value: resort.postalCode },
-    { field: "Country", value: resort.country },
+    { field: "Address Line 1", value: resort.address?.line1 || '' },
+    { field: "Address Line 2", value: resort.address?.line2 || '' },
+    { field: "City / District", value: resort.address?.cityDistrict || '' },
+    { field: "State / Province", value: resort.address?.stateProvince || '' },
+    { field: "Postal Code", value: resort.address?.postalCode || '' },
+    { field: "Country", value: resort.address?.country || '' },
   ];
 
   const foodData = [
-    { field: "Food Providing", value: resort.foodProviding },
-    { field: "Extra Guest Charges", value: resort.extraGuestCharges },
+    { field: "Food Providing", value: resort.foodProviding || '' },
+    { field: "Extra Guest Charges", value: resort.extraGuestCharges != null ? String(resort.extraGuestCharges) : '' },
   ];
 
   const foodDetailsData = [
-    { field: "Food Details", value: resort.foodDetails },
+    { field: "Food Details", value: resort.foodDetails || '' },
   ];
 
   const infoColumns: ColumnDef<{ field: string; value: string }>[] = [
@@ -184,12 +259,12 @@ const ResortDetailPanel = ({ resort, isOpen, onClose }: ResortDetailPanelProps) 
             />
             <DataTable columns={infoColumns} data={basicInfoData} />
 
-            {resort.logo && (
+      {((typeof resort.logo === 'string' && resort.logo) || (typeof resort.logo === 'object' && resort.logo?.url)) && (
               <div className="flex flex-col space-y-2">
                 <h4 className="text-sm font-medium text-slate-700">Resort Logo</h4>
                 <div className="border border-slate-300 rounded-lg p-4 bg-slate-50 w-fit">
                   <img
-                    src={resort.logo}
+        src={typeof resort.logo === 'string' ? resort.logo : resort.logo?.url}
                     alt="Resort Logo"
                     className="max-w-32 max-h-32 object-contain"
                   />
@@ -217,32 +292,31 @@ const ResortDetailPanel = ({ resort, isOpen, onClose }: ResortDetailPanelProps) 
                 <Button variant="outline" size="icon" onClick={() => setIsEditing(false)}>
                   <X className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => {
-                  console.log("Saved data:", formData);
-                  setIsEditing(false);
-                }}>
+                <Button variant="outline" size="icon" disabled={saving} onClick={handleSave}>
                   <Check className="h-4 w-4 text-green-600" />
                 </Button>
               </div>
             </div>
 
+            {error && <div className="text-sm text-red-600 mb-4">{error}</div>}
+            {saving && <div className="text-sm text-slate-500 mb-2">Saving...</div>}
+
             {/* Form Fields */}
             <div className="space-y-4">
-              {Object.keys(formData).map((key) => {
-                if (typeof formData[key as keyof ResortDetailData] !== "string") return null;
+              {Object.entries(formData).map(([key, value]) => {
+                if (key === '_id') return null;
+                if (typeof value !== 'string') return null;
                 return (
                   <div key={key}>
                     <label className="block text-sm font-medium text-slate-700 mb-1 capitalize">
-                      {key.replace(/([A-Z])/g, " $1")}
+                      {key.replace(/([A-Z])/g, ' $1')}
                     </label>
                     <Input
-                      value={formData[key as keyof ResortDetailData] as string}
-                      onChange={(e) =>
-                        setFormData({ ...formData, [key]: e.target.value })
-                      }
+                      value={value}
+                      onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
                     />
                   </div>
-                );
+                )
               })}
             </div>
           </div>

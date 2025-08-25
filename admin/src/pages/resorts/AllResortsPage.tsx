@@ -1,99 +1,96 @@
-import { useEffect, useState } from "react";
-import ResortCard from "@/components/resorts/ResortCard";
-import ResortDetailPanel from "@/components/resorts/ResortDetailPanel";
+import { useEffect, useState } from "react"
+import ResortCard from "@/components/resorts/ResortCard"
+import ResortDetailPanel from "@/components/resorts/ResortDetailPanel"
 
+// Shape aligned strictly with backend MongoDB schema (resortModel.js)
 interface ResortData {
-  id: string;
-  name: string;
-  imageUrl: string;
-  address: string;
-  phone: string;
-  email: string;
-  resortName: string;
-  slug: string;
-  contactPersonName: string;
-  contactNumber: string;
-  addressLine1: string;
-  addressLine2: string;
-  cityDistrict: string;
-  stateProvince: string;
-  postalCode: string;
-  country: string;
-  logo?: string | null;
-  website: string;
-  termsAndConditions: string;
-  upiId: string;
-  qrFile?: string | null;
-  foodProviding: string;
-  foodDetails: string;
-  roomIdPrefix: string;
-  extraGuestCharges: string;
-  supportNumber: string;
+  _id: string
+  resortName: string
+  contactPersonName?: string
+  contactNumber?: string
+  email?: string
+  address?: {
+    line1?: string
+    line2?: string
+    cityDistrict?: string
+    stateProvince?: string
+    postalCode?: string
+    country?: string
+  }
+  website?: string
+  foodProviding?: string
+  foodDetails?: string
+  roomIdPrefix?: string
+  extraGuestCharges?: number
+  supportNumber?: string
+  logo?: { url?: string; public_id?: string }
+  createdAt?: string
+  updatedAt?: string
+}
+
+// Derived UI friendly card data
+interface ResortCardView {
+  id: string
+  name: string
+  imageUrl: string
+  address: string
+  phone: string
+  email: string
+  // keep a reference to full resort for detail panel
+  full: ResortData
 }
 
 const AllResortsPage = () => {
-  const [selectedResort, setSelectedResort] = useState<ResortData | null>(null);
-  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
-  const [resorts, setResorts] = useState<ResortData[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const [selectedResort, setSelectedResort] = useState<ResortData | null>(null)
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false)
+  const [resorts, setResorts] = useState<ResortCardView[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const apiBase = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000'
 
   useEffect(() => {
+    const controller = new AbortController()
     let mounted = true
-    const fetchResorts = async () => {
+    ;(async () => {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${apiBase}/api/resorts`)
+        const res = await fetch(`${apiBase}/api/resorts`, { signal: controller.signal })
         if (!res.ok) throw new Error(`Failed to load resorts: ${res.status} ${res.statusText}`)
         const data = await res.json()
-        // map backend shape to the local ResortData shape
-        const mapped: ResortData[] = (data.resorts || []).map((r: any) => ({
-          id: r._id || r.id || String(Math.random()),
-          name: r.resortName || "",
-          imageUrl: (r.logo && r.logo.url) || '/images/Vanavihari-reception.jpg',
-          address: [r.address?.line1, r.address?.line2, r.address?.cityDistrict, r.address?.stateProvince, r.address?.postalCode, r.address?.country].filter(Boolean).join(', '),
-          phone: r.contactNumber || r.contact || '',
-          email: r.email || '',
-          resortName: r.resortName || '',
-          slug: r.slug || '',
-          contactPersonName: r.contactPersonName || '',
-          contactNumber: r.contactNumber || '',
-          addressLine1: r.address?.line1 || '',
-          addressLine2: r.address?.line2 || '',
-          cityDistrict: r.address?.cityDistrict || '',
-          stateProvince: r.address?.stateProvince || '',
-          postalCode: r.address?.postalCode || '',
-          country: r.address?.country || '',
-          logo: (r.logo && r.logo.url) || null,
-          website: r.website || '',
-          termsAndConditions: r.termsAndConditions || '',
-          upiId: r.upiId || '',
-          qrFile: r.qrFile || null,
-          foodProviding: r.foodProviding || '',
-          foodDetails: r.foodDetails || '',
-          roomIdPrefix: r.roomIdPrefix || '',
-          extraGuestCharges: r.extraGuestCharges ? String(r.extraGuestCharges) : '',
-          supportNumber: r.supportNumber || '',
-        }))
-
+        const mapped: ResortCardView[] = (data.resorts || []).map((r: ResortData) => {
+          const address = [
+            r.address?.line1,
+            r.address?.line2,
+            r.address?.cityDistrict,
+            r.address?.stateProvince,
+            r.address?.postalCode,
+            r.address?.country,
+          ].filter(Boolean).join(', ')
+          return {
+            id: r._id,
+            name: r.resortName,
+            imageUrl: r.logo?.url || '/images/Vanavihari-reception.jpg', // purely a visual placeholder, not hard-coded resort data
+            address,
+            phone: r.contactNumber || '',
+            email: r.email || '',
+            full: r,
+          }
+        })
         if (mounted) setResorts(mapped)
       } catch (err: any) {
+        if (err.name === 'AbortError') return
         console.error(err)
         if (mounted) setError(err.message || 'Unknown error')
       } finally {
         if (mounted) setLoading(false)
       }
-    }
-
-    fetchResorts()
-    return () => { mounted = false }
+    })()
+    return () => { mounted = false; controller.abort() }
   }, [apiBase])
 
-  const handleResortClick = (resort: ResortData) => {
-    setSelectedResort(resort)
+  const handleResortClick = (resort: ResortCardView) => {
+    setSelectedResort(resort.full)
     setIsDetailPanelOpen(true)
   }
 
@@ -108,6 +105,9 @@ const AllResortsPage = () => {
         {loading && <div className="text-sm text-slate-600">Loading resorts...</div>}
         {error && <div className="text-sm text-red-600">{error}</div>}
         <div className="grid gap-[1px] grid-cols-1 sm:grid-cols-1 lg:grid-cols-4 mt-3">
+          {(!loading && !error && resorts.length === 0) && (
+            <div className="text-sm text-slate-500 col-span-full py-8 text-center">No resorts found. Add one to get started.</div>
+          )}
           {resorts.map((resort) => (
             <ResortCard
               key={resort.id}
@@ -125,9 +125,30 @@ const AllResortsPage = () => {
       {/* Detail Panel */}
       {selectedResort && (
         <ResortDetailPanel
-          resort={selectedResort}
+          resort={selectedResort as any}
           isOpen={isDetailPanelOpen}
           onClose={handleCloseDetailPanel}
+      onResortUpdated={(updated) => {
+            // update selected resort
+            setSelectedResort(updated as any)
+            // update card list
+            setResorts(prev => prev.map(card => card.id === updated._id ? {
+              ...card,
+        name: updated.resortName || card.name,
+        imageUrl: (updated as any).logo?.url || card.imageUrl,
+              address: [
+                updated.address?.line1,
+                updated.address?.line2,
+                updated.address?.cityDistrict,
+                updated.address?.stateProvince,
+                updated.address?.postalCode,
+                updated.address?.country,
+              ].filter(Boolean).join(', '),
+              phone: updated.contactNumber || '',
+              email: updated.email || '',
+              full: updated as any,
+            } : card))
+          }}
         />
       )}
     </div>

@@ -15,6 +15,7 @@ const cottageTypeSchema = new mongoose.Schema({
     },
   ],
   resort: { type: mongoose.Schema.Types.ObjectId, ref: 'Resort' },
+  isDisabled: { type: Boolean, default: false },
 }, { timestamps: true })
 
 const CottageType = mongoose.models.CottageType || mongoose.model('CottageType', cottageTypeSchema)

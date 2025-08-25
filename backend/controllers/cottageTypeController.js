@@ -60,4 +60,41 @@ const listCottageTypes = async (req, res) => {
   }
 }
 
-export { createCottageType, listCottageTypes }
+const getCottageType = async (req, res) => {
+  try {
+    const ct = await CottageType.findById(req.params.id).populate('resort')
+    if (!ct) return res.status(404).json({ error: 'Not found' })
+    res.json({ cottageType: ct })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+const updateCottageType = async (req, res) => {
+  try {
+    const updates = req.body || {}
+    // restrict fields
+    const allowed = ['name','description','maxGuests','bedrooms','bathrooms','basePrice','amenities','resort']
+    const toSet = {}
+    for (const k of allowed) if (updates[k] !== undefined) toSet[k] = updates[k]
+    const ct = await CottageType.findByIdAndUpdate(req.params.id, { $set: toSet }, { new: true }).populate('resort')
+    if (!ct) return res.status(404).json({ error: 'Not found' })
+    res.json({ cottageType: ct })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+const toggleDisableCottageType = async (req, res) => {
+  try {
+    const { isDisabled } = req.body
+    if (typeof isDisabled !== 'boolean') return res.status(400).json({ error: 'isDisabled boolean required' })
+    const ct = await CottageType.findByIdAndUpdate(req.params.id, { $set: { isDisabled } }, { new: true })
+    if (!ct) return res.status(404).json({ error: 'Not found' })
+    res.json({ cottageType: ct })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+export { createCottageType, listCottageTypes, getCottageType, updateCottageType, toggleDisableCottageType }

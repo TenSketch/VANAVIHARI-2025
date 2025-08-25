@@ -16,14 +16,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import AllRoomTypes from "./allrooms.json";
 import { useEffect, useRef, useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+// Removed Dialog imports (edit & confirm modals eliminated)
 import {
   Sheet,
   SheetContent,
@@ -32,7 +25,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+// Removed Input import (no inline edit modal now)
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,6 +33,7 @@ DataTable.use(DT);
 
 interface Room {
   id: string;
+  _id?: string; // backend mongo id (if data loaded from API)
   resort: string;
   cottageType: string;
   roomId: string;
@@ -53,72 +47,133 @@ interface Room {
   bedChargeWeekend: number;
 }
 
-const roomsData: Room[] = AllRoomTypes;
+// Seed static rooms until API loads
+const staticSeedRooms: Room[] = AllRoomTypes as any;
 
 export default function RoomsTable() {
   const tableRef = useRef(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  // Removed separate edit & confirm disable dialogs
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
-  const [disablingRoom, setDisablingRoom] = useState<Room | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [disabledRooms, setDisabledRooms] = useState<Set<string>>(new Set());
-  const [formData, setFormData] = useState<Partial<Room>>({});
-
+  const [roomsData, setRoomsData] = useState<Room[]>(staticSeedRooms);
+  const [loadingRooms, setLoadingRooms] = useState<boolean>(true);
+  // keep a ref to always have latest rooms list for event listeners
+  const roomsDataRef = useRef<Room[]>(roomsData);
+  useEffect(() => { roomsDataRef.current = roomsData; }, [roomsData]);
+  const [editData, setEditData] = useState<Partial<Room>>({});
+  const [saving, setSaving] = useState(false);
+  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  
   const handleEdit = (room: Room) => {
-    setEditingRoom(room);
-    setFormData({ ...room });
-    setIsEditOpen(true);
+    // Open the detail sheet directly when clicking Edit
+    setSelectedRoom(room);
+    setIsDetailSheetOpen(true);
+  setEditData({ ...room });
   };
 
   const handleDisable = (room: Room) => {
-    setDisablingRoom(room);
-    setIsConfirmDisableOpen(true);
+    // Directly disable without confirmation modal
+    setDisabledRooms(prev => new Set([...prev, room.id]));
   };
 
   const handleRowClick = (room: Room) => {
     setSelectedRoom(room);
     setIsDetailSheetOpen(true);
+    setEditData({ ...room });
   };
 
-  const confirmDisable = () => {
-    if (disablingRoom) {
-      console.log('Disabling room:', disablingRoom.id);
-      setDisabledRooms(prev => new Set([...prev, disablingRoom.id]));
-      setIsConfirmDisableOpen(false);
-      setDisablingRoom(null);
+  const handleFieldChange = (field: keyof Room, value: any) => {
+    setEditData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!selectedRoom) return;
+    if (!selectedRoom._id) {
+      alert('This room exists only in static seed data. Create it in backend first to enable saving.');
+      return;
+    }
+    const idForApi = selectedRoom._id; // use real Mongo _id
+    const payload: any = {
+      roomName: editData.roomName ?? '',
+      roomId: editData.roomId ?? '',
+  weekdayRate: editData.weekdayRate ?? undefined,
+  weekendRate: editData.weekendRate ?? undefined,
+  guests: editData.guests ?? undefined,
+  extraGuests: editData.extraGuests ?? undefined,
+  bedChargeWeekday: editData.bedChargeWeekday ?? undefined,
+  bedChargeWeekend: editData.bedChargeWeekend ?? undefined,
+    };
+    setSaving(true);
+    try {
+      const res = await fetch(`${apiBase}/api/rooms/${idForApi}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((data && data.error) || res.statusText);
+      // Update local selectedRoom & editData
+      if (data && data.room) {
+        const srv = data.room;
+        // map server room back to UI shape (keep existing resort / cottageType display strings if server returns ids)
+        const mapped: Partial<Room> = {
+          _id: srv._id,
+          roomId: srv.roomId || srv.roomNumber || selectedRoom.roomId,
+          roomName: srv.roomName || selectedRoom.roomName,
+          weekdayRate: srv.weekdayRate ?? selectedRoom.weekdayRate,
+          weekendRate: srv.weekendRate ?? selectedRoom.weekendRate,
+          guests: srv.guests ?? selectedRoom.guests,
+          extraGuests: srv.extraGuests ?? selectedRoom.extraGuests,
+          bedChargeWeekday: srv.bedChargeWeekday ?? selectedRoom.bedChargeWeekday,
+          bedChargeWeekend: srv.bedChargeWeekend ?? selectedRoom.bedChargeWeekend,
+        };
+        setSelectedRoom(prev => prev ? { ...prev, ...mapped } : prev);
+        setEditData(prev => ({ ...prev, ...mapped }));
+        // update DataTable data array
+        setRoomsData(prev => prev.map(r => (r._id === srv._id ? { ...r, ...mapped } as Room : r)));
+      }
+      alert('Saved');
+    } catch (e: any) {
+      console.error(e);
+      alert('Save failed: ' + e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const cancelDisable = () => {
-    setIsConfirmDisableOpen(false);
-    setDisablingRoom(null);
-  };
-
-  const handleUpdate = () => {
-    if (editingRoom && formData) {
-      console.log('Updating room:', formData);
-      setIsEditOpen(false);
-      setEditingRoom(null);
-      setFormData({});
-    }
-  };
-
-  const handleCancel = () => {
-    setIsEditOpen(false);
-    setEditingRoom(null);
-    setFormData({});
-  };
-
-  const handleInputChange = (field: keyof Room, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  // Removed update/cancel/confirmation & form handlers
 
   useEffect(() => {
+    // fetch real rooms
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/rooms`);
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && Array.isArray(data.rooms)) {
+          const mapped: Room[] = data.rooms.map((r: any, idx: number) => ({
+            id: r._id || String(idx + 1),
+            _id: r._id,
+            resort: (r.resort && (r.resort.resortName || r.resort.name)) || r.resortName || '—',
+            cottageType: (r.cottageType && r.cottageType.name) || r.cottageTypeName || '—',
+            roomId: r.roomId || r.roomNumber || '',
+            roomName: r.roomName || r.roomNumber || r.roomId || `Room ${idx + 1}`,
+            roomImage: (r.images && r.images[0] && r.images[0].url) || '/img/placeholder.jpg',
+            weekdayRate: r.weekdayRate || r.price || 0,
+            weekendRate: r.weekendRate || r.price || 0,
+            guests: r.guests || r.noOfGuests || 0,
+            extraGuests: r.extraGuests || 0,
+            bedChargeWeekday: r.bedChargeWeekday || r.chargesPerBedWeekDays || 0,
+            bedChargeWeekend: r.bedChargeWeekend || r.chargesPerBedWeekEnd || 0,
+          }));
+          setRoomsData(mapped);
+        }
+      } catch (e) {
+        console.warn('Failed to load rooms; using static data');
+      } finally {
+        setLoadingRooms(false);
+      }
+    })();
     const style = document.createElement("style");
     style.innerHTML = `
       .dt-button-collection {
@@ -204,7 +259,7 @@ export default function RoomsTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const roomId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const room = roomsData.find(r => r.id === roomId);
+      const room = roomsDataRef.current.find(r => r.id === roomId);
       
       if (room) {
         // Stop propagation to prevent row click when button is clicked
@@ -218,7 +273,7 @@ export default function RoomsTable() {
       }
     };
 
-    const handleTableRowClick = (event: Event) => {
+  const handleTableRowClick = (event: Event) => {
       const target = event.target as HTMLElement;
       
       // Don't trigger row click if a button was clicked
@@ -229,7 +284,7 @@ export default function RoomsTable() {
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-        const room = roomsData[rowIndex];
+        const room = roomsDataRef.current[rowIndex];
         if (room) {
           handleRowClick(room);
         }
@@ -346,7 +401,8 @@ export default function RoomsTable() {
       </div>
 
       <div ref={tableRef} className="w-full">
-        <DataTable
+  {loadingRooms && <div className="p-4 text-sm text-gray-500">Loading rooms...</div>}
+  <DataTable
           data={roomsData}
           columns={columns}
           className="display nowrap w-full border border-gray-400"
@@ -384,182 +440,6 @@ export default function RoomsTable() {
         />
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Room</DialogTitle>
-            <DialogDescription>
-              Make changes to the room details below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {formData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="roomName">Room Name</Label>
-                <Input
-                  id="roomName"
-                  value={formData.roomName || ''}
-                  onChange={(e) => handleInputChange('roomName', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="roomId">Room ID</Label>
-                <Input
-                  id="roomId"
-                  value={formData.roomId || ''}
-                  onChange={(e) => handleInputChange('roomId', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="resort">Resort</Label>
-                <Input
-                  id="resort"
-                  value={formData.resort || ''}
-                  onChange={(e) => handleInputChange('resort', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="cottageType">Cottage Type</Label>
-                <Input
-                  id="cottageType"
-                  value={formData.cottageType || ''}
-                  onChange={(e) => handleInputChange('cottageType', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="weekdayRate">Weekday Rate</Label>
-                <Input
-                  id="weekdayRate"
-                  type="number"
-                  value={formData.weekdayRate || ''}
-                  onChange={(e) => handleInputChange('weekdayRate', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="weekendRate">Weekend Rate</Label>
-                <Input
-                  id="weekendRate"
-                  type="number"
-                  value={formData.weekendRate || ''}
-                  onChange={(e) => handleInputChange('weekendRate', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="guests">Guests</Label>
-                <Input
-                  id="guests"
-                  type="number"
-                  value={formData.guests || ''}
-                  onChange={(e) => handleInputChange('guests', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="extraGuests">Extra Guests</Label>
-                <Input
-                  id="extraGuests"
-                  type="number"
-                  value={formData.extraGuests || ''}
-                  onChange={(e) => handleInputChange('extraGuests', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="bedChargeWeekday">Bed Charge (Weekday)</Label>
-                <Input
-                  id="bedChargeWeekday"
-                  type="number"
-                  value={formData.bedChargeWeekday || ''}
-                  onChange={(e) => handleInputChange('bedChargeWeekday', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="bedChargeWeekend">Bed Charge (Weekend)</Label>
-                <Input
-                  id="bedChargeWeekend"
-                  type="number"
-                  value={formData.bedChargeWeekend || ''}
-                  onChange={(e) => handleInputChange('bedChargeWeekend', Number(e.target.value))}
-                />
-              </div>
-              
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="roomImage">Room Image URL</Label>
-                <Input
-                  id="roomImage"
-                  value={formData.roomImage || ''}
-                  onChange={(e) => handleInputChange('roomImage', e.target.value)}
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="id">ID</Label>
-                <Input
-                  id="id"
-                  value={formData.id || ''}
-                  onChange={(e) => handleInputChange('id', e.target.value)}
-                  disabled
-                  className="bg-gray-100"
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>
-              Update
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog for Disable Action */}
-      <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirm Disable</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to disable this room? This action will hide the record from the database.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {disablingRoom && (
-            <div className="py-4">
-              <p className="text-sm text-gray-600">
-                <strong>Room ID:</strong> {disablingRoom.id}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Name:</strong> {disablingRoom.roomName}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Resort:</strong> {disablingRoom.resort}
-              </p>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={cancelDisable}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDisable}>
-              Yes, Disable
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Room Details Sheet */}
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
         <SheetContent className="w-[400px] sm:w-[700px] lg:w-[800px] flex flex-col">
@@ -584,9 +464,11 @@ export default function RoomsTable() {
                   
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Room Name</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedRoom.roomName}</span>
-                    </div>
+                    <input
+                      className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                      value={editData.roomName || ''}
+                      onChange={(e) => handleFieldChange('roomName', e.target.value)}
+                    />
                   </div>
                   
                   <div>
@@ -612,53 +494,72 @@ export default function RoomsTable() {
                         className="w-full h-48 object-cover rounded-md"
                       />
                     </div>
+                    <p className="text-xs text-gray-500 mt-1">Image editing not yet supported.</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Weekday Rate</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">₹{selectedRoom.weekdayRate.toLocaleString()}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.weekdayRate ?? ''}
+                        onChange={(e) => handleFieldChange('weekdayRate', Number(e.target.value))}
+                      />
                     </div>
                     
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Weekend Rate</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">₹{selectedRoom.weekendRate.toLocaleString()}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.weekendRate ?? ''}
+                        onChange={(e) => handleFieldChange('weekendRate', Number(e.target.value))}
+                      />
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Guests</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedRoom.guests}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.guests ?? ''}
+                        onChange={(e) => handleFieldChange('guests', Number(e.target.value))}
+                      />
                     </div>
                     
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Extra Guests</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedRoom.extraGuests}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.extraGuests ?? ''}
+                        onChange={(e) => handleFieldChange('extraGuests', Number(e.target.value))}
+                      />
                     </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Bed Charge (Weekday)</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">₹{selectedRoom.bedChargeWeekday.toLocaleString()}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.bedChargeWeekday ?? ''}
+                        onChange={(e) => handleFieldChange('bedChargeWeekday', Number(e.target.value))}
+                      />
                     </div>
                     
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Bed Charge (Weekend)</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">₹{selectedRoom.bedChargeWeekend.toLocaleString()}</span>
-                      </div>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.bedChargeWeekend ?? ''}
+                        onChange={(e) => handleFieldChange('bedChargeWeekend', Number(e.target.value))}
+                      />
                     </div>
                   </div>
                   
@@ -677,26 +578,15 @@ export default function RoomsTable() {
               </div>
               
               {/* Fixed Action Buttons */}
-              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
-                <Button 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleEdit(selectedRoom);
-                  }}
-                  className="flex-1"
-                  disabled={disabledRooms.has(selectedRoom.id)}
-                >
-                  Edit Room
-                </Button>
+              <div className="flex-shrink-0 flex gap-3 justify-end p-6 pt-4 border-t bg-white">
+                <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)} disabled={saving}>Close</Button>
+                <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
                 <Button 
                   variant="destructive" 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleDisable(selectedRoom);
-                  }}
+                  onClick={() => handleDisable(selectedRoom)}
                   disabled={disabledRooms.has(selectedRoom.id)}
                 >
-                  Disable
+                  {disabledRooms.has(selectedRoom.id) ? 'Disabled' : 'Disable'}
                 </Button>
               </div>
             </>
