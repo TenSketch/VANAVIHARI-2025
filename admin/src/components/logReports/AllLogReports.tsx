@@ -10,7 +10,6 @@ import 'datatables.net-columncontrol-dt/css/columnControl.dataTables.css';
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import AllLogs from "./logs.json";
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -42,11 +41,10 @@ interface LogEntry {
   logEntryDate: string; // ISO date string
 }
 
-const logsData: LogEntry[] = AllLogs;
 
 export default function LogsTable() {
   const tableRef = useRef(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LogEntry | null>(null);
@@ -54,11 +52,12 @@ export default function LogsTable() {
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [disabledLogs, setDisabledLogs] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<LogEntry>>({});
+  const [rows, setRows] = useState<LogEntry[]>([]);
 
   const handleEdit = (log: LogEntry) => {
     setEditingLog(log);
     setFormData({ ...log });
-    setIsEditOpen(true);
+  setIsEditSheetOpen(true);
   };
 
   const handleDisable = (log: LogEntry) => {
@@ -88,14 +87,42 @@ export default function LogsTable() {
   const handleUpdate = () => {
     if (editingLog && formData) {
       console.log('Updating log:', formData);
-      setIsEditOpen(false);
-      setEditingLog(null);
-      setFormData({});
+      const payload: any = { ...formData }
+      if (payload.logEntryDate && typeof payload.logEntryDate === 'string') {
+        payload.logEntryDate = new Date(payload.logEntryDate)
+      }
+
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+      fetch(`${apiBase}/api/logs/${encodeURIComponent(editingLog.bookingId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(async (res) => {
+          const parsed = await res.json().catch(() => null)
+          if (!res.ok) throw new Error((parsed && parsed.error) || res.statusText)
+          return parsed
+        })
+        .then((data) => {
+          if (data && data.success && data.log) {
+            setRows(prev => prev.map(r => r.bookingId === data.log.bookingId ? ({
+              ...data.log,
+              logEntryDate: data.log.logEntryDate ? new Date(data.log.logEntryDate).toISOString().slice(0,16) : ''
+            }) : r))
+          }
+          setIsEditSheetOpen(false);
+          setEditingLog(null);
+          setFormData({});
+        })
+        .catch((err) => {
+          console.error('Update log error', err)
+          alert('Failed to update log: ' + err.message)
+        })
     }
   };
 
   const handleCancel = () => {
-    setIsEditOpen(false);
+    setIsEditSheetOpen(false);
     setEditingLog(null);
     setFormData({});
   };
@@ -208,7 +235,7 @@ export default function LogsTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const logId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const log = logsData.find(l => l.bookingId === logId);
+      const log = rows.find(l => l.bookingId === logId);
       
       if (log) {
         // Stop propagation to prevent row click when button is clicked
@@ -233,7 +260,7 @@ export default function LogsTable() {
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-        const log = logsData[rowIndex];
+        const log = rows[rowIndex];
         if (log) {
           handleRowClick(log);
         }
@@ -264,6 +291,23 @@ export default function LogsTable() {
       document.removeEventListener('click', handleTableRowClick);
     };
   }, []);
+
+  // fetch logs from backend on mount
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    fetch(`${apiBase}/api/logs`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.logs)) {
+          const normalized = data.logs.map((l: any) => ({
+            ...l,
+            logEntryDate: l.logEntryDate ? new Date(l.logEntryDate).toISOString().slice(0,16) : ''
+          }))
+          setRows(normalized)
+        }
+      })
+      .catch((err) => console.error('fetch logs error', err))
+  }, [])
 
   const columns = [
     {
@@ -354,7 +398,7 @@ export default function LogsTable() {
       <div className="flex-1 py-4 overflow-hidden">
         <div ref={tableRef} className="h-full">
           <DataTable
-            data={logsData}
+            data={rows}
             columns={columns}
             className="display nowrap w-full border border-gray-400"
             options={{
@@ -394,18 +438,16 @@ export default function LogsTable() {
         </div>
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Log Entry</DialogTitle>
-            <DialogDescription>
-              Make changes to the log entry details below.
-            </DialogDescription>
-          </DialogHeader>
-          
+      {/* Edit Sheet (sidebar) */}
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="w-[420px] sm:w-[520px] lg:w-[640px] flex flex-col">
+          <SheetHeader className="flex-shrink-0">
+            <SheetTitle>Edit Log Entry</SheetTitle>
+            <SheetDescription>Make changes to the log entry details below.</SheetDescription>
+          </SheetHeader>
+
           {formData && (
-            <div className="grid grid-cols-1 gap-4 py-4">
+            <div className="flex-1 overflow-y-auto px-6 py-4 grid grid-cols-1 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -414,7 +456,7 @@ export default function LogsTable() {
                   onChange={(e) => handleInputChange('username', e.target.value)}
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="bookingId">Booking ID</Label>
                 <Input
@@ -425,7 +467,7 @@ export default function LogsTable() {
                   className="bg-gray-100"
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="logType">Log Type</Label>
                 <Input
@@ -434,7 +476,7 @@ export default function LogsTable() {
                   onChange={(e) => handleInputChange('logType', e.target.value)}
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="logMessage">Log Message</Label>
                 <Input
@@ -443,7 +485,7 @@ export default function LogsTable() {
                   onChange={(e) => handleInputChange('logMessage', e.target.value)}
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="logEntryDate">Log Entry Date</Label>
                 <Input
@@ -455,17 +497,17 @@ export default function LogsTable() {
               </div>
             </div>
           )}
-          
-          <DialogFooter>
+
+          <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
             <Button variant="outline" onClick={handleCancel}>
               Cancel
             </Button>
             <Button onClick={handleUpdate}>
               Update
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Confirmation Dialog for Disable Action */}
       <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>

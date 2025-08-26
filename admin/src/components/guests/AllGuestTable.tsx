@@ -10,7 +10,7 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import GuestData from "./guestdata.json";
+// Guests will be loaded from backend API (MongoDB)
 import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
@@ -45,9 +45,10 @@ interface Guest {
   accessToken: string;
 }
 
-const guests: Guest[] = GuestData;
+// local guest list loaded from backend
+const initialGuests: Guest[] = [];
 
-const exportToExcel = () => {
+const exportToExcel = (guestsParam: Guest[]) => {
   const headers = [
     "S.No",
     "Guest ID",
@@ -62,7 +63,7 @@ const exportToExcel = () => {
 
   const csvContent = [
     headers.join(","),
-    ...guests.map((row, idx) => [
+  ...guestsParam.map((row, idx) => [
       idx + 1,
       `"${row.id}"`,
       `"${row.fullName}"`,
@@ -87,7 +88,8 @@ const exportToExcel = () => {
 
 export default function GuestTable() {
   const tableRef = useRef(null);
-  const [isEditOpen, setIsEditOpen] = useState(false);
+  // sheetMode toggles between viewing details and editing inside the sheet
+  const [sheetMode, setSheetMode] = useState<'view' | 'edit'>('view');
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -95,11 +97,22 @@ export default function GuestTable() {
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [disabledGuests, setDisabledGuests] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Guest>>({});
+  const [guestsState, setGuestsState] = useState<Guest[]>(initialGuests);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const guestsRef = useRef<Guest[]>(initialGuests);
+
+  useEffect(() => {
+    guestsRef.current = guestsState;
+  }, [guestsState]);
 
   const handleEdit = (guest: Guest) => {
+    // open the side sheet in edit mode
+    setSelectedGuest(guest);
     setEditingGuest(guest);
     setFormData({ ...guest });
-    setIsEditOpen(true);
+    setSheetMode('edit');
+    setIsDetailSheetOpen(true);
   };
 
   const handleDisable = (guest: Guest) => {
@@ -112,12 +125,36 @@ export default function GuestTable() {
     setIsDetailSheetOpen(true);
   };
 
-  const confirmDisable = () => {
+  const confirmDisable = async () => {
     if (disablingGuest) {
-      console.log('Disabling guest:', disablingGuest.id);
-      setDisabledGuests(prev => new Set([...prev, disablingGuest.id]));
-      setIsConfirmDisableOpen(false);
-      setDisablingGuest(null);
+      try {
+        const response = await fetch(`/api/guests/${disablingGuest.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ disabled: true })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            console.log('Guest disabled:', disablingGuest.id);
+            setDisabledGuests(prev => new Set([...prev, disablingGuest.id]));
+            setIsConfirmDisableOpen(false);
+            setDisablingGuest(null);
+          } else {
+            console.error('Disable failed:', result.error);
+            alert('Failed to disable guest: ' + (result.error || 'Unknown error'));
+          }
+        } else {
+          console.error('Disable request failed:', response.status);
+          alert('Failed to disable guest. Please try again.');
+        }
+      } catch (err: any) {
+        console.error('Disable error:', err);
+        alert('Error disabling guest: ' + (err.message || 'Network error'));
+      }
     }
   };
 
@@ -126,19 +163,56 @@ export default function GuestTable() {
     setDisablingGuest(null);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (editingGuest && formData) {
-      console.log('Updating guest:', formData);
-      setIsEditOpen(false);
-      setEditingGuest(null);
-      setFormData({});
+      try {
+        const response = await fetch(`/api/guests/${editingGuest.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            // Update local state with the updated guest
+            setGuestsState(prev => prev.map(g => 
+              g.id === editingGuest.id ? { ...g, ...formData } : g
+            ));
+            
+            // Update selected guest to reflect changes in view mode
+            setSelectedGuest({ ...editingGuest, ...formData } as Guest);
+            
+            // Close edit mode and reset
+            setEditingGuest(null);
+            setFormData({});
+            setSheetMode('view');
+          } else {
+            console.error('Update failed:', result.error);
+            alert('Failed to update guest: ' + (result.error || 'Unknown error'));
+          }
+        } else {
+          console.error('Update request failed:', response.status);
+          alert('Failed to update guest. Please try again.');
+        }
+      } catch (err: any) {
+        console.error('Update error:', err);
+        alert('Error updating guest: ' + (err.message || 'Network error'));
+      }
     }
   };
 
   const handleCancel = () => {
-    setIsEditOpen(false);
+    // cancel editing in sheet — revert form and go back to view or close
+    if (selectedGuest) {
+      setFormData({ ...selectedGuest });
+    } else {
+      setFormData({});
+    }
     setEditingGuest(null);
-    setFormData({});
+    setSheetMode('view');
   };
 
   const handleInputChange = (field: keyof Guest, value: string) => {
@@ -149,6 +223,61 @@ export default function GuestTable() {
   };
 
   useEffect(() => {
+    // fetch guest data from backend
+    const fetchGuests = async () => {
+      setLoading(true);
+      try {
+  const res = await fetch('/api/guests');
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.guests)) {
+          const mappedGuests = json.guests.map((g: any) => ({
+            id: g._id || g.id,
+            fullName: g.fullName || g.name || '',
+            phone: g.phone || '',
+            email: g.email || '',
+            address: g.address || '',
+            registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
+            emailVerificationToken: g.emailVerificationToken || '',
+            accessToken: g.accessToken || '',
+          }));
+          
+          setGuestsState(mappedGuests);
+          
+          // Set disabled guests based on the disabled field from database
+          const disabledIds = json.guests
+            .filter((g: any) => g.disabled === true)
+            .map((g: any) => g._id || g.id);
+          setDisabledGuests(new Set(disabledIds));
+        } else if (Array.isArray(json)) {
+          const mappedGuests = json.map((g: any) => ({
+            id: g._id || g.id,
+            fullName: g.fullName || g.name || '',
+            phone: g.phone || '',
+            email: g.email || '',
+            address: g.address || '',
+            registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
+            emailVerificationToken: g.emailVerificationToken || '',
+            accessToken: g.accessToken || '',
+          }));
+          
+          setGuestsState(mappedGuests);
+          
+          // Set disabled guests based on the disabled field from database
+          const disabledIds = json
+            .filter((g: any) => g.disabled === true)
+            .map((g: any) => g._id || g.id);
+          setDisabledGuests(new Set(disabledIds));
+        } else {
+          setError('Unexpected response from server')
+        }
+      } catch (err: any) {
+        setError(err?.message || 'Failed to load guests')
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchGuests();
+
     const style = document.createElement("style");
     style.innerHTML = `
       .dt-button-collection {
@@ -250,7 +379,7 @@ export default function GuestTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const guestId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const guest = guests.find(g => g.id === guestId);
+      const guest = guestsRef.current.find(g => g.id === guestId);
       
       if (guest) {
         // Stop propagation to prevent row click when button is clicked
@@ -275,7 +404,7 @@ export default function GuestTable() {
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-        const guest = guests[rowIndex];
+        const guest = guestsRef.current[rowIndex];
         if (guest) {
           handleRowClick(guest);
         }
@@ -378,7 +507,7 @@ export default function GuestTable() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-800">Guest Records</h2>
         <button
-          onClick={exportToExcel}
+          onClick={() => exportToExcel(guestsState)}
           className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +520,7 @@ export default function GuestTable() {
 
       <div ref={tableRef} className="flex-1 overflow-hidden">
         <DataTable
-          data={guests}
+          data={guestsState}
           columns={columns}
           className="display nowrap w-full border border-gray-400"
           options={{
@@ -430,82 +559,7 @@ export default function GuestTable() {
         />
       </div>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Guest</DialogTitle>
-            <DialogDescription>
-              Make changes to the guest details below.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {formData && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={formData.fullName || ''}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
-                />
-              </div>  
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone || ''}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                />
-              </div>              
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                />
-              </div>              
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address || ''}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                />
-              </div>              
-              <div className="grid gap-2">
-                <Label htmlFor="registrationDate">Registration Date</Label>
-                <Input
-                  id="registrationDate"
-                  type="date"
-                  value={formData.registrationDate || ''}
-                  onChange={(e) => handleInputChange('registrationDate', e.target.value)}
-                />
-              </div>  
-              <div className="grid gap-2">
-                <Label htmlFor="id">Guest ID</Label>
-                <Input
-                  id="id"
-                  value={formData.id || ''}
-                  onChange={(e) => handleInputChange('id', e.target.value)}
-                  disabled
-                  className="bg-gray-100"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate}>
-              Update
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  {/* Edit Dialog removed — edit form now shown inside the Sheet when sheetMode === 'edit' */}
       {/* Confirmation Dialog for Disable Action */}
       <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
         <DialogContent className="max-w-md">
@@ -552,101 +606,176 @@ export default function GuestTable() {
           
           {selectedGuest && (
             <>
-              {/* Scrollable Content */}
+              {/* Scrollable Content: either view or edit mode */}
               <div className="flex-1 overflow-y-auto px-6 py-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Guest ID</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedGuest.id}</span>
+                {sheetMode === 'view' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Guest ID</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedGuest.id}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Full Name</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedGuest.fullName}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedGuest.phone}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedGuest.email}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Address</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
+                        <span className="text-sm text-gray-900">{selectedGuest.address}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedGuest.registrationDate}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Email Verification Token</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.emailVerificationToken}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Access Token</Label>
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.accessToken}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <div className="mt-1">
+                        <Badge 
+                          variant={disabledGuests.has(selectedGuest.id) ? "destructive" : "default"}
+                          className="px-2 py-1"
+                        >
+                          {disabledGuests.has(selectedGuest.id) ? "Disabled" : "Active"}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Full Name</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedGuest.fullName}</span>
+                ) : (
+                  // Edit form inside sheet
+                  formData && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="fullName">Full Name</Label>
+                        <Input
+                          id="fullName"
+                          value={formData.fullName || ''}
+                          onChange={(e) => handleInputChange('fullName', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          value={formData.phone || ''}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email || ''}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor="address">Address</Label>
+                        <Input
+                          id="address"
+                          value={formData.address || ''}
+                          onChange={(e) => handleInputChange('address', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="registrationDate">Registration Date</Label>
+                        <Input
+                          id="registrationDate"
+                          type="date"
+                          value={formData.registrationDate || ''}
+                          onChange={(e) => handleInputChange('registrationDate', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="id">Guest ID</Label>
+                        <Input
+                          id="id"
+                          value={formData.id || ''}
+                          onChange={(e) => handleInputChange('id', e.target.value)}
+                          disabled
+                          className="bg-gray-100"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedGuest.phone}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Email Address</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedGuest.email}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Address</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
-                      <span className="text-sm text-gray-900">{selectedGuest.address}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedGuest.registrationDate}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Email Verification Token</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.emailVerificationToken}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Access Token</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.accessToken}</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-gray-700">Status</Label>
-                    <div className="mt-1">
-                      <Badge 
-                        variant={disabledGuests.has(selectedGuest.id) ? "destructive" : "default"}
-                        className="px-2 py-1"
-                      >
-                        {disabledGuests.has(selectedGuest.id) ? "Disabled" : "Active"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
+                  )
+                )}
               </div>
-              
+
               {/* Fixed Action Buttons */}
               <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
-                <Button 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleEdit(selectedGuest);
-                  }}
-                  className="flex-1"
-                  disabled={disabledGuests.has(selectedGuest.id)}
-                >
-                  Edit Guest
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => {
-                    setIsDetailSheetOpen(false);
-                    handleDisable(selectedGuest);
-                  }}
-                  disabled={disabledGuests.has(selectedGuest.id)}
-                >
-                  Disable
-                </Button>
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button 
+                      onClick={() => {
+                        // switch to edit mode inside the same sheet
+                        setSheetMode('edit');
+                        setEditingGuest(selectedGuest);
+                        setFormData({ ...selectedGuest });
+                      }}
+                      className="flex-1"
+                      disabled={disabledGuests.has(selectedGuest.id)}
+                    >
+                      Edit Guest
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        setIsDetailSheetOpen(false);
+                        handleDisable(selectedGuest);
+                      }}
+                      disabled={disabledGuests.has(selectedGuest.id)}
+                    >
+                      Disable
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleUpdate}>
+                      Update
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}
