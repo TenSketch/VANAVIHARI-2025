@@ -1,0 +1,69 @@
+@use "./src/scss/base/" as *;
+$card-flex-basis: 35%;
+#carouselExampleFade {
+  .carousel-item {
+    @media(min-width:768px){
+      height: 70vh;
+    }
+    transition: all 3s ease-in-out;
+    .carousel-overlay {
+      position: absolute;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      width: 100%;
+      height: 100%;
+    }
+    img {
+      object-fit: cover;
+      /* Or "contain" */
+      height: 100dvh;
+    }
+    .carousel-caption {
+      bottom: 5%;
+      h1 {
+        color: $clr-light !important;
+      }
+    }
+    &.active {
+      transform: scale(1.1);
+      /* Zoom in on active slide */
+    }
+    &.prev,
+    &.next {
+      transform: scale(0.9);
+      /* Shrink inactive slides */
+    }
+  }
+}
+.about {
+  // background-color: $clr-primary-light;
+  // background: linear-gradient(to bottom right, #42b148, #e4cf57);
+}
+.resort-intro {
+  .card {
+    @media(min-width:768px) {
+      flex-basis: $card-flex-basis;
+    }
+    min-height: 55dvh;
+    // .card-body{
+    // }
+  }
+}
+.close-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  border: none;
+  background-color: transparent;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+.gallery-image {
+  transition: transform 0.3s ease;
+  cursor: pointer;
+}
+.gallery-image:hover {
+  transform: scale(1.1);
+}
+
