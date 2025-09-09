@@ -7,6 +7,16 @@ const cottageTypeSchema = new mongoose.Schema({
   bedrooms: { type: Number, default: 1 },
   bathrooms: { type: Number, default: 1 },
   basePrice: { type: Number, required: true },
+  // Tent related fields
+  isTent: { type: Boolean, default: false },
+  tentType: { type: String },
+  // tentMeta stores resolved tent attributes like price, size, special rules
+  tentMeta: {
+    price: Number,
+    size: String,
+    notes: String,
+    reservedFor: String, // e.g., 'males-only'
+  },
   amenities: [String],
   images: [
     {

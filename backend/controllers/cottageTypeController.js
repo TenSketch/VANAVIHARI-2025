@@ -42,7 +42,47 @@ const createCottageType = async (req, res) => {
 
     if (v('resort')) cottageData.resort = v('resort')
 
+    // Tent related: normalize isTent/tentType coming from multipart/form-data
+    try {
+      const isTentRaw = v('isTent')
+      const isTent = isTentRaw === 'true' || isTentRaw === true
+      if (isTent) {
+        cottageData.isTent = true
+        const tt = v('tentType')
+        if (tt) cottageData.tentType = tt
+      }
+    } catch (e) {
+      // ignore normalization errors
+    }
+
     const ct = new CottageType(cottageData)
+
+    // Resolve Vanavihari tent metadata if applicable (map tentType -> price/size/notes)
+    try {
+      if (ct.isTent && ct.tentType && ct.resort) {
+        const Resort = (await import('../models/resortModel.js')).default
+        const resortObj = await Resort.findById(ct.resort)
+        const resortName = (resortObj && resortObj.resortName || '').toString().toLowerCase()
+        if (resortName.includes('vanavihari')) {
+          const tentMap = {
+            '2-person': { price: 1500, size: '205 cm × 145 cm, height 110 cm', notes: 'For Males Only – strictly no kids', reservedFor: 'males-only' },
+            '4-person': { price: 3000, size: '210 cm × 240 cm, height 190 cm', notes: 'For Males Only – strictly no kids', reservedFor: 'males-only' },
+          }
+          const meta = tentMap[ct.tentType]
+          if (meta) {
+            ct.tentMeta = meta
+            // apply reasonable defaults if not provided
+            if (!ct.basePrice && meta.price) ct.basePrice = meta.price
+            if ((!ct.maxGuests || ct.maxGuests === undefined) && ct.tentType) {
+              ct.maxGuests = ct.tentType === '4-person' ? 4 : 2
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Tent meta resolution failed', e && e.message)
+    }
+
     await ct.save()
     res.status(201).json({ cottageType: ct })
   } catch (error) {
@@ -74,11 +114,36 @@ const updateCottageType = async (req, res) => {
   try {
     const updates = req.body || {}
     // restrict fields
-    const allowed = ['name','description','maxGuests','bedrooms','bathrooms','basePrice','amenities','resort']
+    const allowed = ['name','description','maxGuests','bedrooms','bathrooms','basePrice','amenities','resort','isTent','tentType']
     const toSet = {}
     for (const k of allowed) if (updates[k] !== undefined) toSet[k] = updates[k]
     const ct = await CottageType.findByIdAndUpdate(req.params.id, { $set: toSet }, { new: true }).populate('resort')
     if (!ct) return res.status(404).json({ error: 'Not found' })
+    // If tent fields were updated and this resort is Vanavihari, attempt to resolve tentMeta
+    try {
+      if ((toSet.isTent || toSet.tentType) && ct.isTent && ct.tentType && ct.resort) {
+        const Resort = (await import('../models/resortModel.js')).default
+        const resortObj = await Resort.findById(ct.resort)
+        const resortName = (resortObj && resortObj.resortName || '').toString().toLowerCase()
+        if (resortName.includes('vanavihari')) {
+          const tentMap = {
+            '2-person': { price: 1500, size: '205 cm × 145 cm, height 110 cm', notes: 'For Males Only – strictly no kids', reservedFor: 'males-only' },
+            '4-person': { price: 3000, size: '210 cm × 240 cm, height 190 cm', notes: 'For Males Only – strictly no kids', reservedFor: 'males-only' },
+          }
+          const meta = tentMap[ct.tentType]
+          if (meta) {
+            ct.tentMeta = meta
+            if (!ct.basePrice && meta.price) ct.basePrice = meta.price
+            if ((!ct.maxGuests || ct.maxGuests === undefined) && ct.tentType) {
+              ct.maxGuests = ct.tentType === '4-person' ? 4 : 2
+            }
+            await ct.save()
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Tent meta resolution failed during update', e && e.message)
+    }
     res.json({ cottageType: ct })
   } catch (error) {
     res.status(500).json({ error: error.message })
