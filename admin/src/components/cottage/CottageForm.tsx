@@ -9,10 +9,8 @@ interface CottageTypeFormData {
   name: string;
   amenities: string; 
   description: string;
-  basePrice: string;
-  maxGuests: string;
-  bedrooms: string;
-  bathrooms: string;
+  isTent: boolean;
+  tentType: string;
 }
 
 
@@ -23,16 +21,32 @@ const AddCottageTypeForm = () => {
     name: "",
     amenities: "",
     description: "",
-    basePrice: "",
-    maxGuests: "",
-    bedrooms: "",
-    bathrooms: "",
+    isTent: false,
+    tentType: "",
   });
   const [images, setImages] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [resorts, setResorts] = useState<Array<{ id: string; resortName: string }>>([])
   const [resortsLoading, setResortsLoading] = useState(false)
+
+  // Tent types data for Vanavihari
+  const tentTypes = [
+    {
+      id: '2-person',
+      name: '2-Person Tent',
+      price: 1500,
+      size: '205 cm × 145 cm, height 110 cm',
+      description: 'For Males Only – strictly no kids. Size: approx. 205 cm × 145 cm, height 110 cm'
+    },
+    {
+      id: '4-person', 
+      name: '4-Person Tent',
+      price: 3000,
+      size: '210 cm × 240 cm, height 190 cm',
+      description: 'For Males Only – strictly no kids. Size: approx. 210 cm × 240 cm, height 190 cm (with vestibule area)'
+    }
+  ]
 
   useEffect(() => {
     const load = async () => {
@@ -79,7 +93,25 @@ const AddCottageTypeForm = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'resort') {
+      // Reset tent-related fields when resort changes
+      setFormData((prev) => ({ 
+        ...prev, 
+        [name]: value,
+        isTent: false,
+        tentType: ''
+      }));
+    } else if (name === 'isTent') {
+      const isTentValue = value === 'true'
+      setFormData((prev) => ({ 
+        ...prev, 
+        isTent: isTentValue,
+        tentType: '' // Reset tent type when tent selection changes
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,10 +144,12 @@ const AddCottageTypeForm = () => {
       fd.append('resort', resortToSend)
       fd.append('name', formData.name)
       fd.append('description', formData.description)
-      if (formData.basePrice) fd.append('basePrice', formData.basePrice)
-      if (formData.maxGuests) fd.append('maxGuests', formData.maxGuests)
-      if (formData.bedrooms) fd.append('bedrooms', formData.bedrooms)
-      if (formData.bathrooms) fd.append('bathrooms', formData.bathrooms)
+      
+      // Add tent-related data
+      fd.append('isTent', formData.isTent.toString())
+      if (formData.isTent && formData.tentType) {
+        fd.append('tentType', formData.tentType)
+      }
 
       // amenities: split by comma and append each entry so backend receives array
       const amenities = formData.amenities
@@ -139,7 +173,7 @@ const AddCottageTypeForm = () => {
 
       setMessage('Cottage type added successfully')
       // reset form
-      setFormData({ resort: '', name: '', amenities: '', description: '', basePrice: '', maxGuests: '', bedrooms: '', bathrooms: '' })
+      setFormData({ resort: '', name: '', amenities: '', description: '', isTent: false, tentType: '' })
       setImages([])
     } catch (err: any) {
       setMessage(err.message || 'Request failed')
@@ -149,7 +183,7 @@ const AddCottageTypeForm = () => {
   };
 
   const handleReset = () => {
-    setFormData({ resort: '', name: '', amenities: '', description: '', basePrice: '', maxGuests: '', bedrooms: '', bathrooms: '' })
+    setFormData({ resort: '', name: '', amenities: '', description: '', isTent: false, tentType: '' })
     setImages([])
     setMessage(null)
   }
@@ -170,7 +204,7 @@ const AddCottageTypeForm = () => {
           {/* Select Resort */}
           <div className="w-full max-w-md space-y-2">
             <Label htmlFor="resortId" className="text-sm font-medium text-slate-700">
-              Select Resort *
+              Select Resort <span className="text-red-500">*</span>
             </Label>
             <select
               id="resort"
@@ -190,10 +224,54 @@ const AddCottageTypeForm = () => {
             </select>
           </div>
 
+          {/* Tent Selection for Vanavihari */}
+          {formData.resort && mergedResorts.find(r => r.id === formData.resort)?.resortName.toLowerCase().includes('vanavihari') && (
+            <div className="w-full max-w-md space-y-2">
+              <Label htmlFor="isTent" className="text-sm font-medium text-slate-700">
+                Is this a Tent? <span className="text-red-500">*</span>
+              </Label>
+              <select
+                id="isTent"
+                name="isTent"
+                value={formData.isTent.toString()}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 bg-slate-50"
+              >
+                <option value="false">No - Regular Cottage</option>
+                <option value="true">Yes - Tent Accommodation</option>
+              </select>
+            </div>
+          )}
+
+          {/* Tent Type Selection */}
+          {formData.isTent && (
+            <div className="w-full max-w-md space-y-2">
+              <Label htmlFor="tentType" className="text-sm font-medium text-slate-700">
+                Select Tent Type <span className="text-red-500">*</span>
+              </Label>
+              <select
+                id="tentType"
+                name="tentType"
+                value={formData.tentType}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 bg-slate-50"
+              >
+                <option value="">-- Select Tent Type --</option>
+                {tentTypes.map((tent) => (
+                  <option key={tent.id} value={tent.id}>
+                    {tent.name} ({tent.size})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Cottage Name */}
           <div className="w-full max-w-md space-y-2">
             <Label htmlFor="name" className="text-sm font-medium text-slate-700">
-              Cottage Name *
+              {formData.isTent ? 'Tent Name' : 'Cottage Name'} *
             </Label>
             <Input
               id="name"
@@ -202,42 +280,9 @@ const AddCottageTypeForm = () => {
               value={formData.name}
               onChange={handleChange}
               required
-              placeholder="e.g., Deluxe Cottage"
+              placeholder={formData.isTent ? "e.g., 2-Person Tent, 4-Person Tent" : "e.g., Deluxe Cottage"}
               className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50"
             />
-          </div>
-
-          {/* Base Price */}
-          <div className="w-full max-w-md space-y-2">
-            <Label htmlFor="basePrice" className="text-sm font-medium text-slate-700">
-              Base Price (INR) *
-            </Label>
-            <Input
-              id="basePrice"
-              name="basePrice"
-              type="number"
-              value={formData.basePrice}
-              onChange={handleChange}
-              required
-              placeholder="e.g., 3500"
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50"
-            />
-          </div>
-
-          {/* Guests / Bedrooms / Bathrooms */}
-          <div className="grid grid-cols-3 gap-4 max-w-md">
-            <div className="space-y-2">
-              <Label htmlFor="maxGuests" className="text-sm font-medium text-slate-700">Max Guests</Label>
-              <Input id="maxGuests" name="maxGuests" type="number" value={formData.maxGuests} onChange={handleChange} placeholder="2" className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bedrooms" className="text-sm font-medium text-slate-700">Bedrooms</Label>
-              <Input id="bedrooms" name="bedrooms" type="number" value={formData.bedrooms} onChange={handleChange} placeholder="1" className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bathrooms" className="text-sm font-medium text-slate-700">Bathrooms</Label>
-              <Input id="bathrooms" name="bathrooms" type="number" value={formData.bathrooms} onChange={handleChange} placeholder="1" className="w-full px-4 py-3 border border-slate-300 rounded-lg bg-slate-50" />
-            </div>
           </div>
 
           {/* Amenities (comma separated) */}
