@@ -38,6 +38,7 @@ $card-flex-basis: 35%;
 .about {
   // background-color: $clr-primary-light;
   // background: linear-gradient(to bottom right, #42b148, #e4cf57);
+  padding: 2rem 0;
 }
 .resort-intro {
   .card {
@@ -65,5 +66,68 @@ $card-flex-basis: 35%;
 }
 .gallery-image:hover {
   transform: scale(1.1);
+}
+
+// Tourist Spots Section
+.tourist-spots {
+  .tourist-spot-card {
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    }
+    
+    .card-img-top {
+      transition: transform 0.3s ease;
+    }
+    
+    &:hover .card-img-top {
+      transform: scale(1.05);
+    }
+    
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2c5aa0;
+    }
+    
+    .pricing-info {
+      background: #f8f9fa;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border-left: 3px solid #2c5aa0;
+    }
+    
+    .btn-outline-primary {
+      border-color: #2c5aa0;
+      color: #2c5aa0;
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background-color: #2c5aa0;
+        border-color: #2c5aa0;
+        transform: translateY(-1px);
+      }
+    }
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%);
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(44, 90, 160, 0.3);
+    }
+  }
 }
 

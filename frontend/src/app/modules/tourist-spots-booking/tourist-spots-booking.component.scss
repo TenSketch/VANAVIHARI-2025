@@ -1,0 +1,138 @@
+.main {
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.page-banner {
+  background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%);
+  color: white;
+  padding: 3rem 0;
+  margin-bottom: 0;
+}
+
+.tourist-spots-list {
+  .tourist-spot-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+    }
+  }
+}
+
+.booking-summary-card {
+  .card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+  
+  .card-header {
+    background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%) !important;
+    border: none;
+    padding: 1.25rem;
+    
+    h5 {
+      font-weight: 600;
+    }
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+}
+
+.booked-spot {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef !important;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #2c5aa0 !important;
+    box-shadow: 0 2px 8px rgba(44, 90, 160, 0.1);
+  }
+  
+  h6 {
+    color: #2c5aa0;
+    font-weight: 600;
+  }
+  
+  .fee-breakdown {
+    color: #6c757d;
+    
+    .fw-bold {
+      color: #212529;
+    }
+  }
+}
+
+.grand-total {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 10px;
+  padding: 1.25rem;
+  
+  h5, h4 {
+    font-weight: 700;
+  }
+  
+  .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+}
+
+.btn-outline-danger {
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 991.98px) {
+  .booking-summary-card {
+    position: static !important;
+    margin-top: 2rem;
+  }
+}
+
+// Loading and animation states
+.alert {
+  animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}

@@ -1,0 +1,129 @@
+.tourist-spot {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.header .title {
+  margin: 0;
+  font-weight: 600;
+}
+.header .sub {
+  color: #6c757d;
+  font-size: 0.95rem;
+}
+
+.gallery {
+  overflow-x: auto;
+}
+.gallery .rail {
+  display: flex;
+  gap: 0.75rem;
+}
+.gallery img {
+  height: 140px;
+  width: auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.quick-info {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.quick-info .card {
+  background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+  border: 1px solid #e3e6ea;
+  border-radius: 16px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.quick-info .card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #198754 0%, #20c997 100%);
+}
+.quick-info .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-color: #198754;
+}
+.quick-info .icon { 
+  font-size: 1.75rem; 
+  margin-bottom: 0.5rem;
+  display: block;
+}
+.quick-info .label { 
+  color: #495057; 
+  font-size: 0.8rem; 
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+.quick-info .value { 
+  font-weight: 700; 
+  font-size: 1.1rem;
+  color: #212529;
+  line-height: 1.2;
+}
+.quick-info .unit { 
+  color: #6c757d; 
+  font-weight: 400; 
+  font-size: 0.75rem;
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.booking-inputs .row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.stepper { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.6rem; display: grid; gap: 0.4rem; }
+.stepper .lbl { font-weight: 600; }
+.stepper .ctrl { display: inline-flex; align-items: center; gap: 0.5rem; }
+.stepper .ctrl button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ced4da; background: #f8f9fa; }
+.stepper .ctrl span { min-width: 2ch; text-align: center; font-weight: 600; }
+.addons {
+  display: grid;
+  gap: 0.25rem;
+}
+.addon label { font-weight: 500; }
+.muted { color: #6c757d; }
+
+.actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.estimate { margin-right: auto; color: #212529; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+}
+.btn.add { background: #198754; color: #fff; border: 1px solid #157347; }
+.btn.details { background: #f8f9fa; color: #0d6efd; border: 1px solid #e9ecef; }
+
+@media (max-width: 768px) {
+  .quick-info { 
+    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+    gap: 0.75rem;
+  }
+  .quick-info .card {
+    padding: 1rem 0.75rem;
+  }
+  .quick-info .icon {
+    font-size: 1.5rem;
+  }
+  .gallery img { height: 120px; }
+}

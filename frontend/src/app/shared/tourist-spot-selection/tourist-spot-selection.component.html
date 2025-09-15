@@ -1,0 +1,91 @@
+<div class="tourist-spot">
+  <!-- Header -->
+  <header class="header">
+    <h3 class="title">{{ name }}<span class="sep">,</span> <span class="loc">{{ location }}</span></h3>
+    <div class="sub" *ngIf="type">{{ type }}</div>
+  </header>
+
+  <!-- Gallery: horizontal scroll -->
+  <div class="gallery" *ngIf="images?.length">
+    <div class="rail">
+      <img *ngFor="let img of images" [src]="img" [alt]="name" />
+    </div>
+  </div>
+
+  <!-- Quick info cards -->
+  <div class="quick-info">
+    <div class="card" *ngIf="unitEntry !== undefined">
+      <div class="icon">🎟️</div>
+      <div class="label">Entry</div>
+      <div class="value">₹{{ unitEntry }} <span class="unit">/ person</span></div>
+    </div>
+    <div class="card" *ngIf="unitParking !== undefined">
+      <div class="icon">🅿️</div>
+      <div class="label">Parking</div>
+      <div class="value">₹{{ unitParking }} <span class="unit">/ vehicle</span></div>
+    </div>
+    <div class="card" *ngIf="unitCamera !== undefined">
+      <div class="icon">📸</div>
+      <div class="label">Camera</div>
+      <div class="value">₹{{ unitCamera }} <span class="unit">/ camera</span></div>
+    </div>
+  </div>
+
+  <!-- Booking inputs -->
+  <div class="booking-inputs">
+    <div class="row">
+      <div class="stepper">
+        <div class="lbl">Adults</div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('adults')">−</button>
+          <span>{{ adults }}</span>
+          <button type="button" (click)="inc('adults')">＋</button>
+        </div>
+      </div>
+      <div class="stepper">
+        <div class="lbl">Children</div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('children')">−</button>
+          <span>{{ children }}</span>
+          <button type="button" (click)="inc('children')">＋</button>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="stepper">
+        <div class="lbl">Vehicles</div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('vehicles')">−</button>
+          <span>{{ vehicles }}</span>
+          <button type="button" (click)="inc('vehicles')">＋</button>
+        </div>
+      </div>
+      <div class="stepper">
+        <div class="lbl">Cameras</div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('cameras')">−</button>
+          <span>{{ cameras }}</span>
+          <button type="button" (click)="inc('cameras')">＋</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="addons" *ngIf="addOns?.length">
+      <div class="addon" *ngFor="let a of addOns">
+        <label>
+          <input type="checkbox" (change)="toggleAddOn(a.id, $event.target.checked)" />
+          {{ a.label }} <span class="muted" *ngIf="a.price">(₹{{ a.price }})</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <div class="estimate" *ngIf="estimatedTotal !== undefined">
+      Est. Total: <strong>₹{{ estimatedTotal }}</strong>
+    </div>
+    <button class="btn add" [disabled]="peopleCount === 0" (click)="onAddToBooking()">Add to Booking</button>
+    <a [routerLink]="detailsLink" [fragment]="detailsFragment" class="btn details">View Details →</a>
+  </div>
+</div>

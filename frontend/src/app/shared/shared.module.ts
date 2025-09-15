@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 import { SharedRoutingModule } from './shared-routing.module';
 
@@ -7,6 +8,7 @@ import { ConfirmationModalComponent } from '../shared/confirmation-modal/confirm
 import { BreadcrumbsComponent } from './components/breadcrumbs/breadcrumbs.component';
 import { GalleryComponent } from './gallery/gallery.component';
 import { SearchResortComponent } from './search-resort/search-resort.component';
+import { TouristSpotSelectionComponent } from './tourist-spot-selection/tourist-spot-selection.component';
 
 import { FormsModule } from '@angular/forms'; // Import FormsModule
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -22,10 +24,12 @@ import {MatButtonModule} from '@angular/material/button';
     BreadcrumbsComponent,
     GalleryComponent,
     SearchResortComponent,
+    TouristSpotSelectionComponent,
   ],
   imports: [
     CommonModule,
     SharedRoutingModule,
+  RouterModule,
     FormsModule,
     MatFormFieldModule,
     MatInputModule,
@@ -34,6 +38,6 @@ import {MatButtonModule} from '@angular/material/button';
     MatNativeDateModule,
     MatButtonModule
   ],
-  exports: [GalleryComponent, SearchResortComponent],
+  exports: [GalleryComponent, SearchResortComponent, TouristSpotSelectionComponent],
 })
 export class SharedModule {}

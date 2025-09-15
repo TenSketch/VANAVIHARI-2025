@@ -1,0 +1,192 @@
+<app-layout>
+  <div class="main">
+    <section class="page-banner d-grid place-items-center">
+      <h1 class="display-4 text-center">Book Tourist Spots</h1>
+    </section>
+
+    <div class="container-fluid my-5">
+      <div class="row g-4">
+        <!-- Left Side - Tourist Spot Selection (70%) -->
+        <div class="col-lg-8">
+          <div class="tourist-spots-list">
+            
+            <!-- Jalatarangini Waterfall -->
+            <div class="tourist-spot-card mb-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <app-tourist-spot-selection
+                    [name]="'Jalatarangini Waterfalls'"
+                    [location]="'Maredumilli'"
+                    [type]="'Waterfall'"
+                    [images]="[
+                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg',
+                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-01.jpg',
+                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-02.jpg'
+                    ]"
+                    [fees]="{ entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 100 }"
+                    [addOns]="[
+                      { id: 'guide-jalatarangini', label: 'Guide', price: 500 },
+                      { id: 'transport-jalatarangini', label: 'Transport', price: 'On request' }
+                    ]"
+                    [detailsLink]="['/tourist-destination']"
+                    detailsFragment="jalatarangini"
+                    (addToBooking)="onAddTouristBooking($event, 'jalatarangini')">
+                  </app-tourist-spot-selection>
+                </div>
+              </div>
+            </div>
+
+            <!-- Amruthadhara Falls -->
+            <div class="tourist-spot-card mb-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <app-tourist-spot-selection
+                    [name]="'Amruthadhara Falls'"
+                    [location]="'Maredumilli'"
+                    [type]="'Waterfall'"
+                    [images]="[
+                      'assets/img/amruthadhara.jpg',
+                      'assets/img/TOURIST-PLACES/Amruthadhara-Falls-01.jpg',
+                      'assets/img/TOURIST-PLACES/Amruthadhara-Falls-02.jpg'
+                    ]"
+                    [fees]="{ entryPerPerson: 30, parkingPerVehicle: 15, cameraPerCamera: 50 }"
+                    [addOns]="[
+                      { id: 'guide-amruthadhara', label: 'Guide', price: 400 },
+                      { id: 'refreshments-amruthadhara', label: 'Refreshments', price: 200 }
+                    ]"
+                    [detailsLink]="['/tourist-destination']"
+                    detailsFragment="amruthadhara"
+                    (addToBooking)="onAddTouristBooking($event, 'amruthadhara')">
+                  </app-tourist-spot-selection>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rampa Falls -->
+            <div class="tourist-spot-card mb-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <app-tourist-spot-selection
+                    [name]="'Rampa Falls'"
+                    [location]="'East Godavari'"
+                    [type]="'Waterfall'"
+                    [images]="[
+                      'assets/img/Rampa-falls.jpg',
+                      'assets/img/TOURIST-PLACES/Rampa-Falls-01.jpg',
+                      'assets/img/TOURIST-PLACES/Rampa-Falls-02.jpg'
+                    ]"
+                    [fees]="{ entryPerPerson: 40, parkingPerVehicle: 25, cameraPerCamera: 75 }"
+                    [addOns]="[
+                      { id: 'guide-rampa', label: 'Guide', price: 600 },
+                      { id: 'trek-rampa', label: 'Trekking Equipment', price: 300 }
+                    ]"
+                    [detailsLink]="['/tourist-destination']"
+                    detailsFragment="rampa"
+                    (addToBooking)="onAddTouristBooking($event, 'rampa')">
+                  </app-tourist-spot-selection>
+                </div>
+              </div>
+            </div>
+
+            <!-- Maredumilli Waterfalls -->
+            <div class="tourist-spot-card mb-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <app-tourist-spot-selection
+                    [name]="'Maredumilli Waterfalls'"
+                    [location]="'Maredumilli'"
+                    [type]="'Waterfall'"
+                    [images]="[
+                      'assets/img/MAREDUMILLI-waterfalls.jpg',
+                      'assets/img/TOURIST-PLACES/Maredumilli-Waterfalls-01.jpg',
+                      'assets/img/TOURIST-PLACES/Maredumilli-Waterfalls-02.jpg'
+                    ]"
+                    [fees]="{ entryPerPerson: 60, parkingPerVehicle: 30, cameraPerCamera: 120 }"
+                    [addOns]="[
+                      { id: 'guide-maredumilli', label: 'Guide', price: 700 },
+                      { id: 'boating-maredumilli', label: 'Boating', price: 500 }
+                    ]"
+                    [detailsLink]="['/tourist-destination']"
+                    detailsFragment="maredumilli"
+                    (addToBooking)="onAddTouristBooking($event, 'maredumilli')">
+                  </app-tourist-spot-selection>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right Side - Booking Summary (30%) -->
+        <div class="col-lg-4">
+          <div class="booking-summary-card sticky-top" style="top: 100px;">
+            <div class="card shadow">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                  <i class="fa-solid fa-shopping-cart me-2"></i>
+                  Booking Summary
+                </h5>
+              </div>
+              <div class="card-body">
+                <!-- Empty state -->
+                <div *ngIf="bookedSpots.length === 0" class="text-center py-4">
+                  <i class="fa-solid fa-mountain-sun fa-3x text-muted mb-3"></i>
+                  <p class="text-muted">No tourist spots added yet</p>
+                  <small class="text-muted">Add spots from the left to see your booking summary</small>
+                </div>
+
+                <!-- Booked spots list -->
+                <div *ngIf="bookedSpots.length > 0" class="booked-spots">
+                  <div *ngFor="let spot of bookedSpots; let i = index" class="booked-spot mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <h6 class="mb-1">{{ spot.name }}</h6>
+                      <button class="btn btn-sm btn-outline-danger" (click)="removeSpot(i)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="fee-breakdown small">
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.entry > 0">
+                        <span>Entry Fee: ₹{{ spot.unitPrices.entry }} × {{ spot.peopleCount }} people</span>
+                        <span>₹{{ spot.breakdown.entry }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.parking > 0">
+                        <span>Parking: ₹{{ spot.unitPrices.parking }} × {{ spot.counts.vehicles }} vehicles</span>
+                        <span>₹{{ spot.breakdown.parking }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.camera > 0">
+                        <span>Camera: ₹{{ spot.unitPrices.camera }} × {{ spot.counts.cameras }} cameras</span>
+                        <span>₹{{ spot.breakdown.camera }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.addOns > 0">
+                        <span>Add-ons</span>
+                        <span>₹{{ spot.breakdown.addOns }}</span>
+                      </div>
+                      <hr class="my-2">
+                      <div class="d-flex justify-content-between fw-bold">
+                        <span>Spot Total:</span>
+                        <span>₹{{ spot.total }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Grand Total -->
+                <div *ngIf="bookedSpots.length > 0" class="grand-total mt-3 pt-3 border-top">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Grand Total:</h5>
+                    <h4 class="mb-0 text-primary">₹{{ grandTotal }}</h4>
+                  </div>
+                  <button class="btn btn-success w-100" [disabled]="bookedSpots.length === 0" (click)="proceedToCheckout()">
+                    <i class="fa-solid fa-credit-card me-2"></i>
+                    Proceed to Checkout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-layout>

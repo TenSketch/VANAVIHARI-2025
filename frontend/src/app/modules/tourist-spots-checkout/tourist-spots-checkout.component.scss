@@ -1,0 +1,182 @@
+.main {
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+.page-banner {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  padding: 3rem 0;
+  margin-bottom: 0;
+}
+
+.spot-detail {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef !important;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #28a745 !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+  }
+  
+  h6 {
+    font-weight: 600;
+  }
+}
+
+.card {
+  border: none;
+  border-radius: 15px;
+  overflow: hidden;
+  
+  .card-header {
+    border: none;
+    padding: 1.25rem;
+    
+    &.bg-primary {
+      background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%) !important;
+    }
+    
+    &.bg-secondary {
+      background: linear-gradient(135deg, #6c757d 0%, #495057 100%) !important;
+    }
+    
+    &.bg-success {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    }
+    
+    h5 {
+      font-weight: 600;
+    }
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+}
+
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  }
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+.summary-item {
+  padding: 0.25rem 0;
+  
+  &:last-child {
+    font-size: 1.1rem;
+  }
+}
+
+.payment-options {
+  .form-check {
+    padding: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: #f8f9fa;
+      border-color: #28a745;
+    }
+    
+    .form-check-input {
+      &:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+      }
+      
+      &:focus {
+        box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+      }
+    }
+    
+    .form-check-label {
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+    }
+  }
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  padding: 0.875rem 1.5rem;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    transform: none;
+    background: #6c757d;
+  }
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%);
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(44, 90, 160, 0.3);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 991.98px) {
+  .sticky-top {
+    position: static !important;
+    margin-top: 2rem;
+  }
+}
+
+// Form validation styles
+.form-control.ng-invalid.ng-touched {
+  border-color: #dc3545;
+  
+  &:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  }
+}
+
+// Loading animation
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+
+// Text truncation for spot names
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

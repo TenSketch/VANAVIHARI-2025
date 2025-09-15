@@ -35,6 +35,9 @@ import { CancelRequestComponent } from './modules/cancel-request/cancel-request.
 import { TestBookingsComponent } from './modules/test-bookings/test-bookings.component';
 import { CancelStatusComponent } from './modules/cancel-status/cancel-status.component';
 import { CancelRequestManualComponent } from './modules/cancel-request-manual/cancel-request-manual.component';
+import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/tourist-spots-booking.component';
+import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
+import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 
 
 // const routes: Routes = [
@@ -156,6 +159,9 @@ const routes: Routes = [
   { path: 'booking-status', component: BookingStatusComponent },
   { path: 'resorts/rooms', component: RoomsComponent },
   { path: 'tourist-destination', component: TouristPlacesComponent },
+  { path: 'tourist-places', component: TouristSpotsBookingComponent },
+  { path: 'tourist-spots-checkout', component: TouristSpotsCheckoutComponent },
+  { path: 'tourist-spots-success', component: TouristSpotsSuccessComponent },
   { path: 'dashboard', component: SettingsComponent },
   { path: 'resort-listing', component: ResortListingComponent },
   { path: 'change-password', component: ChangePasswordComponent },

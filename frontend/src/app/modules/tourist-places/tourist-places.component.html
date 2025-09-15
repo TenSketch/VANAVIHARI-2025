@@ -3,8 +3,33 @@
     <section class="page-banner d-grid place-items-center">
       <h1 class="display-4 text-center">Nearby tourist attractions</h1>
     </section>
-    <div class="container my-5 border rounded shadow-sm bg-light">
+    <div class="container my-5 border rounded shadow-sm bg-light" id="jalatarangini">
       <h2 class="mb-4 text-primary">🌊 JALATARANGINI WATERFALL</h2>
+
+      <!-- Left-side selection (70%) -->
+      <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap">
+        <div style="flex:1 1 700px; min-width:320px; max-width:900px">
+          <app-tourist-spot-selection
+            [name]="'Jalatarangini Waterfalls'"
+            [location]="'Maredumilli'"
+            [type]="'Waterfall'"
+            [images]="[
+              'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg',
+              'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-01.jpg',
+              'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-02.jpg'
+            ]"
+            [fees]="{ entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 100 }"
+            [addOns]="[
+              { id: 'guide', label: 'Guide', price: 500 },
+              { id: 'transport', label: 'Transport', price: 'On request' }
+            ]"
+            [detailsLink]="['/tourist-destination']"
+            detailsFragment="jalatarangini"
+            (addToBooking)="onAddTouristBooking($event)">
+          </app-tourist-spot-selection>
+        </div>
+        <!-- Optional right-side can hold other widgets later -->
+      </div>
 
       <!-- Location -->
       <p><strong>📍Location:</strong></p>
@@ -14,7 +39,7 @@
           style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
 
-      <!-- Photos & Videos -->
+  <!-- Photos & Videos -->
       <div class="row my-4 gap-4">
         <!-- <label class="form-label"><strong>🖼️ Photos:</strong></label> -->
         <div class="col-md-3">

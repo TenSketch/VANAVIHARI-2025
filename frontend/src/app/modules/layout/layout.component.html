@@ -11,22 +11,34 @@
           </a>
         </li>
         <li class="nav-item dropdown d-none d-lg-block">
-          <a class="nav-link dropdown-toggle" href="#" id="dropdownId" data-bs-toggle="dropdown" aria-haspopup="true"
+          <a class="nav-link dropdown-toggle" href="#" id="bookTentsDropdown" data-bs-toggle="dropdown" aria-haspopup="true"
             aria-expanded="false">
-            <i class="fa-solid fa-hotel me-2"></i>Book Resort
+            <i class="fa-solid fa-campground me-2"></i>Book Tents
           </a>
-          <div class="dropdown-menu position-absolute" aria-labelledby="dropdownId">
-            <a class="dropdown-item" (click)="goToVanavihari()">Vanavihari, Maredumilli</a>
-            <a class="dropdown-item" (click)="goToJungleStar()">Jungle Star, Valamuru</a>
+          <div class="dropdown-menu position-absolute" aria-labelledby="bookTentsDropdown">
+            <a class="dropdown-item" (click)="goToVanavihari()">Vanavihari</a>
+            <a class="dropdown-item" (click)="goToKarthikavanam()">Karthikavanam</a>
           </div>
         </li>
         <li class="nav-item d-none d-lg-block">
+          <a class="nav-link" routerLink="/tourist-places" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <i class="fa-solid fa-mountain-sun me-2"></i>Book Tourist Spots
+          </a>
+        </li>
+        <li class="nav-item d-none d-lg-block">
           <a class="nav-link" href="mailto:info@vanavihari.com" title="click to send email">
-            <i class="fa-regular fa-envelope me-2"></i>info@vanavihari.com</a>
+            <i class="fa-regular fa-envelope"></i>
+          </a>
         </li>
         <li class="nav-item d-none d-lg-block">
           <a class="nav-link" href="tel:7382151617" title="call">
-            <i class="fa-solid fa-mobile-screen me-2"></i>7382151617</a>
+            <i class="fa-solid fa-mobile-screen"></i>
+          </a>
+        </li>
+        <li class="nav-item d-none d-lg-block">
+          <a class="nav-link" href="https://wa.me/917382151617" target="_blank" title="WhatsApp">
+            <i class="fa-brands fa-whatsapp text-success fa-lg"></i>
+          </a>
         </li>
         <li class="nav-item" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
@@ -80,15 +92,14 @@
             <h2 class="accordion-header" id="headingOne">
               <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
                 aria-expanded="true" aria-controls="collapseOne">
-                <i class="fa-solid fa-hotel me-2"></i> Book Resort
+                <i class="fa-solid fa-campground me-2"></i> Book Tents
               </button>
             </h2>
             <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
               data-bs-parent="#accordionExample">
               <div class="accordion-body mb-0">
-                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar(); goToVanavihari()">Vanavihari,
-                  Maredumilli</a>
-                <a class="dropdown-item ps-4" (click)="toggleSidebar(); goToJungleStar()">Jungle Star, Valamuru</a>
+                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar(); goToVanavihari()">Vanavihari</a>
+                <a class="dropdown-item ps-4" (click)="toggleSidebar(); goToKarthikavanam()">Karthikavanam</a>
               </div>
             </div>
           </div>
@@ -96,6 +107,11 @@
         <li class="sidebar-item d-flex mt-2">
           <a class="sidebar-link" (click)="toggleSidebar(); goToAboutUs()">
             <i class="fa-solid fa-info-circle"></i><span class="ml-5">About Us</span>
+          </a>
+        </li>
+        <li class="sidebar-item d-flex">
+          <a class="sidebar-link" routerLink="/tourist-places" (click)="toggleSidebar()">
+            <i class="fa-solid fa-mountain-sun"></i><span class="ml-5">Book Tourist Spots</span>
           </a>
         </li>
         <li class="sidebar-item d-flex">

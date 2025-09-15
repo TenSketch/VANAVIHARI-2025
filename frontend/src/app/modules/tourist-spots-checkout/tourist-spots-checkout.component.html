@@ -1,0 +1,184 @@
+<app-layout>
+  <div class="main">
+    <section class="page-banner d-grid place-items-center">
+      <h1 class="display-4 text-center">Tourist Spots Checkout</h1>
+    </section>
+
+    <div class="container my-5">
+      <div class="row">
+        <!-- Booking Details (Left Side) -->
+        <div class="col-lg-8">
+          <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0">
+                <i class="fa-solid fa-list-check me-2"></i>
+                Booking Details
+              </h5>
+            </div>
+            <div class="card-body">
+              <div *ngIf="bookingData && bookingData.spots?.length > 0">
+                <div *ngFor="let spot of bookingData.spots; let i = index" class="spot-detail mb-4 p-3 border rounded">
+                  <h6 class="text-primary mb-3">{{ spot.name }}, {{ spot.location }}</h6>
+                  
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6 class="text-muted">Visitor Details</h6>
+                      <ul class="list-unstyled">
+                        <li><strong>Adults:</strong> {{ spot.counts.adults }}</li>
+                        <li><strong>Children:</strong> {{ spot.counts.children }}</li>
+                        <li><strong>Vehicles:</strong> {{ spot.counts.vehicles }}</li>
+                        <li><strong>Cameras:</strong> {{ spot.counts.cameras }}</li>
+                      </ul>
+                    </div>
+                    <div class="col-md-6">
+                      <h6 class="text-muted">Fee Breakdown</h6>
+                      <ul class="list-unstyled">
+                        <li *ngIf="spot.breakdown.entry > 0">Entry Fee: <strong>₹{{ spot.breakdown.entry }}</strong></li>
+                        <li *ngIf="spot.breakdown.parking > 0">Parking Fee: <strong>₹{{ spot.breakdown.parking }}</strong></li>
+                        <li *ngIf="spot.breakdown.camera > 0">Camera Fee: <strong>₹{{ spot.breakdown.camera }}</strong></li>
+                        <li *ngIf="spot.breakdown.addOns > 0">Add-ons: <strong>₹{{ spot.breakdown.addOns }}</strong></li>
+                        <li class="border-top pt-2 mt-2"><strong>Spot Total: ₹{{ spot.total }}</strong></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div *ngIf="!bookingData || bookingData.spots?.length === 0" class="text-center py-5">
+                <i class="fa-solid fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h5>No booking data found</h5>
+                <p class="text-muted">Please return to the booking page and select your tourist spots.</p>
+                <button class="btn btn-primary" routerLink="/tourist-places">Back to Booking</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Customer Information -->
+          <div class="card shadow-sm" *ngIf="bookingData && bookingData.spots?.length > 0">
+            <div class="card-header bg-secondary text-white">
+              <h5 class="mb-0">
+                <i class="fa-solid fa-user me-2"></i>
+                Customer Information
+              </h5>
+            </div>
+            <div class="card-body">
+              <form [formGroup]="customerForm" (ngSubmit)="proceedToPayment()">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" class="form-control" formControlName="fullName" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Email *</label>
+                    <input type="email" class="form-control" formControlName="email" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone Number *</label>
+                    <input type="tel" class="form-control" formControlName="phone" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">ID Proof Number</label>
+                    <input type="text" class="form-control" formControlName="idProof" placeholder="Aadhar/PAN/Driving License">
+                  </div>
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea class="form-control" formControlName="address" rows="3"></textarea>
+                  </div>
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Visit Date *</label>
+                    <input type="date" class="form-control" formControlName="visitDate" required>
+                  </div>
+                  <div class="col-12 mb-3">
+                    <label class="form-label">Special Requirements</label>
+                    <textarea class="form-control" formControlName="specialRequirements" rows="2" placeholder="Any special requirements or notes"></textarea>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Summary (Right Side) -->
+        <div class="col-lg-4" *ngIf="bookingData && bookingData.spots?.length > 0">
+          <div class="card shadow sticky-top" style="top: 100px;">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0">
+                <i class="fa-solid fa-credit-card me-2"></i>
+                Payment Summary
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="summary-item d-flex justify-content-between mb-2" *ngFor="let spot of bookingData.spots">
+                <span class="text-truncate pe-2">{{ spot.name }}</span>
+                <span class="text-nowrap">₹{{ spot.total }}</span>
+              </div>
+              
+              <hr>
+              
+              <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Subtotal</span>
+                <span>₹{{ bookingData.total }}</span>
+              </div>
+              
+              <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Service Charges</span>
+                <span>₹{{ serviceCharges }}</span>
+              </div>
+              
+              <div class="summary-item d-flex justify-content-between mb-2">
+                <span>GST (18%)</span>
+                <span>₹{{ gstAmount }}</span>
+              </div>
+              
+              <hr>
+              
+              <div class="summary-item d-flex justify-content-between mb-4">
+                <strong>Total Amount</strong>
+                <strong class="text-success">₹{{ finalTotal }}</strong>
+              </div>
+              
+              <!-- Payment Options -->
+              <div class="payment-options mb-4">
+                <h6>Payment Options</h6>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="paymentMethod" id="upi" value="upi" [(ngModel)]="selectedPaymentMethod">
+                  <label class="form-check-label" for="upi">
+                    <i class="fa-solid fa-mobile-screen me-2"></i>UPI
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="paymentMethod" id="card" value="card" [(ngModel)]="selectedPaymentMethod">
+                  <label class="form-check-label" for="card">
+                    <i class="fa-solid fa-credit-card me-2"></i>Card Payment
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="paymentMethod" id="netbanking" value="netbanking" [(ngModel)]="selectedPaymentMethod">
+                  <label class="form-check-label" for="netbanking">
+                    <i class="fa-solid fa-university me-2"></i>Net Banking
+                  </label>
+                </div>
+              </div>
+              
+              <!-- Pay Now Button -->
+              <button 
+                class="btn btn-success w-100 btn-lg" 
+                [disabled]="!customerForm.valid || !selectedPaymentMethod"
+                (click)="proceedToPayment()">
+                <i class="fa-solid fa-lock me-2"></i>
+                Pay Now ₹{{ finalTotal }}
+              </button>
+              
+              <div class="text-center mt-3">
+                <small class="text-muted">
+                  <i class="fa-solid fa-shield-alt me-1"></i>
+                  Secure payment powered by trusted gateway
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-layout>

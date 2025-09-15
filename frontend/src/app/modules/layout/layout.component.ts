@@ -207,6 +207,25 @@ export class LayoutComponent implements OnInit {
     }
   }
 
+  goToKarthikavanam() {
+    this.authService.setSearchData([
+      { resort: 'Karthikavanam', checkin: '', checkout: '' },
+    ]);
+    this.searchService.setSearchCriteria('Karthikavanam');
+    this.authService.buttonClick$.next();
+    this.authService.removeRooms();
+    this.router.navigate(['/resorts/rooms'], {
+      queryParams: { bookingTypeResort: 'karthikavanam' },
+      queryParamsHandling: 'merge',
+    });
+    let status = localStorage.getItem('isSummary')
+    if(status=='no'){
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    }
+  }
+
   // vanavihariRoute(){
   //   this.router.navigate(['/resorts/vanavihari-maredumilli'])
   // }

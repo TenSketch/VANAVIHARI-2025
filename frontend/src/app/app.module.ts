@@ -86,6 +86,9 @@ import { TestBookingsComponent } from './modules/test-bookings/test-bookings.com
 import { CancelStatusComponent } from './modules/cancel-status/cancel-status.component';
 import { CancelRequestManualComponent } from './modules/cancel-request-manual/cancel-request-manual.component';
 import { PageNotFoundPageComponentComponent } from './modules/page-not-found-page-component/page-not-found-page-component.component';
+import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/tourist-spots-booking.component';
+import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
+import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 
 
 
@@ -129,7 +132,10 @@ import { PageNotFoundPageComponentComponent } from './modules/page-not-found-pag
     TestBookingsComponent,
     CancelStatusComponent,
     CancelRequestManualComponent,
-    PageNotFoundPageComponentComponent
+    PageNotFoundPageComponentComponent,
+    TouristSpotsBookingComponent,
+    TouristSpotsCheckoutComponent,
+    TouristSpotsSuccessComponent
 
   ],
   imports: [
