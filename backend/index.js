@@ -14,7 +14,7 @@ import adminAuth from './middlewares/adminAuth.js'
 
 //App config
 const app = express()
-const port = process.env.PORT || 4000
+const port = process.env.PORT || 5000
 connectDB()
 
 
@@ -53,7 +53,7 @@ app.get('/api/admin/me', adminAuth, (req, res) => {
 
 
 app.get('/', (req, res)=>{
-    res.send("API Working")
+    res.send("Vanaavihari API Working")
 })
 
 
