@@ -123,7 +123,7 @@ const ResortFormComp = () => {
     form.append('postalCode', formData.postalCode)
     form.append('country', formData.country)
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
   fetch(apiBase + '/api/resorts/add', {
       method: 'POST',

@@ -90,7 +90,7 @@ const AddRoomForm = () => {
       form.append('roomNumber', String(formData.roomId))
     }
 
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
     fetch(apiBase + '/api/rooms/add', {
       method: 'POST',

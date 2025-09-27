@@ -60,7 +60,7 @@ interface Reservation {
 
 export default function ReservationTable() {
   const tableRef = useRef(null);
-  const apiUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:4000';
+  const apiUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000';
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [disabledReservations, setDisabledReservations] = useState<Set<string>>(new Set());

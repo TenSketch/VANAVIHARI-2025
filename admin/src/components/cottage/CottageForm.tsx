@@ -52,7 +52,7 @@ const AddCottageTypeForm = () => {
     const load = async () => {
       setResortsLoading(true)
       try {
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
         const res = await fetch(apiBase + '/api/resorts')
         if (!res.ok) throw new Error('Failed to fetch resorts')
         const data = await res.json()
@@ -161,7 +161,7 @@ const AddCottageTypeForm = () => {
       // images
       images.forEach((file) => fd.append('images', file))
 
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
       const res = await fetch(apiBase + '/api/cottage-types/add', {
         method: 'POST',

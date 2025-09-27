@@ -13,7 +13,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000'
+  const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:5000'
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault()

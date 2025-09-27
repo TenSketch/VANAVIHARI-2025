@@ -32,7 +32,7 @@ const AddLogForm = () => {
   // submit handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
     // prepare payload
     const payload = { ...formData }

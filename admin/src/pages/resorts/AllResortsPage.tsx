@@ -46,7 +46,7 @@ const AllResortsPage = () => {
   const [resorts, setResorts] = useState<ResortCardView[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const apiBase = (import.meta as any).env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000'
 
   useEffect(() => {
     const controller = new AbortController()

@@ -92,7 +92,7 @@ export default function LogsTable() {
         payload.logEntryDate = new Date(payload.logEntryDate)
       }
 
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
       fetch(`${apiBase}/api/logs/${encodeURIComponent(editingLog.bookingId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -294,7 +294,7 @@ export default function LogsTable() {
 
   // fetch logs from backend on mount
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
     fetch(`${apiBase}/api/logs`)
       .then((res) => res.json())
       .then((data) => {

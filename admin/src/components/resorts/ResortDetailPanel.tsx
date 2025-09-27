@@ -51,7 +51,7 @@ const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortD
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState(() => flatten(resort));
 
-  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
 
   // flatten nested address for form editing
   function flatten(r: ResortDetailData) {

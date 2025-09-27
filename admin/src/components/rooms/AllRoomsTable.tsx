@@ -63,7 +63,7 @@ export default function RoomsTable() {
   useEffect(() => { roomsDataRef.current = roomsData; }, [roomsData]);
   const [editData, setEditData] = useState<Partial<Room>>({});
   const [saving, setSaving] = useState(false);
-  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:4000';
+  const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
   
   const handleEdit = (room: Room) => {
     // Open the detail sheet directly when clicking Edit

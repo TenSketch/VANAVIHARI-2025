@@ -59,7 +59,7 @@ export default function AddReservationForm() {
     // send to backend
     (async () => {
       try {
-        const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:4000'
+  const apiUrl = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:5000'
         const res = await fetch(`${apiUrl}/api/reservations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
