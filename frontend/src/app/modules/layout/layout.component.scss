@@ -43,6 +43,22 @@
           }
         }
       }
+      &.dropdown {
+        position: relative;
+        .dropdown-menu {
+          min-width: 12rem;
+          margin-top: .75rem;
+          display: none;
+          &.show {
+            display: block;
+          }
+        }
+        &.show > .nav-link,
+        .nav-link:focus,
+        .nav-link:hover {
+          color: $clr-primary-dark;
+        }
+      }
     }
   }
 }

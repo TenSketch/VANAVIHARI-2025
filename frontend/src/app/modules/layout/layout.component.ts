@@ -14,6 +14,8 @@ import { Subscription } from 'rxjs';
 export class LayoutComponent implements OnInit {
   accountusername: string = 'John Doe';
   isSidebarOpen: boolean = false;
+  // Desktop Book Resort dropdown state
+  isBookResortOpen: boolean = false;
   userData: any;
   resortNumber: any;
   resortAddress: any;
@@ -125,6 +127,10 @@ export class LayoutComponent implements OnInit {
       !targetElement.closest('.navbar-toggler')
     ) {
       this.closeSidebar();
+    }
+    // Close Book Resort dropdown when clicking outside (desktop)
+    if (!targetElement.closest('.nav-item.dropdown')) {
+      this.isBookResortOpen = false;
     }
   }
 
@@ -263,6 +269,12 @@ export class LayoutComponent implements OnInit {
   }
   goToContact() {
     this.router.navigate(['/contact-us']);
+  }
+  
+  // Toggle desktop Book Resort dropdown manually (prevent page jump)
+  toggleBookResort(event: Event) {
+    event.preventDefault();
+    this.isBookResortOpen = !this.isBookResortOpen;
   }
   
 }
