@@ -97,7 +97,7 @@
     <div class="sidebar-content">
       <!-- Sidebar content goes here -->
       <ul class="sidebar-menu list-unstyled">
-        <div class="accordion d-lg-none mb-3" id="accordionExample">
+  <div class="accordion mb-3" id="accordionExample">
           <div class="accordion-item pb-2">
             <h2 class="accordion-header" id="headingOne">
               <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
@@ -114,13 +114,8 @@
             </div>
           </div>
         </div>
-        <li class="sidebar-item d-flex mt-2">
-          <a class="sidebar-link" (click)="toggleSidebar(); goToAboutUs()">
-            <i class="fa-solid fa-info-circle"></i><span class="ml-5">About Us</span>
-          </a>
-        </li>
         <!-- Book Resort accordion (mobile sidebar) -->
-        <div class="accordion d-lg-none mb-3" id="bookResortAccordion">
+  <div class="accordion mb-3" id="bookResortAccordion">
           <div class="accordion-item pb-2">
             <h2 class="accordion-header" id="headingResort">
               <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResort"
@@ -136,6 +131,11 @@
             </div>
           </div>
         </div>
+        <li class="sidebar-item d-flex mt-2">
+          <a class="sidebar-link" (click)="toggleSidebar(); goToAboutUs()">
+            <i class="fa-solid fa-info-circle"></i><span class="ml-5">About Us</span>
+          </a>
+        </li>
         <li class="sidebar-item d-flex">
           <a class="sidebar-link" routerLink="/tourist-places" (click)="toggleSidebar()">
             <i class="fa-solid fa-mountain-sun"></i><span class="ml-5">Book Tourist Spots</span>
