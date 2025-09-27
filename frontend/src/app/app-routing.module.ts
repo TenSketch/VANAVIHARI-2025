@@ -22,6 +22,7 @@ import { ChangePasswordComponent } from './modules/change-password/change-passwo
 import { BookingStatusComponent } from './modules/booking-status/booking-status.component';
 import { BookingStatusTestComponent } from './modules/booking-status-test/booking-status-test.component';
 import { RoomsComponent } from './modules/resorts/rooms/rooms.component';
+import { BookTentComponent } from './modules/resorts/book-tent/book-tent.component';
 import { ReadPaymentTransactionResponseComponent } from './auth/read-payment-transaction-response/read-payment-transaction-response.component';
 import { PaymentPoliciesComponent } from './modules/payment-policies/payment-policies.component';
 import { ContactUsComponent } from './modules/contact-us/contact-us.component';
@@ -162,6 +163,8 @@ const routes: Routes = [
   { path: 'tourist-places', component: TouristSpotsBookingComponent },
   { path: 'tourist-spots-checkout', component: TouristSpotsCheckoutComponent },
   { path: 'tourist-spots-success', component: TouristSpotsSuccessComponent },
+  { path: 'vanavihari/book-tent', component: BookTentComponent },
+  { path: 'karthikavanm/book-tent', component: BookTentComponent },
   { path: 'dashboard', component: SettingsComponent },
   { path: 'resort-listing', component: ResortListingComponent },
   { path: 'change-password', component: ChangePasswordComponent },

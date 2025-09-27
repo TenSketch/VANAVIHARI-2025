@@ -10,14 +10,19 @@
             <i class="fa-solid fa-home me-2"></i>Home
           </a>
         </li>
+        <li class="nav-item d-none d-md-block">
+          <a class="nav-link" routerLink="/book-resort" routerLinkActive="active" ariaCurrentWhenActive="page">
+            <i class="fa-solid fa-building me-2"></i>Book Resort
+          </a>
+        </li>
         <li class="nav-item dropdown d-none d-lg-block">
           <a class="nav-link dropdown-toggle" href="#" id="bookTentsDropdown" data-bs-toggle="dropdown" aria-haspopup="true"
             aria-expanded="false">
             <i class="fa-solid fa-campground me-2"></i>Book Tents
           </a>
           <div class="dropdown-menu position-absolute" aria-labelledby="bookTentsDropdown">
-            <a class="dropdown-item" (click)="goToVanavihari()">Vanavihari</a>
-            <a class="dropdown-item" (click)="goToKarthikavanam()">Karthikavanam</a>
+            <a class="dropdown-item" routerLink="/vanavihari/book-tent">Vanavihari</a>
+            <a class="dropdown-item" routerLink="/karthikavanm/book-tent">Karthikavanam</a>
           </div>
         </li>
         <li class="nav-item d-none d-lg-block">
@@ -98,8 +103,8 @@
             <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
               data-bs-parent="#accordionExample">
               <div class="accordion-body mb-0">
-                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar(); goToVanavihari()">Vanavihari</a>
-                <a class="dropdown-item ps-4" (click)="toggleSidebar(); goToKarthikavanam()">Karthikavanam</a>
+                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar()" routerLink="/vanavihari/book-tent">Vanavihari</a>
+                <a class="dropdown-item ps-4" (click)="toggleSidebar()" routerLink="/karthikavanm/book-tent">Karthikavanam</a>
               </div>
             </div>
           </div>
@@ -107,6 +112,11 @@
         <li class="sidebar-item d-flex mt-2">
           <a class="sidebar-link" (click)="toggleSidebar(); goToAboutUs()">
             <i class="fa-solid fa-info-circle"></i><span class="ml-5">About Us</span>
+          </a>
+        </li>
+        <li class="sidebar-item d-flex mt-2">
+          <a class="sidebar-link" routerLink="/book-resort" (click)="toggleSidebar()">
+            <i class="fa-solid fa-building"></i><span class="ml-5">Book Resort</span>
           </a>
         </li>
         <li class="sidebar-item d-flex">
@@ -179,7 +189,7 @@
         <h3>Pages</h3>
         <ul class="list-unstyled">
           <li class=" mt-2">
-            <a class="" (click)="toggleSidebar(); goToVanavihari()">
+            <a class="" (click)="toggleSidebar()" routerLink="/vanavihari/book-tent">
               <span class="">Vanavihar, Maredumilli</span>
             </a>
           </li>

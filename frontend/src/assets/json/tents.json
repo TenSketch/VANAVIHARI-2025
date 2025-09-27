@@ -1,0 +1,42 @@
+{
+  "vanavihari": [
+    {
+      "id": "v-tent-2p",
+      "name": "2 person tent",
+      "subtitle": "from decathlon",
+      "description": "Tent accommodation",
+  "image": "/assets/img/tent/Vanavihari/tent1.jpg",
+      "capacity": 2,
+      "price": 1500
+    },
+    {
+      "id": "v-tent-4p",
+      "name": "4 person tent",
+      "subtitle": "from decathlon",
+      "description": "Tent accommodation",
+  "image": "/assets/img/tent/Vanavihari/tent2.jpg",
+      "capacity": 4,
+      "price": 3000
+    }
+  ],
+  "karthikavanm": [
+    {
+      "id": "k-tent-2p",
+      "name": "2 person tent",
+      "subtitle": "from decathlon",
+      "description": "Tent accommodation",
+      "capacity": 2,
+      "price": 1500,
+      "image": "/assets/img/tent/Karthikavanm/tent1.jpg"
+    },
+    {
+      "id": "k-tent-4p",
+      "name": "4 person tent",
+      "subtitle": "from decathlon",
+      "description": "Tent accommodation",
+      "capacity": 4,
+      "price": 3000,
+      "image": "/assets/img/tent/Karthikavanm/tent2.jpg"
+    }
+  ]
+}

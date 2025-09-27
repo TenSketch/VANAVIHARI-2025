@@ -99,7 +99,8 @@ export class TestRoomComponent {
   resorts: any = {
     'Vanavihari, Maredumilli': {
       title: 'Vanavihari',
-      about: 'About Vanavihari',
+      about:
+        'Vanavihari, Maredumilli is situated in the serene landscapes of Maredumilli, beckoning eco-tourism aficionados with its abundance of bamboo trees. This guesthouse, committed to community well-being, offers a serene retreat amidst natural surroundings. With its snug cottages and rooms, it conveniently lies close to Amruthadhara Waterfalls, promising guests a peaceful ambiance. Nearby street food eateries present the opportunity to savor the distinctive flavor of bamboo biriyani. Stepping out for a night or morning stroll unveils a heavenly experience for visitors.',
     },
     'Jungle Star, Valamuru': {
       title: 'Jungle Star',

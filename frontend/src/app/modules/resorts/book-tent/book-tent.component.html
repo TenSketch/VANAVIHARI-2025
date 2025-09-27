@@ -1,0 +1,162 @@
+<app-layout>
+  <div class="main">
+    <app-loader *ngIf="false"></app-loader>
+    <section class="page-banner d-grid place-items-center" *ngIf="selectedResortInfo">
+      <h1 class="display-3 text-center">{{ selectedResortInfo.title }}</h1>
+    </section>
+
+    <div class="container-fluid">
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a routerLink="/home">Home</a></li>
+          <li class="breadcrumb-item active" aria-current="page">{{ selectedResortInfo?.title }}</li>
+        </ol>
+      </nav>
+
+      <div class="row" *ngIf="selectedResortInfo">
+        <div class="col-md-4">
+          <div class="map-container" *ngIf="resortKey === 'vanavihari'">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d15212.133581651236!2d81.712357!3d17.601149!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a373b5d52758873%3A0x718f2b2059db5e0a!2sVanavihari%20Maredumilli!5e0!3m2!1sen!2sin!4v1708738599849!5m2!1sen!2sin"
+              width="400" height="300" style="border: 0" allowfullscreen="" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+          <div class="map-container" *ngIf="resortKey === 'karthikavanm'">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3802.321273036429!2d81.63047557463233!3d17.634936395627708!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a3725b319b638ff%3A0x6497bd032f830606!2sJUNGLE%20STAR%20ECO%20CAMP!5e0!3m2!1sen!2sin!4v1708782328839!5m2!1sen!2sin"
+              width="600" height="450" style="border: 0" allowfullscreen="" loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+        <div class="col-md-8 mt-4 mt-lg-0">
+          <h4>About {{ selectedResortInfo.title }}</h4>
+          <p>{{ selectedResortInfo.about }}</p>
+        </div>
+      </div>
+
+      <div class="policy-section row py-3" *ngIf="selectedResortInfo">
+        <div class="col-md-4">
+          <h4 class="">Guest Policies & Accommodation</h4>
+          <ul>
+            <li><strong>Occupancy:</strong> 2 guests (for 2-person tent), 4 guests (for 4-person tent)</li>
+            <li><strong>Amenities: </strong>Basic tent amenities, blankets, mats</li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h4 class="custom-h4">Cancellation</h4>
+          <ul>
+            <li><strong> More than 48 hours:</strong> 90% refund</li>
+            <li><strong> 24-48 hours before:</strong> 80% refund</li>
+            <li><strong> Within 24 hours:</strong> No refund</li>
+          </ul>
+        </div>
+        <div class="col-md-4">
+          <h4 class="custom-h4">Check-In/Out:</h4>
+          <ul>
+            <li><strong>Check-in:</strong> 10:00 AM IST</li>
+            <li><strong> Check-out:</strong> 9:00 AM IST</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container mt-3">
+      <h2 class="text-center mb-3 mt-5">Search availability</h2>
+      <app-search-resort></app-search-resort>
+
+      <div class="row mt-3">
+        <aside class="col-lg-4 mt-3">
+          <!-- Booking Summary section -->
+          <ng-template #bookingSummaryContent>
+            <div class="border-top pt-2" *ngIf="showBookingSummary; else noBookings">
+              <div *ngFor="let b of bookingTents" class="p-2 d-flex align-items-center justify-content-between">
+                <div>
+                  <strong>{{ b.name }}</strong>
+                  <div><small>{{ b.capacity }} person</small></div>
+                  <div><small class="text-success">₹{{ b.price }} / day</small></div>
+                </div>
+                <div>
+                  <button class="btn btn-link text-danger p-0" (click)="removeTentFromBooking(b.id)"><i class="fa fa-trash"></i></button>
+                </div>
+              </div>
+            </div>
+            <hr class="my-1" />
+            <button class="btn btn-primary w-100 mt-3" [disabled]="!showBookingSummary">Proceed</button>
+          </ng-template>
+
+          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3">
+            <h4 class="mt-2 mb-0 pb-1 font-weight-bold">Booking Summary</h4>
+            <ng-container *ngTemplateOutlet="bookingSummaryContent"></ng-container>
+          </div>
+        </aside>
+
+        <main class="rooms-listing col-lg-8">
+          <ng-template #loading>
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p>Loading tents...</p>
+            </div>
+          </ng-template>
+
+          <div *ngIf="tents.length === 0" class="card mb-3 text-center">Sorry, tents are not available</div>
+
+          <div *ngIf="tents.length > 0">
+            <div class="card mb-3" *ngFor="let tent of tents; let ti = index">
+              <div class="row">
+                <div class="col-md-5">
+                  <div class="containerg">
+                    <div class="card-containerg" #cardContainer>
+                      <div class="card py-0" *ngFor="let img of tent.images; let i = index">
+                        <img class="img-responsive" [src]="img" alt="" (click)="openFullImage(img)" />
+                      </div>
+                    </div>
+                    <div class="full-image-overlay" *ngIf="isFullImageVisible" (click)="closeFullImage()">
+                      <div class="full-image-container">
+                        <img class="full-image" [src]="fullImageSrc" alt="" />
+                        <div class="overlay-controls">
+                          <button class="close-button" (click)="closeFullImage()">
+                            <i class="fas fa-window-close" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="scroll-icon left" (click)="scrollLeft(ti)">
+                      <i class="fas fa-chevron-left"></i>
+                    </div>
+                    <div class="scroll-icon right" (click)="scrollRight(ti)">
+                      <i class="fas fa-chevron-right"></i>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-7 row justify-content-between">
+                  <div class="col-md-7">
+                    <h5>
+                      <span class="text-primary-dark font-weight-bold">Tent name:</span> {{ tent.name }}
+                    </h5>
+                    <div *ngIf="tent.subtitle" class="text-muted small">{{ tent.subtitle }}</div>
+                    <h6>
+                      <span class="text-primary-dark font-weight-bold">Accommodation:</span> {{ tent.description }}
+                    </h6>
+                  </div>
+                  <div class="col-md-5 row d-md-block gap-2 text-md-end mt-2 mt-md-0 pe-md-0">
+                        <div class="col-auto">
+                          <h6 class="p-0 m-0"><strong>{{ tent.capacity }} person</strong></h6>
+                        </div>
+                        <div class="col-auto">
+                          <h6 class="p-0 m-0 text-success"><strong>₹{{ tent.price }} / day</strong></h6>
+                        </div>
+                  </div>
+                  <div class="col my-2 pe-0">
+                        <button class="btn btn-primary float-end float-md-start" (click)="addTentToBooking(tent)">Add tent</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+</app-layout>

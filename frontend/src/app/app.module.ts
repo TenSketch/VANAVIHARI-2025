@@ -81,6 +81,7 @@ import { ForgotPasswordComponent } from './auth/forgot-password/forgot-password.
 import { ResetPasswordComponent } from './auth/reset-password/reset-password.component';
 import { RecaptchaModule, RecaptchaFormsModule } from 'ng-recaptcha';
 import { TestRoomComponent } from './modules/test-room/test-room.component';
+import { BookTentComponent } from './modules/resorts/book-tent/book-tent.component';
 import { CancelRequestComponent } from './modules/cancel-request/cancel-request.component';
 import { TestBookingsComponent } from './modules/test-bookings/test-bookings.component';
 import { CancelStatusComponent } from './modules/cancel-status/cancel-status.component';
@@ -128,6 +129,7 @@ import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/to
     ForgotPasswordComponent,
     ResetPasswordComponent,
     TestRoomComponent,
+  BookTentComponent,
     CancelRequestComponent,
     TestBookingsComponent,
     CancelStatusComponent,
