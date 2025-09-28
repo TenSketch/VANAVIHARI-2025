@@ -14,8 +14,9 @@ import { Subscription } from 'rxjs';
 export class LayoutComponent implements OnInit {
   accountusername: string = 'John Doe';
   isSidebarOpen: boolean = false;
-  // Desktop Book Resort dropdown state
+  // Desktop dropdown states
   isBookResortOpen: boolean = false;
+  isBookTentsOpen: boolean = false;
   userData: any;
   resortNumber: any;
   resortAddress: any;
@@ -128,9 +129,10 @@ export class LayoutComponent implements OnInit {
     ) {
       this.closeSidebar();
     }
-    // Close Book Resort dropdown when clicking outside (desktop)
+    // Close dropdowns when clicking outside (desktop)
     if (!targetElement.closest('.nav-item.dropdown')) {
       this.isBookResortOpen = false;
+      this.isBookTentsOpen = false;
     }
   }
 
@@ -275,6 +277,16 @@ export class LayoutComponent implements OnInit {
   toggleBookResort(event: Event) {
     event.preventDefault();
     this.isBookResortOpen = !this.isBookResortOpen;
+    // Close other dropdowns
+    this.isBookTentsOpen = false;
+  }
+  
+  // Toggle desktop Book Tents dropdown manually (prevent page jump)
+  toggleBookTents(event: Event) {
+    event.preventDefault();
+    this.isBookTentsOpen = !this.isBookTentsOpen;
+    // Close other dropdowns
+    this.isBookResortOpen = false;
   }
   
 }

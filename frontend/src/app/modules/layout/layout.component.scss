@@ -1,8 +1,29 @@
 @use "/src/scss/base/" as *;
 // $nav-bar-height: 8vh;
 
+// Top navigation bar styles
+.top-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1031;
+  font-size: 0.875rem;
+  height: 32px;
+  
+  a {
+    transition: color 0.3s ease;
+    &:hover {
+      color: #ccc !important;
+    }
+  }
+}
+
 .navbar {
   height: 8vh;
+  // Adjust for top nav bar on all devices
+  top: 32px !important;
+  
   &>.container-fluid {
     justify-content: start;
   }
@@ -65,9 +86,9 @@
 
 #sidebar {
   position: fixed;
-  top: $nav-bar-height;
+  top: calc(#{$nav-bar-height} + 32px); // Account for both top nav and main nav
   right: -100%;
-  height: calc(100% - #{$nav-bar-height});
+  height: calc(100% - #{$nav-bar-height} - 32px);
   width: 100%;
   background-color: #131313;
   z-index: 10000;

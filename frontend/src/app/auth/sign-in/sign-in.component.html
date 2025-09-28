@@ -16,9 +16,9 @@
               <form  [formGroup]="form" (ngSubmit)="onSubmit()">
                 <mat-form-field *ngIf="!showForgotPassword" appearance="outline">
                   <mat-label>Email Address.</mat-label>
-                  <input type="email" formControlName="email_address" matInput required placeholder="Enter Email">
+                  <input type="email" formControlName="email_id" matInput required placeholder="Enter Email">
                   <mat-error
-                    *ngIf="form.controls.email_address.invalid && (form.controls.email_address.dirty || form.controls.email_address.touched)">Please
+                    *ngIf="form.controls.email_id.invalid && (form.controls.email_id.dirty || form.controls.email_id.touched)">Please
                     enter a valid email address</mat-error>
 
                 </mat-form-field>

@@ -9,7 +9,7 @@ import {
   AbstractControl,
   ValidationErrors,
 } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -145,43 +145,65 @@ export class SignUpComponent implements OnInit {
   onSubmit(): void {
     this.password = this.form.value.password;
     this.repeat_password = this.form.value.repeat_password;
-    if (this.form.valid) {
+    if (this.form.valid && this.termsAccepted) {
       this.isLoading = true;
-      this.showAlert=true
-      const params = new HttpParams()
-        .set('fullname', this.form.value.full_name)
-        .set('email', this.form.value.email_id)
-        .set('mobile', this.form.value.mobile_number)
-        .set('password', this.form.value.password);
+      this.showAlert = true;
 
+      // Prepare JSON payload for POST request
+      const userData = {
+        full_name: this.form.value.full_name,
+        email_id: this.form.value.email_id,
+        mobile_number: this.form.value.mobile_number,
+        password: this.form.value.password
+      };
+
+      // Make POST request to backend
       this.http
-        .get<any>(
-          this.api_url+'?api_type=register',
-          { params }
-        )
+        .post<any>(`${this.api_url}/api/user/register`, userData)
         .subscribe({
           next: (response) => {
             if (response.code == 3000 && response.result.status == 'success') {
               this.isLoading = false;
               this.showSuccessAlert();
-              this.showAlert=false
-              this.router.navigate(['/success']);
+              this.showAlert = false;
+              
+              // Store user token if provided
+              if (response.result.token) {
+                localStorage.setItem('userToken', response.result.token);
+                localStorage.setItem('userData', JSON.stringify(response.result.user));
+              }
             } else if (response.code == 3000) {
               this.isLoading = false;
               this.showErrorAlert(response.result.msg);
+              this.showAlert = false;
             } else {
               this.isLoading = false;
-              this.showErrorAlert('Please Check Input Fields!');
+              this.showErrorAlert('Registration failed. Please try again.');
+              this.showAlert = false;
             }
           },
           error: (err) => {
             this.isLoading = false;
-            console.error('Error:', err);
+            this.showAlert = false;
+            console.error('Registration error:', err);
+            
+            // Handle different error scenarios
+            if (err.error && err.error.result && err.error.result.msg) {
+              this.showErrorAlert(err.error.result.msg);
+            } else if (err.status === 0) {
+              this.showErrorAlert('Unable to connect to server. Please check your connection.');
+            } else {
+              this.showErrorAlert('Registration failed. Please try again.');
+            }
           },
         });
     } else {
       this.isLoading = false;
-      this.showErrorAlert('Please Fill Form!');
+      if (!this.form.valid) {
+        this.showErrorAlert('Please fill all fields correctly!');
+      } else if (!this.termsAccepted) {
+        this.showErrorAlert('Please accept terms and conditions!');
+      }
     }
   }
   passwordMatchValidator(form: FormGroup) {
@@ -206,13 +228,14 @@ export class SignUpComponent implements OnInit {
 
   showSuccessAlert() {
     this.snackBar
-      .open('Check email for verification!', 'Close', {
-        duration: 3000,
+      .open('Registration successful! Welcome to Vanavihari!', 'Close', {
+        duration: 4000,
       })
       .afterDismissed()
       .subscribe(() => {
-        this.router.navigate(['/success'], {
-          queryParams: { id: this.form.value.email_id },
+        // Navigate to home or login page after successful registration
+        this.router.navigate(['/sign-in'], {
+          queryParams: { message: 'registered' }
         });
         this.isLoading = false;
       });

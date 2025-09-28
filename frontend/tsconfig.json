@@ -3,7 +3,7 @@
   "compileOnSave": false,
   "allowSyntheticDefaultImports": true,
   "compilerOptions": {
-    "target": "es2017",
+    "target": "ES2022",
     "module": "esnext",
     "strict": true,
     "strictNullChecks": true,
@@ -29,7 +29,6 @@
     "moduleResolution": "node",
     "importHelpers": true,
     "useDefineForClassFields": false,
-    "strictNullChecks": true,
 
     "lib": [
       "ES2022",

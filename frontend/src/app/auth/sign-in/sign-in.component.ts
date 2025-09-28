@@ -39,7 +39,7 @@ export class SignInComponent implements OnInit {
     // this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/home';
 
     this.form = this.formBuilder.group({
-      email_address: ['', Validators.required],
+      email_id: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
     });
   }
@@ -68,14 +68,17 @@ export class SignInComponent implements OnInit {
     this.disableSign = true;
     if (this.form.valid) {
       this.isLoading = true;
-      const params = new HttpParams()
-        .set('username', this.form.value.email_address)
-        .set('password', this.form.value.password);
+      this.showAlert = true;
 
+      // Prepare JSON payload for POST request
+      const loginData = {
+        email_id: this.form.value.email_id,
+        password: this.form.value.password
+      };
+
+      // Make POST request to backend
       this.http
-        .get<any>(this.api_url+'?api_type=login', {
-          params,
-        })
+        .post<any>(`${this.api_url}/api/user/login`, loginData)
         .subscribe({
           next: (response) => {
             this.disableSign = false;
@@ -83,34 +86,52 @@ export class SignInComponent implements OnInit {
               this.isLoading = false;
               this.showAlert = false;
               this.showSnackBarAlert('Login Success', false);
+              
+              // Store user token and data
+              if (response.result.token) {
+                localStorage.setItem('userToken', response.result.token);
+                localStorage.setItem('userData', JSON.stringify(response.result.user));
+              }
+              
               this.authService.setAccessToken(response.result.token);
-              this.authService.setAccountUsername(
-                this.form.value.email_address
-              );
-              this.authService.setAccountUserFullname(
-                response.result.userfullname
-              );
+              this.authService.setAccountUsername(response.result.user.email);
+              this.authService.setAccountUserFullname(response.result.user.name);
+              
               let rooms = localStorage.getItem('booking_rooms');
-              if (rooms == '[]' || rooms==null) {
+              if (rooms == '[]' || rooms == null) {
                 this.router.navigateByUrl('home');
               } else {
                 this.router.navigateByUrl('booking-summary');
               }
             } else if (response.code == 3000) {
               this.isLoading = false;
+              this.showAlert = false;
               this.showSnackBarAlert(response.result.msg);
             } else {
               this.isLoading = false;
-              this.showSnackBarAlert('Please Check this Credential!');
+              this.showAlert = false;
+              this.showSnackBarAlert('Please check your credentials!');
             }
           },
           error: (err) => {
             this.disableSign = false;
-
             this.isLoading = false;
-            console.error('Error:', err);
+            this.showAlert = false;
+            console.error('Login error:', err);
+            
+            // Handle different error scenarios
+            if (err.error && err.error.result && err.error.result.msg) {
+              this.showSnackBarAlert(err.error.result.msg);
+            } else if (err.status === 0) {
+              this.showSnackBarAlert('Unable to connect to server. Please check your connection.');
+            } else {
+              this.showSnackBarAlert('Login failed. Please try again.');
+            }
           },
         });
+    } else {
+      this.disableSign = false;
+      this.showSnackBarAlert('Please fill all fields correctly!');
     }
   }
 

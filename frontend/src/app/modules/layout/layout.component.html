@@ -1,17 +1,37 @@
 <header>
+  <!-- Top Navigation Bar with Contact Info -->
+  <div class="top-nav bg-dark text-white py-1">
+    <div class="container-fluid">
+      <div class="row align-items-center">
+        <div class="col-auto">
+          <a class="text-white text-decoration-none me-3" href="mailto:info@vanavihari.com">
+            <i class="fa-regular fa-envelope me-1"></i><span class="d-none d-sm-inline">info@vanavihari.com</span>
+          </a>
+          <a class="text-white text-decoration-none" href="tel:7382151617">
+            <i class="fa-solid fa-mobile-screen me-1"></i><span class="d-none d-sm-inline">7382151617</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Navigation -->
   <nav class="navbar navbar-light py-0 fixed-top bg-light">
     <div class="container-fluid align-items-baseline">
-      <a class="navbar-brand me-auto py-0" href="#">
+      <!-- Logo -->
+      <a class="navbar-brand py-0" href="#">
         <img class="" src="assets/img/logo-vana.png" alt="logo-vana" />
       </a>
-      <ul class="navbar-nav d-flex flex-row gap-2 gap-lg-3">
-        <li class="nav-item d-none d-md-block">
+
+      <!-- Centered Main Navigation (Desktop) -->
+      <ul class="navbar-nav d-none d-lg-flex flex-row justify-content-center mx-auto gap-3">
+        <li class="nav-item">
           <a class="nav-link" routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-home me-2"></i>Home
           </a>
         </li>
         <!-- Book Resort dropdown (desktop) -->
-        <li class="nav-item dropdown d-none d-md-block" [class.show]="isBookResortOpen" (mouseleave)="isBookResortOpen=false">
+        <li class="nav-item dropdown" [class.show]="isBookResortOpen">
           <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true" [attr.aria-expanded]="isBookResortOpen" (click)="toggleBookResort($event)">
             <i class="fa-solid fa-building me-2"></i>Book Resort
           </a>
@@ -20,73 +40,55 @@
             <a class="dropdown-item" (click)="goToJungleStar(); isBookResortOpen=false">Jungle Star</a>
           </div>
         </li>
-        <li class="nav-item dropdown d-none d-lg-block">
-          <a class="nav-link dropdown-toggle" href="#" id="bookTentsDropdown" data-bs-toggle="dropdown" aria-haspopup="true"
-            aria-expanded="false">
+        <li class="nav-item dropdown" [class.show]="isBookTentsOpen">
+          <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true" [attr.aria-expanded]="isBookTentsOpen" (click)="toggleBookTents($event)">
             <i class="fa-solid fa-campground me-2"></i>Book Tents
           </a>
-          <div class="dropdown-menu position-absolute" aria-labelledby="bookTentsDropdown">
-            <a class="dropdown-item" routerLink="/vanavihari/book-tent">Vanavihari</a>
-            <a class="dropdown-item" routerLink="/karthikavanm/book-tent">Karthikavanam</a>
+          <div class="dropdown-menu position-absolute" [class.show]="isBookTentsOpen">
+            <a class="dropdown-item" routerLink="/vanavihari/book-tent" (click)="isBookTentsOpen=false">Vanavihari</a>
+            <a class="dropdown-item" routerLink="/karthikavanm/book-tent" (click)="isBookTentsOpen=false">Karthikavanam</a>
           </div>
         </li>
-        <li class="nav-item d-none d-lg-block">
+        <li class="nav-item">
           <a class="nav-link" routerLink="/tourist-places" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-mountain-sun me-2"></i>Book Tourist Spots
           </a>
         </li>
-        <li class="nav-item d-none d-lg-block">
-          <a class="nav-link" href="mailto:info@vanavihari.com" title="click to send email">
-            <i class="fa-regular fa-envelope"></i>
-          </a>
-        </li>
-        <li class="nav-item d-none d-lg-block">
-          <a class="nav-link" href="tel:7382151617" title="call">
-            <i class="fa-solid fa-mobile-screen"></i>
-          </a>
-        </li>
-        <li class="nav-item d-none d-lg-block">
-          <a class="nav-link" href="https://wa.me/917382151617" target="_blank" title="WhatsApp">
-            <i class="fa-brands fa-whatsapp text-success fa-lg"></i>
-          </a>
-        </li>
+      </ul>
+
+      <!-- Right Side User Actions (Desktop) -->
+      <ul class="navbar-nav d-none d-lg-flex flex-row gap-2 align-items-center">
         <li class="nav-item" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in</a>
         </li>
-        <!-- <li class="nav-item" *ngIf="!isLoggedIn()">
+        <li class="nav-item" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-up" routerLinkActive="active" ariaCurrentWhenActive="page">
-            <i class="fa-solid fa-arrow-up-from-bracket me-2"></i>Sign up</a>
-        </li> -->
-        <!-- *ngIf="isLoggedIn()" -->
+            <i class="fa-solid fa-user-plus me-2"></i>Sign up</a>
+        </li>
+        <!-- User dropdown when logged in -->
         <li class="nav-item dropdown" style="z-index: 1000" *ngIf="isLoggedIn()">
           <a class="nav-link dropdown-toggle" href="#" id="dropdownId" data-bs-toggle="dropdown" aria-haspopup="true"
             aria-expanded="false">
             <i class="fa-regular fa-user-circle me-2"></i> {{ accountusername }}
           </a>
           <div class="dropdown-menu position-absolute py-3 px-2" aria-labelledby="dropdownId">
-            <!-- nav item dropdown My Account>Settings, My Bookings, Saved -->
             <a class="dropdown-item" (click)="goToMyAccSettings()">
               <i class="fa-solid fa-cog me-3"></i><span>My account</span>
             </a>
             <a class="dropdown-item" (click)="goToMyBookings()">
               <i class="fa-regular fa-calendar-check me-3"></i><span>My Bookings</span>
             </a>
-            <!-- <a class="dropdown-item" (click)="goToMyAccSettings">
-              <i class="fa-regular fa-comment fa-flip-horizontal me-3"></i><span>Reviews</span>
-            </a> -->
-            <!-- <a class="dropdown-item" (click)="changePasswod()">
-              <i class="fa-solid fa-lock me-3"></i><span>Change Password</span>
-            </a> -->
             <a class="dropdown-item" (click)="triggerModal()">
               <i class="fa-solid fa-power-off me-3"></i><span>Sign out</span>
             </a>
           </div>
         </li>
       </ul>
-      <button class="navbar-toggler border-0" type="button" (click)="toggleSidebar()">
+
+      <!-- Mobile Menu Toggle - Always on Right -->
+      <button class="navbar-toggler border-0 ms-auto" type="button" (click)="toggleSidebar()">
         <i class="fa-solid fa-bars fa-2xl" [ngClass]="{ 'd-none': isSidebarOpen }"></i>
-        <!-- <span class="navbar-toggler-icon" ></span> -->
         <i class="fa-solid fa-xmark fa-2xl" [ngClass]="{ 'd-none': !isSidebarOpen }"></i>
       </button>
     </div>
@@ -171,6 +173,15 @@
         <li class="sidebar-item d-lg-none ">
           <a class="sidebar-link" href="mailto:info@vanavihari.com" title="click to send email">
             <i class="fa-regular fa-envelope me-2"></i>info@vanavihari.com</a>
+        </li>
+        <!-- Sign in and Sign up for mobile -->
+        <li class="sidebar-item" *ngIf="!isLoggedIn()">
+          <a class="sidebar-link" routerLink="/sign-in" routerLinkActive="active" (click)="toggleSidebar()"
+            ariaCurrentWhenActive="page"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Sign in</a>
+        </li>
+        <li class="sidebar-item" *ngIf="!isLoggedIn()">
+          <a class="sidebar-link" routerLink="/sign-up" routerLinkActive="active" (click)="toggleSidebar()"
+            ariaCurrentWhenActive="page"><i class="fa-solid fa-user-plus me-2"></i> Sign up</a>
         </li>
         <!-- <li class="sidebar-item">
           <a class="sidebar-link d-flex gap-2 align-items-center" href="#">
