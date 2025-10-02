@@ -67,6 +67,9 @@ const loginUser = async (req, res) => {
       { expiresIn: '7d' }
     )
 
+    // Check if profile is completed
+    const profileCompleted = isProfileCompleted(user)
+
     // Return success response
     res.status(200).json({ 
       code: 3000,
@@ -80,7 +83,8 @@ const loginUser = async (req, res) => {
           phone: user.phone
         },
         token,
-        userfullname: user.name
+        userfullname: user.name,
+        profileCompleted
       }
     })
   } catch (error) {
@@ -195,6 +199,9 @@ const registerUser = async (req, res) => {
       { expiresIn: '7d' }
     )
 
+    // Profile is not completed for new users
+    const profileCompleted = false
+
     // Return success response matching expected format
     res.status(201).json({ 
       code: 3000,
@@ -207,7 +214,9 @@ const registerUser = async (req, res) => {
           email: savedUser.email,
           phone: savedUser.phone
         },
-        token
+        token,
+        userfullname: savedUser.name,
+        profileCompleted
       }
     })
   } catch (error) {
@@ -242,4 +251,168 @@ const adminLogin = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, adminLogin }
+// Helper function to check if profile is completed
+const isProfileCompleted = (user) => {
+  const requiredFields = ['dob', 'nationality', 'address1', 'city', 'state', 'pincode', 'country']
+  return requiredFields.every(field => user[field] && user[field].toString().trim() !== '')
+}
+
+// route for getting user profile
+const getUserProfile = async (req, res) => {
+  try {
+    const user = req.user
+    
+    // Check if profile is completed
+    const profileCompleted = isProfileCompleted(user)
+    
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Profile retrieved successfully',
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        dob: user.dob,
+        nationality: user.nationality,
+        address1: user.address1,
+        address2: user.address2,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        country: user.country,
+        profileCompleted
+      }
+    })
+  } catch (error) {
+    console.error('Get profile error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+// route for updating user profile
+const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const { 
+      full_name, 
+      mobile_number, 
+      dob, 
+      nationality, 
+      address1, 
+      address2, 
+      city, 
+      state, 
+      pincode, 
+      country 
+    } = req.body
+
+    // Validation for mobile number if it's being updated
+    if (mobile_number && mobile_number !== req.user.phone) {
+      const phoneRegex = /^[0-9]{10}$/
+      if (!phoneRegex.test(mobile_number)) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'Please enter a valid 10-digit mobile number'
+          }
+        })
+      }
+
+      // Check if phone number is already taken by another user
+      const existingUser = await userModel.findOne({ 
+        phone: mobile_number, 
+        _id: { $ne: userId } 
+      })
+      if (existingUser) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'This phone number is already in use'
+          }
+        })
+      }
+    }
+
+    // Parse date if provided
+    let dobDate = null
+    if (dob) {
+      dobDate = new Date(dob)
+      if (isNaN(dobDate.getTime())) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'Invalid date format'
+          }
+        })
+      }
+    }
+
+    // Update user profile
+    const updateData = {}
+    if (full_name) updateData.name = full_name
+    if (mobile_number) updateData.phone = mobile_number
+    if (dobDate) updateData.dob = dobDate
+    if (nationality) updateData.nationality = nationality
+    if (address1) updateData.address1 = address1
+    if (address2 !== undefined) updateData.address2 = address2 // Allow empty string
+    if (city) updateData.city = city
+    if (state) updateData.state = state
+    if (pincode) updateData.pincode = pincode
+    if (country) updateData.country = country
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    // Check if profile is now completed
+    const profileCompleted = isProfileCompleted(updatedUser)
+    updatedUser.profileCompleted = profileCompleted
+    await updatedUser.save()
+
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Profile updated successfully',
+        user: {
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          dob: updatedUser.dob,
+          nationality: updatedUser.nationality,
+          address1: updatedUser.address1,
+          address2: updatedUser.address2,
+          city: updatedUser.city,
+          state: updatedUser.state,
+          pincode: updatedUser.pincode,
+          country: updatedUser.country,
+          profileCompleted
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile }

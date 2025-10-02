@@ -167,10 +167,15 @@ export class SignUpComponent implements OnInit {
               this.showSuccessAlert();
               this.showAlert = false;
               
-              // Store user token if provided
+              // Store user token and data if provided
               if (response.result.token) {
                 localStorage.setItem('userToken', response.result.token);
                 localStorage.setItem('userData', JSON.stringify(response.result.user));
+                
+                // Set auth service data
+                this.authService.setAccessToken(response.result.token);
+                this.authService.setAccountUsername(response.result.user.email);
+                this.authService.setAccountUserFullname(response.result.user.name);
               }
             } else if (response.code == 3000) {
               this.isLoading = false;
@@ -228,15 +233,14 @@ export class SignUpComponent implements OnInit {
 
   showSuccessAlert() {
     this.snackBar
-      .open('Registration successful! Welcome to Vanavihari!', 'Close', {
+      .open('Registration successful! Please complete your profile.', 'Close', {
         duration: 4000,
       })
       .afterDismissed()
       .subscribe(() => {
-        // Navigate to home or login page after successful registration
-        this.router.navigate(['/sign-in'], {
-          queryParams: { message: 'registered' }
-        });
+        // Navigate to settings page after successful registration
+        // Since new users always have incomplete profiles
+        this.router.navigate(['/my-account/settings']);
         this.isLoading = false;
       });
   }
