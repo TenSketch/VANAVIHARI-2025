@@ -2,22 +2,232 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import Admin from '../models/adminModel.js'
+import userModel from '../models/userModel.js'
 
-// route for user login (placeholder)
+// route for user login
 const loginUser = async (req, res) => {
   try {
-    res.status(200).json({ message: 'Login endpoint working' })
+    const { email_id, password } = req.body
+    
+    // Validation
+    if (!email_id || !password) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Email and password are required' 
+        }
+      })
+    }
+
+    // Email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email_id)) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Please enter a valid email address' 
+        }
+      })
+    }
+
+    // Find user by email
+    const user = await userModel.findOne({ email: email_id })
+    if (!user) {
+      return res.status(401).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Invalid email or password' 
+        }
+      })
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Invalid email or password' 
+        }
+      })
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        email: user.email,
+        name: user.name 
+      }, 
+      process.env.JWT_SECRET || 'devsecret', 
+      { expiresIn: '7d' }
+    )
+
+    // Check if profile is completed
+    const profileCompleted = isProfileCompleted(user)
+
+    // Return success response
+    res.status(200).json({ 
+      code: 3000,
+      result: { 
+        status: 'success', 
+        msg: 'Login successful!',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone
+        },
+        token,
+        userfullname: user.name,
+        profileCompleted
+      }
+    })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Login error:', error)
+    res.status(500).json({ 
+      code: 5000,
+      result: { 
+        status: 'error', 
+        msg: 'Internal server error. Please try again.' 
+      }
+    })
   }
 }
 
-// route for user register (placeholder)
+// route for user register
 const registerUser = async (req, res) => {
   try {
-    res.status(200).json({ message: 'Register endpoint working' })
+    const { full_name, email_id, mobile_number, password } = req.body
+    
+    // Validation
+    if (!full_name || !email_id || !mobile_number || !password) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'All fields are required' 
+        }
+      })
+    }
+
+    // Email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email_id)) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Please enter a valid email address' 
+        }
+      })
+    }
+
+    // Phone number validation (10 digits)
+    const phoneRegex = /^[0-9]{10}$/
+    if (!phoneRegex.test(mobile_number)) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Please enter a valid 10-digit mobile number' 
+        }
+      })
+    }
+
+    // Password validation (8+ chars, uppercase, lowercase, number, special char)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character' 
+        }
+      })
+    }
+
+    // Check if user already exists
+    const existingUserByEmail = await userModel.findOne({ email: email_id })
+    if (existingUserByEmail) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'User with this email already exists' 
+        }
+      })
+    }
+
+    const existingUserByPhone = await userModel.findOne({ phone: mobile_number })
+    if (existingUserByPhone) {
+      return res.status(400).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'User with this phone number already exists' 
+        }
+      })
+    }
+
+    // Hash password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+    // Create new user
+    const newUser = new userModel({
+      name: full_name,
+      email: email_id,
+      phone: mobile_number,
+      password: hashedPassword
+    })
+
+    const savedUser = await newUser.save()
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: savedUser._id, 
+        email: savedUser.email,
+        name: savedUser.name 
+      }, 
+      process.env.JWT_SECRET || 'devsecret', 
+      { expiresIn: '7d' }
+    )
+
+    // Profile is not completed for new users
+    const profileCompleted = false
+
+    // Return success response matching expected format
+    res.status(201).json({ 
+      code: 3000,
+      result: { 
+        status: 'success', 
+        msg: 'Account created successfully! Please verify your email.',
+        user: {
+          id: savedUser._id,
+          name: savedUser.name,
+          email: savedUser.email,
+          phone: savedUser.phone
+        },
+        token,
+        userfullname: savedUser.name,
+        profileCompleted
+      }
+    })
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Registration error:', error)
+    res.status(500).json({ 
+      code: 5000,
+      result: { 
+        status: 'error', 
+        msg: 'Internal server error. Please try again.' 
+      }
+    })
   }
 }
 
@@ -41,4 +251,168 @@ const adminLogin = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, adminLogin }
+// Helper function to check if profile is completed
+const isProfileCompleted = (user) => {
+  const requiredFields = ['dob', 'nationality', 'address1', 'city', 'state', 'pincode', 'country']
+  return requiredFields.every(field => user[field] && user[field].toString().trim() !== '')
+}
+
+// route for getting user profile
+const getUserProfile = async (req, res) => {
+  try {
+    const user = req.user
+    
+    // Check if profile is completed
+    const profileCompleted = isProfileCompleted(user)
+    
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Profile retrieved successfully',
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        dob: user.dob,
+        nationality: user.nationality,
+        address1: user.address1,
+        address2: user.address2,
+        city: user.city,
+        state: user.state,
+        pincode: user.pincode,
+        country: user.country,
+        profileCompleted
+      }
+    })
+  } catch (error) {
+    console.error('Get profile error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+// route for updating user profile
+const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id
+    const { 
+      full_name, 
+      mobile_number, 
+      dob, 
+      nationality, 
+      address1, 
+      address2, 
+      city, 
+      state, 
+      pincode, 
+      country 
+    } = req.body
+
+    // Validation for mobile number if it's being updated
+    if (mobile_number && mobile_number !== req.user.phone) {
+      const phoneRegex = /^[0-9]{10}$/
+      if (!phoneRegex.test(mobile_number)) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'Please enter a valid 10-digit mobile number'
+          }
+        })
+      }
+
+      // Check if phone number is already taken by another user
+      const existingUser = await userModel.findOne({ 
+        phone: mobile_number, 
+        _id: { $ne: userId } 
+      })
+      if (existingUser) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'This phone number is already in use'
+          }
+        })
+      }
+    }
+
+    // Parse date if provided
+    let dobDate = null
+    if (dob) {
+      dobDate = new Date(dob)
+      if (isNaN(dobDate.getTime())) {
+        return res.status(400).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: 'Invalid date format'
+          }
+        })
+      }
+    }
+
+    // Update user profile
+    const updateData = {}
+    if (full_name) updateData.name = full_name
+    if (mobile_number) updateData.phone = mobile_number
+    if (dobDate) updateData.dob = dobDate
+    if (nationality) updateData.nationality = nationality
+    if (address1) updateData.address1 = address1
+    if (address2 !== undefined) updateData.address2 = address2 // Allow empty string
+    if (city) updateData.city = city
+    if (state) updateData.state = state
+    if (pincode) updateData.pincode = pincode
+    if (country) updateData.country = country
+
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password')
+
+    // Check if profile is now completed
+    const profileCompleted = isProfileCompleted(updatedUser)
+    updatedUser.profileCompleted = profileCompleted
+    await updatedUser.save()
+
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Profile updated successfully',
+        user: {
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          phone: updatedUser.phone,
+          dob: updatedUser.dob,
+          nationality: updatedUser.nationality,
+          address1: updatedUser.address1,
+          address2: updatedUser.address2,
+          city: updatedUser.city,
+          state: updatedUser.state,
+          pincode: updatedUser.pincode,
+          country: updatedUser.country,
+          profileCompleted
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile }

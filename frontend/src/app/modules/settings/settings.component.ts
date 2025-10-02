@@ -13,8 +13,7 @@ import { environment } from '@/environments/environment';
 })
 export class SettingsComponent {
   form: FormGroup;
-  editingField: string | null = null;
-  storedUser: any;
+
   countries: string[] = [
     'Afghanistan',
     'Åland Islands',
@@ -268,19 +267,11 @@ export class SettingsComponent {
   ];
 
   showLoader = false;
-  api_url:any
+  api_url: any
   isModalVisible = false
+  isDarkMode = false
 
-  isFieldEditable: { [key: string]: boolean } = {
-    mobile_number:false,
-    nationality: false,
-    address1: false,
-    address2: false,
-    city: false,
-    state:false,
-    pincode:false,
-    country :false
-  };
+
 
   constructor(
     private renderer: Renderer2,
@@ -310,112 +301,114 @@ export class SettingsComponent {
   ngOnInit(): void {
     this.showLoader = true;
     this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
-    const params = new HttpParams()
-      .set('email', this.authService.getAccountUsername() ?? '')
-      .set('token', this.authService.getAccessToken() ?? '');
+    
+    // Get user profile using the new API endpoint
+    const headers = {
+      'token': this.authService.getAccessToken() ?? ''
+    };
+    
     this.http
-      .get<any>(
-        this.api_url+'?api_type=profile_details',
-        { params }
-      )
+      .get<any>(`${this.api_url}/api/user/profile`, { headers })
       .subscribe({
         next: (response) => {
           if (response.code == 3000 && response.result.status == 'success') {
             this.showLoader = false;
+            const result = response.result;
+            
             this.form = this.formBuilder.group({
-              full_name: [response.result.name],
-              mobile_number: [response.result.phone],
-              email: [response.result.email, Validators.email],
-              dob: [response.result.dob, Validators.required],
-              nationality: [response.result.nationality],
-              address1: [response.result.address1],
-              address2: [response.result.address2],
-              city: [response.result.city],
-              state: [response.result.state],
-              pincode: [response.result.pincode],
-              country: [response.result.country],
+              full_name: [result.name],
+              mobile_number: [result.phone],
+              email: [result.email, Validators.email],
+              dob: [result.dob ? new Date(result.dob) : '', Validators.required],
+              nationality: [result.nationality || ''],
+              address1: [result.address1 || ''],
+              address2: [result.address2 || ''],
+              city: [result.city || ''],
+              state: [result.state || ''],
+              pincode: [result.pincode || ''],
+              country: [result.country || ''],
             });
-          } else if (response.code == 3000) {
-            this.showLoader = false;
-
-            this.userService.clearUser();
-            this.router.navigate(['/home']);
           } else {
             this.showLoader = false;
-
             this.userService.clearUser();
-            this.router.navigate(['/home']);
+            this.router.navigate(['/sign-in']);
           }
         },
         error: (err) => {
+          this.showLoader = false;
+          console.error('Profile fetch error:', err);
+          this.userService.clearUser();
+          this.router.navigate(['/sign-in']);
         },
       });
-  }
-
- editField(field: string) {
-  this.isFieldEditable[field] = !this.isFieldEditable[field];
-
   }
 
   get isNationalityDisabled(): boolean {
     return !!this.form.get('nationality')?.value;
   }
 
-   formatDateToDDMMMYYYY(dateString:any) {
-      if (!dateString) {
-        return ''; // Return an empty string if dateString is undefined
-      }
-  
-      const date = new Date(dateString);
-      const day = date.getUTCDate().toString().padStart(2, '0');
-      const month = date.toLocaleString('en-US', { month: 'short' });
-      const year = date.getUTCFullYear();
-  
-      const formattedDate = `${day}-${month}-${year}`;
-      return formattedDate;
-    
+  formatDateToDDMMMYYYY(dateString: any) {
+    if (!dateString) {
+      return ''; // Return an empty string if dateString is undefined
+    }
+
+    const date = new Date(dateString);
+    const day = date.getUTCDate().toString().padStart(2, '0');
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const year = date.getUTCFullYear();
+
+    const formattedDate = `${day}-${month}-${year}`;
+    return formattedDate;
   }
   
 
   onSubmit() {
     this.showLoader = true
     if (this.form.valid) {
-      let params = new HttpParams()
-        .set('login_email', this.userService.getUser())
-        .set('token', this.userService.getUserToken());
+      const headers = {
+        'token': this.authService.getAccessToken() ?? '',
+        'Content-Type': 'application/json'
+      };
 
-      let data = this.form.value;
-      Object.keys(data).forEach((key) => {
-        if (data[key] !== null && data[key] !== undefined) {
-          if (key == 'dob')
-            params = params.set(key, this.formatDateToDDMMMYYYY(data[key]));
-          else params = params.set(key, data[key].toString());
-        }
-      });
+      const formData = this.form.value;
+      const updateData: any = {};
+
+      // Only include fields that have values
+      if (formData.full_name) updateData.full_name = formData.full_name;
+      if (formData.mobile_number) updateData.mobile_number = formData.mobile_number;
+      if (formData.dob) updateData.dob = formData.dob;
+      if (formData.nationality) updateData.nationality = formData.nationality;
+      if (formData.address1) updateData.address1 = formData.address1;
+      if (formData.address2 !== undefined) updateData.address2 = formData.address2; // Allow empty string
+      if (formData.city) updateData.city = formData.city;
+      if (formData.state) updateData.state = formData.state;
+      if (formData.pincode) updateData.pincode = formData.pincode;
+      if (formData.country) updateData.country = formData.country;
+
       this.http
-        .get<any>(
-          this.api_url+'?api_type=edit_profile_details',
-          { params }
-        )
+        .put<any>(`${this.api_url}/api/user/profile`, updateData, { headers })
         .subscribe({
           next: (response) => {
             this.showLoader = false
             if (response.code == 3000 && response.result.status == 'success') {
-              // this.router.navigate(['/home']);
               this.isModalVisible = true
-              // alert('Profile Update Successfully!');
-            } else if (response.code == 3000) {
-              this.showLoader = false
             } else {
-              this.showLoader = false
+              this.showErrorAlert(response.result.msg || 'Update failed');
             }
           },
           error: (err) => {
-            this.showLoader = false
+            this.showLoader = false;
+            console.error('Profile update error:', err);
+            if (err.error && err.error.result && err.error.result.msg) {
+              this.showErrorAlert(err.error.result.msg);
+            } else {
+              this.showErrorAlert('Profile update failed. Please try again.');
+            }
           },
         });
-
-      
+    } else {
+      this.showLoader = false;
+      this.showErrorAlert('Please fill all required fields correctly!');
     }
   }
 
@@ -423,20 +416,16 @@ export class SettingsComponent {
     this.isModalVisible = false
   }
 
-  // editField(field: string) {
-  //   this.editingField = field;
-  // }
-
-  cancelEditing(field: string) {
-    this.form.patchValue(this.storedUser);
-    this.editingField = null;
+  onCancel() {
+    this.isModalVisible = false
   }
 
-  saveChanges(field: string) {
-    this.storedUser = { ...this.storedUser, ...this.form.value };
-    this.userService.setUser(this.storedUser);
-    this.editingField = null;
+  showErrorAlert(message: string) {
+    // You can implement a snackbar or alert here
+    alert(message);
   }
+
+
 
   goToSignin() {
     this.router.navigate(['/sign-in']);

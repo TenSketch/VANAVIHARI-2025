@@ -4,8 +4,7 @@
 
 export const environment = {
   production: false,
-  API_URL: 'https://vanavihari.com/zoho-connect',
-  zoho_api_url: 'https://www.zohoapis.com/creator/custom/vanavihari/',
+  API_URL: 'https://api.vanavihari.com', // Updated to use local backend
  
   // Account_Registration: process.env.Account_Registration,
   // Edit_Profile: process.env.Edit_Profile,
