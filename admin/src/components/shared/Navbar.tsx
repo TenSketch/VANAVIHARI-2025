@@ -40,6 +40,10 @@ const breadcrumbMap: Record<string, string[]> = {
   "/room-amenities/add": ["Room Amenities", "Add Amenity"],
   "/touristspots/add": ["Tourist Spots", "Add Tourist Spots"],
   "/touristspots/all": ["Tourist Spots", "Add Tourist Spots"],
+  "/tenttypes/add": ["Tent Types", "Add Tent Types"],
+  "/tenttypes/all": ["Tent Types", "All Tent Types"],
+  "/tentspots/add": ["Tent Spots", "Add Tent Spots"],
+  "/tentspots/all": ["Tent Spots", "All Tent Spots"],
 };
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {

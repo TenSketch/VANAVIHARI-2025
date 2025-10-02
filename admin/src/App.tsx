@@ -15,6 +15,13 @@ const AddGuestPage = lazy(() => import("./pages/guests/AddGuestPage"));
 const AllGuestsPage = lazy(() => import("./pages/guests/AllGuestsPage"));
 const AddResortsPage = lazy(() => import("./pages/resorts/AddResortsPage"));
 const AllResortsPage = lazy(() => import("./pages/resorts/AllResortsPage"));
+
+const AddTentTypes = lazy(() => import("./pages/tentTypes/AddTentTypes"));
+const AllTentTypes = lazy(() => import("./pages/tentTypes/AllTentTypes"));
+
+const AddTentSpots = lazy(() => import("./pages/TentSpots/AddTentSpots"));
+const AllTentSpots = lazy(() => import("./pages/TentSpots/AllTentSpots"));
+
 const AllLogReportsPage = lazy(
   () => import("./pages/logReports/AllLogReportsPage")
 );
@@ -69,6 +76,10 @@ function App() {
           <Route path="room-amenities/add" element={<AddRoomAmenitiesPage />} />
           <Route path="touristspots/add" element={<AddTouristSpot />} />
           <Route path="touristspots/all" element={<AllTouristSpot />} />
+          <Route path="tenttypes/add" element={<AddTentTypes />} />
+          <Route path="tenttypes/all" element={<AllTentTypes />} />
+          <Route path="tentspots/add" element={<AddTentSpots />} />
+          <Route path="tentspots/all" element={<AllTentSpots />} />
         </Route>
       </Routes>
     </Suspense>

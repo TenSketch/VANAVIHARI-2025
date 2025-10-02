@@ -21,6 +21,8 @@ import {
   ArrowLeftFromLine,
   ClipboardMinus,
   ClipboardCheck,
+  Tent,
+  Binoculars,
 } from "lucide-react";
 import {
   Collapsible,
@@ -130,10 +132,28 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     {
       id: "touristspots",
       label: "Tourist Spots",
-      icon: Calendar,
+      icon: Binoculars,
       children: [
         { label: "Add Tourist Spots", path: "/touristspots/add", icon: Plus },
         { label: "All Tourist Spots", path: "/touristspots/all", icon: Calendar },
+      ],
+    },
+    {
+      id: "tenttypes",
+      label: "Tent Types",
+      icon: Tent,
+      children: [
+        { label: "Add Tent Types", path: "/tenttypes/add", icon: Plus },
+        { label: "All Tent Types", path: "/tenttypes/all", icon: Calendar },
+      ],
+    },
+    {
+      id: "tentspots",
+      label: "Tent Spots",
+      icon: Tent,
+      children: [
+        { label: "Add Tent Spots", path: "/tentspots/add", icon: Plus },
+        { label: "All Tent Spots", path: "/tentspots/all", icon: Calendar },
       ],
     },
     {
