@@ -6,81 +6,9 @@
 
     <div class="container-fluid my-5">
       <div class="row g-4">
-        <!-- Left Side - Booking Summary & Filters (30%) -->
-        <div class="col-lg-4">
-          <!-- Booking Summary -->
-          <div class="booking-summary-card mb-4 sticky-top" style="top: 100px;">
-            <div class="card shadow">
-              <div class="card-header bg-primary text-white" (click)="toggleBookingSummary()" style="cursor: pointer;">
-                <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">
-                    <i class="fa-solid fa-shopping-cart me-2"></i>
-                    Booking Summary
-                  </h5>
-                  <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="!isBookingSummaryExpanded"></i>
-                </div>
-              </div>
-              <div class="card-body accordion-content" [class.collapsed]="!isBookingSummaryExpanded">
-                <!-- Empty state -->
-                <div *ngIf="bookedSpots.length === 0" class="text-center py-4">
-                  <i class="fa-solid fa-mountain-sun fa-3x text-muted mb-3"></i>
-                  <p class="text-muted">No tourist spots added yet</p>
-                  <small class="text-muted">Add spots from the right to see your booking summary</small>
-                </div>
-
-                <!-- Booked spots list -->
-                <div *ngIf="bookedSpots.length > 0" class="booked-spots">
-                  <div *ngFor="let spot of bookedSpots; let i = index" class="booked-spot mb-3 p-3 border rounded">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                      <h6 class="mb-1">{{ spot.name }}</h6>
-                      <button class="btn btn-sm btn-outline-danger" (click)="removeSpot(i)">
-                        <i class="fa-solid fa-trash"></i>
-                      </button>
-                    </div>
-                    
-                    <div class="fee-breakdown small">
-                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.entry > 0">
-                        <span>Entry Fee: ₹{{ spot.unitPrices.entry }} × {{ spot.peopleCount }} people</span>
-                        <span>₹{{ spot.breakdown.entry }}</span>
-                      </div>
-                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.parking > 0">
-                        <span>Parking: ₹{{ spot.unitPrices.parking }} × {{ spot.counts.vehicles }} vehicles</span>
-                        <span>₹{{ spot.breakdown.parking }}</span>
-                      </div>
-                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.camera > 0">
-                        <span>Camera: ₹{{ spot.unitPrices.camera }} × {{ spot.counts.cameras }} cameras</span>
-                        <span>₹{{ spot.breakdown.camera }}</span>
-                      </div>
-                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.addOns > 0">
-                        <span>Add-ons</span>
-                        <span>₹{{ spot.breakdown.addOns }}</span>
-                      </div>
-                      <hr class="my-2">
-                      <div class="d-flex justify-content-between fw-bold">
-                        <span>Spot Total:</span>
-                        <span>₹{{ spot.total }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Grand Total -->
-                <div *ngIf="bookedSpots.length > 0" class="grand-total mt-3 pt-3 border-top">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0">Grand Total:</h5>
-                    <h4 class="mb-0 text-primary">₹{{ grandTotal }}</h4>
-                  </div>
-                  <button class="btn btn-success w-100" [disabled]="bookedSpots.length === 0" (click)="proceedToCheckout()">
-                    <i class="fa-solid fa-credit-card me-2"></i>
-                    Proceed to Checkout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Filters Section -->
-          <div class="filters-card sticky-top" style="top: calc(100px + 20px);">
+  <!-- Left Side - Filters (narrow) -->
+  <div class="col-lg-2 order-lg-1 order-2">
+          <div class="filters-card sticky-top" style="top: 100px;">
             <div class="card shadow">
               <div class="card-header bg-secondary text-white" (click)="toggleFilters()" style="cursor: pointer;">
                 <div class="d-flex justify-content-between align-items-center">
@@ -142,9 +70,8 @@
           </div>
         </div>
 
-        <!-- Right Side - Tourist Spot Selection (70%) -->
-        <!-- Right Side - Tourist Spot Selection (70%) -->
-        <div class="col-lg-8">
+  <!-- Middle - Tourist Spot Selection (wider) -->
+  <div class="col-lg-7 order-lg-2 order-3">
           <div class="tourist-spots-list">
             <!-- No Results Message -->
             <div *ngIf="filteredCategories.length === 0 || !hasAnySpots()" class="alert alert-info">
@@ -178,6 +105,79 @@
                       <span *ngIf="spot.elevationGainM">Elevation Gain: {{ spot.elevationGainM }} m</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+  <!-- Right Side - Booking Summary (25%) -->
+  <div class="col-lg-3 order-lg-3 order-1">
+          <div class="booking-summary-card sticky-top" style="top: 100px;">
+            <div class="card shadow">
+              <div class="card-header bg-primary text-white" (click)="toggleBookingSummary()" style="cursor: pointer;">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">
+                    <i class="fa-solid fa-shopping-cart me-2"></i>
+                    Booking Summary
+                  </h5>
+                  <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="!isBookingSummaryExpanded"></i>
+                </div>
+              </div>
+              <div class="card-body accordion-content" [class.collapsed]="!isBookingSummaryExpanded">
+                <!-- Empty state -->
+                <div *ngIf="bookedSpots.length === 0" class="text-center py-4">
+                  <i class="fa-solid fa-mountain-sun fa-3x text-muted mb-3"></i>
+                  <p class="text-muted">No tourist spots added yet</p>
+                  <small class="text-muted">Add spots from the middle to see your booking summary</small>
+                </div>
+
+                <!-- Booked spots list -->
+                <div *ngIf="bookedSpots.length > 0" class="booked-spots">
+                  <div *ngFor="let spot of bookedSpots; let i = index" class="booked-spot mb-3 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <h6 class="mb-1">{{ spot.name }}</h6>
+                      <button class="btn btn-sm btn-outline-danger" (click)="removeSpot(i)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                    
+                    <div class="fee-breakdown small">
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.entry > 0">
+                        <span>Entry Fee: ₹{{ spot.unitPrices.entry }} × {{ spot.peopleCount }} people</span>
+                        <span>₹{{ spot.breakdown.entry }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.parking > 0">
+                        <span>Parking: ₹{{ spot.unitPrices.parking }} × {{ spot.counts.vehicles }} vehicles</span>
+                        <span>₹{{ spot.breakdown.parking }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.camera > 0">
+                        <span>Camera: ₹{{ spot.unitPrices.camera }} × {{ spot.counts.cameras }} cameras</span>
+                        <span>₹{{ spot.breakdown.camera }}</span>
+                      </div>
+                      <div class="d-flex justify-content-between" *ngIf="spot.breakdown.addOns > 0">
+                        <span>Add-ons</span>
+                        <span>₹{{ spot.breakdown.addOns }}</span>
+                      </div>
+                      <hr class="my-2">
+                      <div class="d-flex justify-content-between fw-bold">
+                        <span>Spot Total:</span>
+                        <span>₹{{ spot.total }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Grand Total -->
+                <div *ngIf="bookedSpots.length > 0" class="grand-total mt-3 pt-3 border-top">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Grand Total:</h5>
+                    <h4 class="mb-0 text-primary">₹{{ grandTotal }}</h4>
+                  </div>
+                  <button class="btn btn-success w-100" [disabled]="bookedSpots.length === 0" (click)="proceedToCheckout()">
+                    <i class="fa-solid fa-credit-card me-2"></i>
+                    Proceed to Checkout
+                  </button>
                 </div>
               </div>
             </div>

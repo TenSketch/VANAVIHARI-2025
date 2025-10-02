@@ -46,15 +46,15 @@ export class BookTentComponent implements OnInit {
     const path = this.route.snapshot.routeConfig?.path || '';
     if (path.startsWith('vanavihari')) {
       this.resortKey = 'vanavihari';
-      this.resortTitle = 'Vanavihari';
+      this.resortTitle = 'Decathlon';
       this.selectedResortInfo = {
-        title: 'Vanavihari, Maredumilli',
+        title: 'Decathlon',
         about: 'Vanavihari, Maredumilli is situated in the serene landscapes of Maredumilli, beckoning eco-tourism aficionados with its abundance of bamboo trees. This guesthouse, committed to community well-being, offers a serene retreat amidst natural surroundings. With its snug cottages and rooms, it conveniently lies close to Amruthadhara Waterfalls, promising guests a peaceful ambiance. Nearby street food eateries present the opportunity to savor the distinctive flavor of bamboo biriyani. Stepping out for a night or morning stroll unveils a heavenly experience for visitors.'
       };
     } else if (path.startsWith('karthikavanm')) {
       this.resortKey = 'karthikavanm';
-      this.resortTitle = 'Karthikavanm';
-      this.selectedResortInfo = { title: 'Karthikavanm', about: 'Karthikavanm tented area offers eco-friendly tent stays with access to nearby nature attractions.' };
+      this.resortTitle = 'Decathlon';
+      this.selectedResortInfo = { title: 'Decathlon', about: 'Karthikavanm tented area offers eco-friendly tent stays with access to nearby nature attractions.' };
     }
 
     this.tentService.getTents(this.resortKey).subscribe({

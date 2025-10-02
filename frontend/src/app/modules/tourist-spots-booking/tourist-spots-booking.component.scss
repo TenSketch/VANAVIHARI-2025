@@ -84,7 +84,7 @@
   }
   
   h6 {
-    color: #2c5aa0;
+    color: #0b5a2b; /* change to full dark green */
     font-weight: 600;
   }
   
@@ -277,5 +277,25 @@
   to {
     transform: translate(-50%, 0);
     opacity: 1;
+  }
+}
+
+/* Category header / section title styling in the booking list */
+.tourist-spots-list {
+  h2.h4 {
+    color: #0b5a2b; /* full dark green for category titles */
+    font-weight: 700;
+    font-size: 1.25rem; /* slightly larger */
+  }
+}
+
+/* Slight adjustment for sticky offsets on large screens when filter column is narrower */
+@media (min-width: 992px) {
+  .filters-card.sticky-top {
+    top: 90px !important;
+  }
+
+  .booking-summary-card.sticky-top {
+    top: 100px !important;
   }
 }

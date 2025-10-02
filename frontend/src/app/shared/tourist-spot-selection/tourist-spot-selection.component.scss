@@ -6,8 +6,10 @@
 
 .header .title {
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
+  color: #0b5a2b; /* dark green for full title emphasis */
 }
+.header .title { font-size: 1.3rem; }
 .header .sub {
   color: #6c757d;
   font-size: 0.95rem;
@@ -35,13 +37,14 @@
 .quick-info .card {
   background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
   border: 1px solid #e3e6ea;
-  border-radius: 16px;
-  padding: 1.25rem 1rem;
+  border-radius: 10px; /* reduced radius for compact look */
+  padding: 0.8rem 0.6rem; /* reduced padding to make card smaller */
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.18s ease;
   position: relative;
   overflow: hidden;
+  min-height: 64px;
 }
 .quick-info .card::before {
   content: '';
@@ -58,28 +61,29 @@
   border-color: #198754;
 }
 .quick-info .icon { 
-  font-size: 1.75rem; 
-  margin-bottom: 0.5rem;
+  font-size: 2.5rem; /* increase icon size slightly more */
+  margin-bottom: 0.35rem;
   display: block;
+  line-height: 1;
 }
 .quick-info .label { 
   color: #495057; 
-  font-size: 0.8rem; 
-  font-weight: 500;
+  font-size: 1.0rem; /* increased for readability */
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.6px;
+  margin-bottom: 0.15rem;
 }
 .quick-info .value { 
   font-weight: 700; 
-  font-size: 1.1rem;
-  color: #212529;
+  font-size: 1.25rem; /* larger value text */
+  color: #0b5a2b; /* dark green for emphasis */
   line-height: 1.2;
 }
 .quick-info .unit { 
   color: #6c757d; 
   font-weight: 400; 
-  font-size: 0.75rem;
+  font-size: 0.85rem; /* slightly larger unit text */
   display: block;
   margin-top: 0.15rem;
 }
@@ -90,10 +94,11 @@
   gap: 0.75rem;
 }
 .stepper { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.6rem; display: grid; gap: 0.4rem; }
-.stepper .lbl { font-weight: 600; }
-.stepper .ctrl { display: inline-flex; align-items: center; gap: 0.5rem; }
-.stepper .ctrl button { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #ced4da; background: #f8f9fa; }
-.stepper .ctrl span { min-width: 2ch; text-align: center; font-weight: 600; }
+.stepper { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.7rem; display: grid; gap: 0.4rem; }
+.stepper .lbl { font-weight: 700; font-size: 0.95rem; }
+.stepper .ctrl { display: inline-flex; align-items: center; gap: 0.6rem; }
+.stepper .ctrl button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #ced4da; background: #f8f9fa; font-size: 1.05rem; }
+.stepper .ctrl span { min-width: 2ch; text-align: center; font-weight: 700; font-size: 1rem; }
 .addons {
   display: grid;
   gap: 0.25rem;
@@ -120,10 +125,10 @@
     gap: 0.75rem;
   }
   .quick-info .card {
-    padding: 1rem 0.75rem;
+    padding: 0.7rem 0.5rem;
   }
   .quick-info .icon {
-    font-size: 1.5rem;
+    font-size: 2.25rem;
   }
   .gallery img { height: 120px; }
 }

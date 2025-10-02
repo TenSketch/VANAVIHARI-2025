@@ -9,6 +9,21 @@
   background-position: center;
 }
 
+/* Brand title styling - make Decathlon stand out */
+.page-banner h1 {
+  color: #0b5a2b; /* dark green */
+  font-weight: 800;
+  letter-spacing: 1px;
+  font-variant: small-caps;
+  text-shadow: 0 2px 10px rgba(11,90,43,0.12);
+}
+
+/* Breadcrumb / resort title smaller variant for other places */
+.breadcrumb .breadcrumb-item.active {
+  color: #0b5a2b;
+  font-weight: 700;
+}
+
 .policy-section {
   background: hsl(90, 100%, 85%); /* light green similar to other pages */
   padding: 18px;
