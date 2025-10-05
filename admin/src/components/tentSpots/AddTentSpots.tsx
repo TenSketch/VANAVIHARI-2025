@@ -20,13 +20,40 @@ const AddTentSpots = () => {
     checkOut: "9:00 AM",
   };
 
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const [form, setForm] = useState(defaultForm);
   const [added, setAdded] = useState<Array<any>>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleAdd = (e?: React.FormEvent) => {
+  const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setAdded((s) => [...s, { ...form }]);
-    setForm(defaultForm);
+    setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const payload = { ...form };
+      const res = await fetch(`${apiBase}/api/tent-spots/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Failed to save (status ${res.status})`);
+      }
+      const data = await res.json();
+      const saved = data.tentSpot;
+      setAdded((s) => [...s, saved]);
+      setSuccess('Tent spot saved')
+      setForm(defaultForm);
+    } catch (err: any) {
+      console.error('Save tent spot failed', err);
+      setError(err.message || 'Failed to save tent spot');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -115,9 +142,12 @@ const AddTentSpots = () => {
           </div>
 
           <div className="flex gap-4 pt-4 max-w-md">
-            <Button type="button" onClick={handleAdd} className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg">Add Tent Spot</Button>
-            <Button type="button" onClick={handleReset} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg">Reset</Button>
+            <Button type="button" onClick={handleAdd} disabled={isSaving} className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50">{isSaving ? 'Saving...' : 'Add Tent Spot'}</Button>
+            <Button type="button" onClick={handleReset} disabled={isSaving} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg disabled:opacity-50">Reset</Button>
           </div>
+
+          {success && <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-green-800">{success}</div>}
+          {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-800">{error}</div>}
 
           {added.length > 0 && (
             <div className="mt-8">

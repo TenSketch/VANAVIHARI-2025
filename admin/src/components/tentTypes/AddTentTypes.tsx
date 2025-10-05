@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 // select components removed because this form no longer uses location dropdown
 
 const AddTentTypes = () => {
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  
   // Single-item add form (admin can add multiple tent types one by one)
   const [form, setForm] = useState({
     tentType: "2 person tent",
@@ -16,30 +18,78 @@ const AddTentTypes = () => {
   });
 
   const [added, setAdded] = useState<Array<any>>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Add current form to the local list
-  const handleAdd = (e?: React.FormEvent) => {
+  // Add current form to the database and local list
+  const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    setAdded((s) => [
-      ...s,
-      {
+    
+    setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Prepare the data for submission
+      const tentData = {
         tentType: form.tentType,
         dimensions: form.dimensions,
         brand: form.brand,
         features: form.features,
-        pricePerDay: `${form.price}/day`,
-        amenities: form.amenities,
-      },
-    ]);
-    // reset to defaults after add
-    setForm({
-      tentType: "2 person tent",
-      dimensions: "approx. 205 cm × 145 cm, height 110 cm",
-      brand: "Decathlon",
-      features: `- Waterproof and dustproof\n- Raised concrete base for added comfort and safety`,
-      price: "1500",
-      amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
-    });
+        price: Number(form.price),
+        amenities: form.amenities.split(',').map(a => a.trim()).filter(Boolean),
+      };
+
+      const response = await fetch(`${apiBase}/api/tent-types/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tentData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save tent type');
+      }
+
+      const result = await response.json();
+      const savedTent = result.tentType;
+
+      // Add to local preview list
+      setAdded((s) => [
+        ...s,
+        {
+          _id: savedTent._id,
+          tentType: savedTent.tentType,
+          dimensions: savedTent.dimensions,
+          brand: savedTent.brand,
+          features: savedTent.features,
+          pricePerDay: `${savedTent.pricePerDay}/day`,
+          amenities: Array.isArray(savedTent.amenities) 
+            ? savedTent.amenities.join(', ') 
+            : savedTent.amenities,
+        },
+      ]);
+
+      setSuccess('Tent type added successfully!');
+
+      // Reset form to defaults after add
+      setForm({
+        tentType: "2 person tent",
+        dimensions: "approx. 205 cm × 145 cm, height 110 cm",
+        brand: "Decathlon",
+        features: `- Waterproof and dustproof\n- Raised concrete base for added comfort and safety`,
+        price: "1500",
+        amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to add tent type');
+      console.error('Error adding tent type:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
@@ -65,6 +115,18 @@ const AddTentTypes = () => {
           <p className="text-slate-600">
             Select location, tent type, and set price
           </p>
+
+          {/* Success/Error Messages */}
+          {success && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800">
+              {success}
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">
+              {error}
+            </div>
+          )}
         </div>
 
         {/* Form */}
@@ -138,14 +200,16 @@ const AddTentTypes = () => {
             <Button
               type="button"
               onClick={handleAdd}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg"
+              disabled={isSaving}
+              className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add Tent Type
+              {isSaving ? 'Saving...' : 'Add Tent Type'}
             </Button>
             <Button
               type="button"
               onClick={handleReset}
-              className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg transition-colors"
+              disabled={isSaving}
+              className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Reset
             </Button>

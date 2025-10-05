@@ -47,6 +47,8 @@ export default function AllTentSpotsTable() {
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<TentSpot | null>(null);
   const [tentSpots, setTentSpots] = useState<TentSpot[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Editable fields
   const [editSpotName, setEditSpotName] = useState("");
@@ -62,47 +64,47 @@ export default function AllTentSpotsTable() {
   const [editCheckIn, setEditCheckIn] = useState("");
   const [editCheckOut, setEditCheckOut] = useState("");
 
-  // Dummy initial data
+  // Fetch tent spots from backend
   useEffect(() => {
-    setTentSpots([
-      {
-        id: "1",
-        sno: 1,
-        spotName: "Vanavihari",
-        location: "Maredumilli",
-        contactPerson: "Mrs. Anusha",
-        contactNo: "9876543210",
-        email: "anusha@example.com",
-        rules:
-          "Smoking & consumption of alcohol is strictly prohibited.\nPlease carry valid identity proof.\nTent damage will be fined.\n* No extra persons allowed.",
-        accommodation: "Only men can",
-        foodAvailable: "No",
-        kidsStay: "No",
-        womenStay: "No",
-        checkIn: "10:00 AM",
-        checkOut: "9:00 AM",
-        isActive: true,
-      },
-      {
-        id: "2",
-        sno: 2,
-        spotName: "Karthikavanam",
-        location:
-          "Doolapally Rd, Maisamma Gudem, Dulapally, Hyderabad, Telangana 500014",
-        contactPerson: "Mrs. Anusha",
-        contactNo: "9876543211",
-        email: "anusha.k@example.com",
-        rules:
-          "Smoking & consumption of alcohol is strictly prohibited.\nPlease carry valid identity proof.\nTent damage will be fined.\n* No extra persons allowed.",
-        accommodation: "Both men and women",
-        foodAvailable: "No",
-        kidsStay: "No",
-        womenStay: "Yes",
-        checkIn: "10:00 AM",
-        checkOut: "9:00 AM",
-        isActive: false,
-      },
-    ]);
+    const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+    const fetchTentSpots = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const res = await fetch(`${apiBase}/api/tent-spots`);
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `Failed to fetch tent spots (status ${res.status})`);
+        }
+        const data = await res.json();
+        const list = Array.isArray(data.tentSpots) ? data.tentSpots : [];
+        const mapped = list.map((t: any, idx: number) => ({
+          id: t._id,
+          sno: idx + 1,
+          spotName: t.spotName || '',
+          location: t.location || '',
+          contactPerson: t.contactPerson || '',
+          contactNo: t.contactNo || '',
+          email: t.email || '',
+          rules: t.rules || '',
+          accommodation: t.accommodation || '',
+          foodAvailable: t.foodAvailable || '',
+          kidsStay: t.kidsStay || '',
+          womenStay: t.womenStay || '',
+          checkIn: t.checkIn || '',
+          checkOut: t.checkOut || '',
+          isActive: !t.isDisabled,
+        }));
+        setTentSpots(mapped);
+      } catch (err: any) {
+        console.error('Failed to load tent spots', err);
+        setLoadError(err.message || 'Failed to load tent spots');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTentSpots();
   }, []);
 
   const handleEdit = (spot: TentSpot) => {
@@ -226,6 +228,12 @@ export default function AllTentSpotsTable() {
       </h2>
 
       <div ref={tableRef} className="flex-1 overflow-hidden">
+        {isLoading && (
+          <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-800 mb-3">Loading tent spots...</div>
+        )}
+        {loadError && (
+          <div className="p-3 bg-red-50 border border-red-100 rounded-md text-red-800 mb-3">{loadError}</div>
+        )}
         <DataTable
           data={tentSpots}
           columns={columns}

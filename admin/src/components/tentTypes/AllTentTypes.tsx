@@ -41,6 +41,8 @@ export default function AllTentTypesTable() {
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [selectedTent, setSelectedTent] = useState<TentType | null>(null);
   const [tentTypes, setTentTypes] = useState<TentType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [editTentType, setEditTentType] = useState("");
   const [editDimensions, setEditDimensions] = useState("");
   const [editBrand, setEditBrand] = useState("");
@@ -48,32 +50,43 @@ export default function AllTentTypesTable() {
   const [editPrice, setEditPrice] = useState("");
   const [editAmenities, setEditAmenities] = useState("");
 
-  // Dummy initial data
+  // Fetch tent types from backend
   useEffect(() => {
-    setTentTypes([
-      {
-        id: "1",
-        sno: 1,
-        tentType: "2 Person Tent",
-        dimensions: "approx. 205 cm × 145 cm, height 110 cm",
-        brand: "Decathlon",
-        features: "Waterproof and dustproof\nRaised concrete base for added comfort and safety",
-        price: 1500,
-        amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
-        isActive: true,
-      },
-      {
-        id: "2",
-        sno: 2,
-        tentType: "4 Person Tent",
-        dimensions: "approx. 210 cm × 240 cm, height 190 cm (with vestibule area)",
-        brand: "Decathlon",
-        features: "Waterproof and dustproof\nRaised concrete base for added comfort and safety",
-        price: 3000,
-        amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
-        isActive: false,
-      },
-    ]);
+    const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+    const fetchTentTypes = async () => {
+      setIsLoading(true);
+      setLoadError(null);
+      try {
+        const res = await fetch(`${apiBase}/api/tent-types`);
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `Failed to fetch tent types (status ${res.status})`);
+        }
+        const data = await res.json();
+        // Expected shape: { tentTypes: [ ... ] }
+        const list = Array.isArray(data.tentTypes) ? data.tentTypes : [];
+        // Map server objects to UI TentType shape
+        const mapped = list.map((t: any, idx: number) => ({
+          id: t._id,
+          sno: idx + 1,
+          tentType: t.tentType || '',
+          dimensions: t.dimensions || '',
+          brand: t.brand || '',
+          features: t.features || '',
+          price: t.pricePerDay || t.price || 0,
+          amenities: Array.isArray(t.amenities) ? t.amenities.join(', ') : (t.amenities || ''),
+          isActive: !t.isDisabled,
+        }));
+        setTentTypes(mapped);
+      } catch (err: any) {
+        console.error('Failed to load tent types', err);
+        setLoadError(err.message || 'Failed to load tent types');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTentTypes();
   }, []);
 
   const handleEdit = (tent: TentType) => {
@@ -188,6 +201,12 @@ export default function AllTentTypesTable() {
       </h2>
 
       <div ref={tableRef} className="flex-1 overflow-hidden">
+        {isLoading && (
+          <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-blue-800 mb-3">Loading tent types...</div>
+        )}
+        {loadError && (
+          <div className="p-3 bg-red-50 border border-red-100 rounded-md text-red-800 mb-3">{loadError}</div>
+        )}
           <DataTable
           data={tentTypes}
           columns={columns}
