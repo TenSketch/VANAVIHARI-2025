@@ -4,10 +4,90 @@
 }
 
 .page-banner {
-  background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%);
   color: white;
-  padding: 3rem 0;
+  padding: 0; /* slideshow will control padding */
   margin-bottom: 0;
+}
+
+/* Hero slideshow styles */
+.hero-slideshow {
+  position: relative;
+  width: 100%;
+  /* Cover full viewport height but account for the header/top padding set on .main (80px) */
+  height: calc(100vh - 30px);
+  min-height: 360px; /* sensible minimum for small viewports */
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.hero-slideshow .slides {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.slide-img.active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 3rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.hero-overlay h1 {
+  margin: 0;
+  color: #fff;
+  text-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+.hero-dots {
+  position: absolute;
+  z-index: 3;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.dot.active,
+.dot:focus,
+.dot:hover {
+  background: #fff;
+  transform: scale(1.15);
 }
 
 .tourist-spots-list {
@@ -253,14 +333,31 @@
 
 // Responsive adjustments
 @media (max-width: 991.98px) {
-  .booking-summary-card,
+  /* Keep filters static on small screens but keep booking summary sticky
+     so users can always see their booking as they scroll. */
   .filters-card {
     position: static !important;
-    margin-top: 2rem;
+    margin-top: 1rem;
   }
 
-  .filters-card {
-    margin-top: 1rem;
+  .booking-summary-card {
+    /* On small screens, make the booking summary fixed under the navbar
+       so it remains visible while the user scrolls the list. */
+    position: fixed !important;
+    top: 80px !important; /* adjust to match your navbar height */
+    right: 1rem !important;
+    left: 1rem !important;
+    margin: 0 !important;
+    z-index: 1050; /* sit above main content */
+    max-height: calc(100vh - 96px); /* leave space for navbar + small gap */
+    overflow: auto; /* allow internal scrolling of the summary card */
+  }
+
+  /* Slightly smaller top offset on very small devices */
+  @media (max-width: 575.98px) {
+    .booking-summary-card {
+      top: 70px !important;
+    }
   }
 }
 

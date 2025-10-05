@@ -25,6 +25,7 @@ export interface TouristBookingSelection {
   styleUrls: ['./tourist-spot-selection.component.scss'],
 })
 export class TouristSpotSelectionComponent {
+  @Input() category?: string;
   @Input() name = '';
   @Input() location = '';
   @Input() type?: string;
@@ -34,7 +35,7 @@ export class TouristSpotSelectionComponent {
   @Input() entryFee?: string | number;
   @Input() parkingFee?: string | number;
   @Input() cameraFee?: string | number;
-  @Input() fees?: { entryPerPerson?: number; parkingPerVehicle?: number; cameraPerCamera?: number };
+  @Input() fees?: { entryPerPerson?: number; parkingPerVehicle?: number; cameraPerCamera?: number; parkingTwoWheeler?: number; parkingFourWheeler?: number };
 
   // Add-ons
   @Input() addOns: TouristAddOn[] = [];
@@ -67,11 +68,19 @@ export class TouristSpotSelectionComponent {
   get unitParking(): number | undefined {
     return this.fees?.parkingPerVehicle ?? this.toNumber(this.parkingFee);
   }
+  get parkingTwoWheeler(): number | undefined {
+    return this.fees?.parkingTwoWheeler;
+  }
+  get parkingFourWheeler(): number | undefined {
+    return this.fees?.parkingFourWheeler;
+  }
   get unitCamera(): number | undefined {
     return this.fees?.cameraPerCamera ?? this.toNumber(this.cameraFee);
   }
 
-  get peopleCount(): number { return (this.adults || 0) + (this.children || 0); }
+  // Note: children input is hidden in the UI; keep children property for compatibility but
+  // count only adults as 'people' for booking and estimation.
+  get peopleCount(): number { return (this.adults || 0); }
   get addOnsTotal(): number {
     let total = 0;
     this.addOns.forEach(a => {

@@ -24,8 +24,9 @@
                     <div class="col-md-6">
                       <h6 class="text-muted">Visitor Details</h6>
                       <ul class="list-unstyled">
-                        <li><strong>Adults:</strong> {{ spot.counts.adults }}</li>
-                        <li><strong>Children:</strong> {{ spot.counts.children }}</li>
+                        <li><strong>Guests:</strong> {{ spot.counts.adults }}</li>
+                        <!-- Children display hidden since children selection is disabled -->
+                        <!-- <li><strong>Children:</strong> {{ spot.counts.children }}</li> -->
                         <li><strong>Vehicles:</strong> {{ spot.counts.vehicles }}</li>
                         <li><strong>Cameras:</strong> {{ spot.counts.cameras }}</li>
                       </ul>

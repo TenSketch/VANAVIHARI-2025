@@ -395,3 +395,23 @@ gallery-thumbs {
 
   }
 }
+
+/* Sidebar accordion arrow fix: ensure collapsed = right, expanded = down
+   Scoped to the sidebar to avoid affecting other accordions */
+#sidebar .accordion-button::after,
+.sidebar-content .accordion-button::after {
+  transition: transform 0.18s ease;
+  transform-origin: center;
+}
+
+/* When the button has the `collapsed` class (Bootstrap's collapsed state) show the arrow pointing right */
+#sidebar .accordion-button.collapsed::after,
+.sidebar-content .accordion-button.collapsed::after {
+  transform: rotate(90deg) !important;
+}
+
+/* When the button is expanded (no `.collapsed` class) show the arrow pointing down */
+#sidebar .accordion-button:not(.collapsed)::after,
+.sidebar-content .accordion-button:not(.collapsed)::after {
+  transform: rotate(180deg) !important;
+}

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { TouristBookingSelection } from '../../shared/tourist-spot-selection/tourist-spot-selection.component';
 import { TOURIST_SPOT_CATEGORIES, TouristSpotCategory, TouristSpotConfig } from './tourist-spots.data';
@@ -78,6 +78,12 @@ export class TouristSpotsBookingComponent {
 
   private storageKey = 'touristSpots_currentBooking';
 
+  // Hero slideshow state
+  heroImages: string[] = [];
+  activeSlide: number = 0;
+  private slideIntervalMs: number = 3000; // 3s per slide (user requested)
+  private slideTimer: any = null;
+
   constructor(private router: Router) {
     // Build lookup map
     this.categories.forEach(cat => cat.spots.forEach(s => this.spotMap[s.id] = s));
@@ -90,8 +96,70 @@ export class TouristSpotsBookingComponent {
         this.bookedSpots = [];
       }
     }
-    // Initialize filtered categories
+    // Initialize filtered  
     this.applyFilters();
+
+    // Initialize hero images from first images found in categories (fallback safe list)
+    this.initHeroImages();
+    this.startAutoplay();
+  }
+
+  ngAfterViewInit(): void {
+    // ensure autoplay started after view init
+    this.startAutoplay();
+  }
+
+  ngOnDestroy(): void {
+    this.stopAutoplay();
+  }
+
+  private initHeroImages() {
+    const imgs: string[] = [];
+    // try to collect one representative image from each category
+    this.categories.forEach(cat => {
+      cat.spots.forEach(s => {
+        if (s.images && s.images.length) {
+          imgs.push(s.images[0]);
+        }
+      });
+    });
+
+    // Deduplicate and keep up to 6 images to avoid heavy loads
+    this.heroImages = Array.from(new Set(imgs)).slice(0, 6);
+
+    // Fallback images if none found
+    if (this.heroImages.length === 0) {
+      this.heroImages = [
+        'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg',
+        'assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls.jpg',
+        'assets/img/TOURIST-PLACES/MPCA.jpg'
+      ];
+    }
+  }
+
+  goToSlide(index: number) {
+    this.activeSlide = index % this.heroImages.length;
+    // reset timer so user interaction delays the next autoplay
+    this.restartAutoplay();
+  }
+
+  private startAutoplay() {
+    if (this.slideTimer) return;
+    this.slideTimer = setInterval(() => {
+      this.activeSlide = (this.activeSlide + 1) % this.heroImages.length;
+    }, this.slideIntervalMs);
+  }
+
+  private stopAutoplay() {
+    if (this.slideTimer) {
+      clearInterval(this.slideTimer);
+      this.slideTimer = null;
+    }
+  }
+
+  private restartAutoplay() {
+    this.stopAutoplay();
+    this.startAutoplay();
   }
 
   private persist() {

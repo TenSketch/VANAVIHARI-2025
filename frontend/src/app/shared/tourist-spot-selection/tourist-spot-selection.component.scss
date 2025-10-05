@@ -24,28 +24,66 @@
 }
 .gallery img {
   height: 140px;
-  width: auto;
+  width: 220px; /* fixed thumbnail width */
   border-radius: 8px;
-  object-fit: cover;
+  object-fit: cover; /* zoom to fill the thumbnail canvas */
 }
 
-.quick-info {
+/* Two-column layout wrapper */
+.info-and-booking {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* Left side: Quick info cards (vertically stacked) */
+.quick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+/* Hide stray checkbox inputs that may be injected or styled into fee cards
+   We keep checkboxes in the .addons section visible. */
+.quick-info input[type="checkbox"] {
+  display: none !important;
 }
 .quick-info .card {
   background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
   border: 1px solid #e3e6ea;
-  border-radius: 10px; /* reduced radius for compact look */
-  padding: 0.8rem 0.6rem; /* reduced padding to make card smaller */
+  border-radius: 10px;
+  padding: 0.5rem 0.45rem; /* reduced padding */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.18s ease;
   position: relative;
   overflow: hidden;
-  min-height: 64px;
+  min-height: 48px; /* reduced height */
 }
+
+.quick-info .card.parking-split {
+  display: flex;
+  flex-direction: row; /* force left / right columns */
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem;
+}
+.quick-info .parking-col {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.quick-info .parking-col .icon i { font-size: 1.8rem; }
+.quick-info .parking-col .label { font-size: 0.8rem; text-transform: uppercase; }
+.quick-info .parking-col .value { font-size: 1.05rem; }
 .quick-info .card::before {
   content: '';
   position: absolute;
@@ -61,33 +99,46 @@
   border-color: #198754;
 }
 .quick-info .icon { 
-  font-size: 2.5rem; /* increase icon size slightly more */
-  margin-bottom: 0.35rem;
+  font-size: 1.6rem; /* smaller icons */
+  margin-bottom: 0.2rem;
   display: block;
   line-height: 1;
 }
+.quick-info .icon i {
+  font-size: 1.6rem; /* smaller FA icons */
+  color: #0b5a2b;
+  vertical-align: middle;
+}
 .quick-info .label { 
   color: #495057; 
-  font-size: 1.0rem; /* increased for readability */
+  font-size: 0.82rem; /* smaller label */
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
-  margin-bottom: 0.15rem;
+  letter-spacing: 0.4px;
+  margin-bottom: 0.08rem;
+  text-align: center;
 }
 .quick-info .value { 
   font-weight: 700; 
-  font-size: 1.25rem; /* larger value text */
-  color: #0b5a2b; /* dark green for emphasis */
-  line-height: 1.2;
+  font-size: 1.0rem; /* reduced value size */
+  color: #0b5a2b;
+  line-height: 1.1;
+  text-align: center;
 }
 .quick-info .unit { 
   color: #6c757d; 
   font-weight: 400; 
-  font-size: 0.85rem; /* slightly larger unit text */
+  font-size: 0.75rem; /* smaller unit */
   display: block;
-  margin-top: 0.15rem;
+  margin-top: 0.08rem;
 }
 
+/* Right side: Booking inputs (vertically stacked) */
+.booking-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .booking-inputs .row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -120,9 +171,12 @@
 .btn.details { background: #f8f9fa; color: #0d6efd; border: 1px solid #e9ecef; }
 
 @media (max-width: 768px) {
-  .quick-info { 
-    grid-template-columns: repeat(2, minmax(0, 1fr)); 
-    gap: 0.75rem;
+  .info-and-booking {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .quick-info .card.parking-split {
+    flex-direction: column; /* stack on narrow screens for readability */
   }
   .quick-info .card {
     padding: 0.7rem 0.5rem;
@@ -130,5 +184,13 @@
   .quick-info .icon {
     font-size: 2.25rem;
   }
-  .gallery img { height: 120px; }
+  .gallery img { height: 120px; width: 180px; }
+}
+
+/* Make photos in the photos grid uniform and zoom-to-fill their boxes */
+.row img.rounded {
+  width: 100%;
+  height: 160px;
+  object-fit: cover; /* crop/zoom to fill */
+  border-radius: 8px;
 }

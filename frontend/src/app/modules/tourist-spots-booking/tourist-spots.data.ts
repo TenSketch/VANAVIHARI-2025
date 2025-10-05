@@ -7,7 +7,7 @@ export interface TouristSpotConfig {
   category: 'Waterfall' | 'Picnic' | 'Eco' | 'Trek' | 'ViewPoint';
   typeLabel: string; // user-friendly label
   images: string[];
-  fees: { entryPerPerson: number; parkingPerVehicle: number; cameraPerCamera: number };
+  fees: { entryPerPerson: number; parkingPerVehicle: number; cameraPerCamera: number; parkingTwoWheeler?: number; parkingFourWheeler?: number };
   addOns: TouristAddOn[];
   timing: 'morning-evening' | 'morning-afternoon' | 'morning-and-evening';
   detailsFragment?: string;
@@ -40,7 +40,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-01.jpg',
           'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-02.jpg'
         ],
-        fees: { entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 100 },
+  fees: { entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 100, parkingTwoWheeler: 20, parkingFourWheeler: 50 },
         timing: 'morning-evening',
         addOns: [
           { id: 'guide-jalatarangini', label: 'Guide', price: 500 },
@@ -59,7 +59,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls-01.jpg',
           'assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls-02.jpg'
         ],
-        fees: { entryPerPerson: 50, parkingPerVehicle: 15, cameraPerCamera: 50 },
+  fees: { entryPerPerson: 50, parkingPerVehicle: 15, cameraPerCamera: 50, parkingTwoWheeler: 20, parkingFourWheeler: 50 },
         timing: 'morning-afternoon',
         addOns: [
           { id: 'guide-amruthadhara', label: 'Guide', price: 400 },
@@ -84,7 +84,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/karthikavanam-picnic-spot.jpg',
           'assets/img/TOURIST-PLACES/karthikavanam-picnic-spot-01.jpg'
         ],
-        fees: { entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 0 },
+  fees: { entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 0, parkingTwoWheeler: 20, parkingFourWheeler: 50 },
         timing: 'morning-evening',
         addOns: [
           { id: 'tent-2p-karthikavanam', label: 'Two-man tent', price: 1500 },
@@ -102,7 +102,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/MPCA.jpg',
           'assets/img/TOURIST-PLACES/MPCA-01.jpg'
         ],
-        fees: { entryPerPerson: 20, parkingPerVehicle: 0, cameraPerCamera: 0 },
+  fees: { entryPerPerson: 20, parkingPerVehicle: 0, cameraPerCamera: 0, parkingTwoWheeler: 20, parkingFourWheeler: 50 },
         timing: 'morning-evening',
         addOns: [ ],
         detailsFragment: 'mpca'
@@ -125,7 +125,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/Jalatharangani-trek.jpg',
           'assets/img/TOURIST-PLACES/Jalatharangani-trek-01.jpg'
         ],
-        fees: { entryPerPerson: 800, parkingPerVehicle: 0, cameraPerCamera: 0 }, // pack fee baseline
+  fees: { entryPerPerson: 800, parkingPerVehicle: 0, cameraPerCamera: 0, parkingTwoWheeler: 20, parkingFourWheeler: 50 }, // pack fee baseline
         timing: 'morning-and-evening',
         addOns: [ ],
         detailsFragment: 'soft-trek',
@@ -143,7 +143,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/junglestar-trek-01.jpg',
           'assets/img/TOURIST-PLACES/junglestar-trek-02.jpg'
         ],
-        fees: { entryPerPerson: 1200, parkingPerVehicle: 0, cameraPerCamera: 0 },
+  fees: { entryPerPerson: 1200, parkingPerVehicle: 0, cameraPerCamera: 0, parkingTwoWheeler: 20, parkingFourWheeler: 50 },
         timing: 'morning-afternoon',
         addOns: [ ],
         detailsFragment: 'hard-trek',
@@ -168,7 +168,7 @@ export const TOURIST_SPOT_CATEGORIES: TouristSpotCategory[] = [
           'assets/img/TOURIST-PLACES/gudisa-hills-1.jpg',
           'assets/img/TOURIST-PLACES/gudisa-hills-2.jpg'
         ],
-        fees: { entryPerPerson: 100, parkingPerVehicle: 300, cameraPerCamera: 0 }, // simplified: person + vehicle fee
+  fees: { entryPerPerson: 100, parkingPerVehicle: 300, cameraPerCamera: 0, parkingTwoWheeler: 20, parkingFourWheeler: 50 }, // simplified: person + vehicle fee
         timing: 'morning-and-evening',
         addOns: [ ],
         detailsFragment: 'gudisa'

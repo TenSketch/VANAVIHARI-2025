@@ -1,7 +1,30 @@
 <app-layout>
   <div class="main">
     <section class="page-banner d-grid place-items-center">
-      <h1 class="display-4 text-center">Book Tourist Spots</h1>
+      <div class="hero-slideshow" aria-hidden="false">
+        <div class="slides">
+          <!-- Images referenced from assets/TOURIST-PLACES (can be adjusted in the component TS) -->
+          <img *ngFor="let img of heroImages; let i = index"
+               [src]="img"
+               [class.active]="i === activeSlide"
+               class="slide-img" alt="Tourist place image {{i + 1}}" />
+        </div>
+
+        <!-- Overlay title -->
+        <div class="hero-overlay">
+          <h1 class="display-4 text-center">Book Tourist Spots</h1>
+        </div>
+
+        <!-- Dots / manual navigation -->
+        <div class="hero-dots">
+          <button *ngFor="let img of heroImages; let i = index"
+                  class="dot"
+                  [class.active]="i === activeSlide"
+                  (click)="goToSlide(i)"
+                  [attr.aria-label]="'Show slide ' + (i + 1)">
+          </button>
+        </div>
+      </div>
     </section>
 
     <div class="container-fluid my-5">
@@ -87,11 +110,12 @@
               </div>
               <div *ngFor="let spot of category.spots" class="tourist-spot-card mb-4" [attr.id]="spot.id">
                 <div class="card shadow-sm">
-                  <div class="card-body">
+                <div class="card-body">
                     <app-tourist-spot-selection
                       [name]="spot.name"
                       [location]="spot.location"
                       [type]="spot.typeLabel"
+                      [category]="spot.category"
                       [images]="spot.images"
                       [fees]="spot.fees"
                       [addOns]="spot.addOns"

@@ -3,7 +3,9 @@
   <div class="top-nav bg-dark text-white py-1">
     <div class="container-fluid">
       <div class="row align-items-center">
-        <div class="col-auto">
+        <div class="col-12 col-md-6"> <!-- left side reserved (logo/branding if needed) -->
+        </div>
+        <div class="col-12 col-md-6 text-md-end"> <!-- right aligned contacts on md+ -->
           <a class="text-white text-decoration-none me-3" href="mailto:info@vanavihari.com">
             <i class="fa-regular fa-envelope me-1"></i><span class="d-none d-sm-inline">info@vanavihari.com</span>
           </a>
@@ -17,14 +19,15 @@
 
   <!-- Main Navigation -->
   <nav class="navbar navbar-light py-0 fixed-top bg-light">
-    <div class="container-fluid align-items-baseline">
+    <div class="container-fluid align-items-baseline px-3">
       <!-- Logo -->
       <a class="navbar-brand py-0" href="#">
         <img class="" src="assets/img/logo-vana.png" alt="logo-vana" />
       </a>
 
-      <!-- Centered Main Navigation (Desktop) -->
-      <ul class="navbar-nav d-none d-lg-flex flex-row justify-content-center mx-auto gap-3">
+      <!-- Main Navigation (Desktop) - Right Aligned -->
+      <div class="ms-auto d-none d-lg-flex align-items-center gap-3">
+      <ul class="navbar-nav d-none d-lg-flex flex-row gap-2 mb-0">
         <li class="nav-item">
           <a class="nav-link" routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-home me-2"></i>Home
@@ -57,7 +60,7 @@
       </ul>
 
       <!-- Right Side User Actions (Desktop) -->
-      <ul class="navbar-nav d-none d-lg-flex flex-row gap-2 align-items-center">
+      <ul class="navbar-nav d-none d-lg-flex flex-row align-items-center gap-2 mb-0">
         <li class="nav-item" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in</a>
@@ -85,9 +88,10 @@
           </div>
         </li>
       </ul>
+      </div>
 
-      <!-- Mobile Menu Toggle - Always on Right -->
-      <button class="navbar-toggler border-0 ms-auto" type="button" (click)="toggleSidebar()">
+      <!-- Menu Toggle (visible on all screen sizes) -->
+      <button class="navbar-toggler border-0" type="button" (click)="toggleSidebar()">
         <i class="fa-solid fa-bars fa-2xl" [ngClass]="{ 'd-none': isSidebarOpen }"></i>
         <i class="fa-solid fa-xmark fa-2xl" [ngClass]="{ 'd-none': !isSidebarOpen }"></i>
       </button>
@@ -102,8 +106,8 @@
   <div class="accordion mb-3" id="accordionExample">
           <div class="accordion-item pb-2">
             <h2 class="accordion-header" id="headingOne">
-              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
-                aria-expanded="true" aria-controls="collapseOne">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
+          aria-expanded="false" aria-controls="collapseOne">
                 <i class="fa-solid fa-campground me-2"></i> Book Tents
               </button>
             </h2>

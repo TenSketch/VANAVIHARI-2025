@@ -12,36 +12,50 @@
     </div>
   </div>
 
-  <!-- Quick info cards -->
-  <div class="quick-info">
-    <div class="card" *ngIf="unitEntry !== undefined">
-      <div class="icon">🎟️</div>
-      <div class="label">Entry</div>
-      <div class="value">₹{{ unitEntry }} <span class="unit">/ person</span></div>
+  <!-- Two-column layout: Fee info on left, Booking inputs on right -->
+  <div class="info-and-booking">
+    <!-- Left side: Quick info cards (vertically stacked) -->
+    <div class="quick-info">
+      <div *ngIf="(parkingTwoWheeler !== undefined) && (parkingFourWheeler !== undefined)" class="card parking-split">
+        <div class="parking-col">
+          <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
+          <div class="label">2-wheeler</div>
+          <div class="value">₹{{ parkingTwoWheeler }} <span class="unit">/ bike</span></div>
+        </div>
+        <div class="parking-col">
+          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
+          <div class="label">4-wheeler</div>
+          <div class="value">₹{{ parkingFourWheeler }} <span class="unit">/ car</span></div>
+        </div>
+      </div>
+      <div class="card" *ngIf="(parkingTwoWheeler === undefined || parkingFourWheeler === undefined) && unitParking !== undefined">
+        <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
+        <div class="label">Parking</div>
+        <div class="value">₹{{ unitParking }} <span class="unit">/ vehicle</span></div>
+      </div>
+      <div class="card" *ngIf="unitEntry !== undefined">
+        <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
+        <div class="label">Entry</div>
+        <div class="value">₹{{ unitEntry }} <span class="unit">/ person</span></div>
+      </div>
+      <div class="card" *ngIf="unitCamera !== undefined">
+        <div class="icon"><i class="fa-solid fa-camera"></i></div>
+        <div class="label">Camera</div>
+        <div class="value">₹{{ unitCamera }} <span class="unit">/ camera</span></div>
+      </div>
     </div>
-    <div class="card" *ngIf="unitParking !== undefined">
-      <div class="icon">🅿️</div>
-      <div class="label">Parking</div>
-      <div class="value">₹{{ unitParking }} <span class="unit">/ vehicle</span></div>
-    </div>
-    <div class="card" *ngIf="unitCamera !== undefined">
-      <div class="icon">📸</div>
-      <div class="label">Camera</div>
-      <div class="value">₹{{ unitCamera }} <span class="unit">/ camera</span></div>
-    </div>
-  </div>
 
-  <!-- Booking inputs -->
-  <div class="booking-inputs">
-    <div class="row">
+    <!-- Right side: Booking inputs (vertically stacked) -->
+    <div class="booking-inputs">
       <div class="stepper">
-        <div class="lbl">Adults</div>
+        <div class="lbl">Guests</div>
         <div class="ctrl">
           <button type="button" (click)="dec('adults')">−</button>
           <span>{{ adults }}</span>
           <button type="button" (click)="inc('adults')">＋</button>
         </div>
       </div>
+      <!-- Children stepper commented out per request to hide children in tourist booking
       <div class="stepper">
         <div class="lbl">Children</div>
         <div class="ctrl">
@@ -50,8 +64,7 @@
           <button type="button" (click)="inc('children')">＋</button>
         </div>
       </div>
-    </div>
-    <div class="row">
+      -->
       <div class="stepper">
         <div class="lbl">Vehicles</div>
         <div class="ctrl">
@@ -69,16 +82,9 @@
         </div>
       </div>
     </div>
-
-    <div class="addons" *ngIf="addOns?.length">
-      <div class="addon" *ngFor="let a of addOns">
-        <label>
-          <input type="checkbox" (change)="toggleAddOn(a.id, $event.target.checked)" />
-          {{ a.label }} <span class="muted" *ngIf="a.price">(₹{{ a.price }})</span>
-        </label>
-      </div>
-    </div>
   </div>
+
+  <!-- Add-ons removed: optional services are not displayed in the booking cards -->
 
   <!-- Actions -->
   <div class="actions">
