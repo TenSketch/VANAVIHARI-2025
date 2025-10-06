@@ -58,7 +58,8 @@
                   <div class="col-md-8">
                     <h6 class="text-primary mb-2">{{ spot.name }}, {{ spot.location }}</h6>
                     <div class="visitor-details">
-                      <span class="badge bg-light text-dark me-2">{{ spot.counts.adults + spot.counts.children }} People</span>
+                      <!-- Show Guests (adults) — children input is hidden at selection time -->
+                      <span class="badge bg-light text-dark me-2">{{ spot.counts.adults }} Guests</span>
                       <span class="badge bg-light text-dark me-2" *ngIf="spot.counts.vehicles > 0">{{ spot.counts.vehicles }} Vehicles</span>
                       <span class="badge bg-light text-dark me-2" *ngIf="spot.counts.cameras > 0">{{ spot.counts.cameras }} Cameras</span>
                     </div>

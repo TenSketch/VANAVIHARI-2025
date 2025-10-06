@@ -81,7 +81,7 @@
               </div>
             </div>
             <hr class="my-1" />
-            <button class="btn btn-primary w-100 mt-3" [disabled]="!showBookingSummary">Proceed</button>
+            <button mat-raised-button color="primary" class="w-100 mt-3" [disabled]="!showBookingSummary">Proceed</button>
           </ng-template>
 
           <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3">
@@ -142,14 +142,11 @@
                   </div>
                   <div class="col-md-5 row d-md-block gap-2 text-md-end mt-2 mt-md-0 pe-md-0">
                         <div class="col-auto">
-                          <h6 class="p-0 m-0"><strong>{{ tent.capacity }} person</strong></h6>
-                        </div>
-                        <div class="col-auto">
                           <h6 class="p-0 m-0 text-success"><strong>₹{{ tent.price }} / day</strong></h6>
                         </div>
                   </div>
                   <div class="col my-2 pe-0">
-                        <button class="btn btn-primary float-end float-md-start" (click)="addTentToBooking(tent)">Add tent</button>
+                        <button mat-raised-button color="primary" class="float-end float-md-start" (click)="addTentToBooking(tent)">Add tent</button>
                   </div>
                 </div>
               </div>

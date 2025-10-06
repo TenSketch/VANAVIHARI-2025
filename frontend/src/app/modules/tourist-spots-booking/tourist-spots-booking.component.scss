@@ -4,10 +4,90 @@
 }
 
 .page-banner {
-  background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%);
   color: white;
-  padding: 3rem 0;
+  padding: 0; /* slideshow will control padding */
   margin-bottom: 0;
+}
+
+/* Hero slideshow styles */
+.hero-slideshow {
+  position: relative;
+  width: 100%;
+  /* Cover full viewport height but account for the header/top padding set on .main (80px) */
+  height: calc(100vh - 30px);
+  min-height: 360px; /* sensible minimum for small viewports */
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.hero-slideshow .slides {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.slide-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.slide-img.active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.hero-overlay {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 3rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.hero-overlay h1 {
+  margin: 0;
+  color: #fff;
+  text-shadow: 0 6px 18px rgba(0,0,0,0.45);
+}
+
+.hero-dots {
+  position: absolute;
+  z-index: 3;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.dot.active,
+.dot:focus,
+.dot:hover {
+  background: #fff;
+  transform: scale(1.15);
 }
 
 .tourist-spots-list {
@@ -32,14 +112,43 @@
     background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%) !important;
     border: none;
     padding: 1.25rem;
+    user-select: none;
+    transition: background 0.2s ease;
+    
+    &:hover {
+      background: linear-gradient(135deg, #1a4480 0%, #2c5aa0 100%) !important;
+    }
     
     h5 {
       font-weight: 600;
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 1.2rem;
+
+      &.rotated {
+        transform: rotate(-180deg);
+      }
     }
   }
   
   .card-body {
     padding: 1.5rem;
+  }
+
+  .accordion-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+
+    &.collapsed {
+      max-height: 0;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
+    }
   }
 }
 
@@ -55,7 +164,7 @@
   }
   
   h6 {
-    color: #2c5aa0;
+    color: #0b5a2b; /* change to full dark green */
     font-weight: 600;
   }
   
@@ -113,11 +222,142 @@
   }
 }
 
+// Filters Card Styling
+.filters-card {
+  .card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+  
+  .card-header {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    border: none;
+    padding: 1.25rem;
+    user-select: none;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%) !important;
+    }
+    
+    h5 {
+      font-weight: 600;
+    }
+
+    .btn-light {
+      font-size: 0.85rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-1px);
+      }
+    }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+      font-size: 1.2rem;
+
+      &.rotated {
+        transform: rotate(-180deg);
+      }
+    }
+  }
+  
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  .accordion-content {
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+
+    &.collapsed {
+      max-height: 0;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      opacity: 0;
+    }
+  }
+}
+
+.filter-group {
+  .filter-title {
+    color: #2c5aa0;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-check {
+    margin-bottom: 0.75rem;
+    padding-left: 1.75rem;
+
+    .form-check-input {
+      width: 1.25rem;
+      height: 1.25rem;
+      margin-top: 0.125rem;
+      border: 2px solid #dee2e6;
+      transition: all 0.2s ease;
+
+      &:checked {
+        background-color: #2c5aa0;
+        border-color: #2c5aa0;
+      }
+
+      &:focus {
+        border-color: #2c5aa0;
+        box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25);
+      }
+    }
+
+    .form-check-label {
+      font-size: 0.95rem;
+      color: #495057;
+      cursor: pointer;
+      user-select: none;
+      margin-left: 0.5rem;
+
+      &:hover {
+        color: #2c5aa0;
+      }
+    }
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 991.98px) {
-  .booking-summary-card {
+  /* Keep filters static on small screens but keep booking summary sticky
+     so users can always see their booking as they scroll. */
+  .filters-card {
     position: static !important;
-    margin-top: 2rem;
+    margin-top: 1rem;
+  }
+
+  .booking-summary-card {
+    /* On small screens, make the booking summary fixed under the navbar
+       so it remains visible while the user scrolls the list. */
+    position: fixed !important;
+    top: 80px !important; /* adjust to match your navbar height */
+    right: 1rem !important;
+    left: 1rem !important;
+    margin: 0 !important;
+    z-index: 1050; /* sit above main content */
+    max-height: calc(100vh - 96px); /* leave space for navbar + small gap */
+    overflow: auto; /* allow internal scrolling of the summary card */
+  }
+
+  /* Slightly smaller top offset on very small devices */
+  @media (max-width: 575.98px) {
+    .booking-summary-card {
+      top: 70px !important;
+    }
   }
 }
 
@@ -134,5 +374,25 @@
   to {
     transform: translate(-50%, 0);
     opacity: 1;
+  }
+}
+
+/* Category header / section title styling in the booking list */
+.tourist-spots-list {
+  h2.h4 {
+    color: #0b5a2b; /* full dark green for category titles */
+    font-weight: 700;
+    font-size: 1.25rem; /* slightly larger */
+  }
+}
+
+/* Slight adjustment for sticky offsets on large screens when filter column is narrower */
+@media (min-width: 992px) {
+  .filters-card.sticky-top {
+    top: 90px !important;
+  }
+
+  .booking-summary-card.sticky-top {
+    top: 100px !important;
   }
 }

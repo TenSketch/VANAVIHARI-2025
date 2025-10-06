@@ -8,6 +8,10 @@ import { TouristBookingSelection } from '../../shared/tourist-spot-selection/tou
   styleUrls: ['./tourist-places.component.scss'],
 })
 export class TouristPlacesComponent {
+  // Visibility flags to control display of waterfalls & picnic spot sections
+  showWaterfalls = false; // Jalatarangini & Amruthadhara
+  showPicnicSpots = false; // Karthikavanam & MPCA
+
   constructor(private renderer: Renderer2, private router: Router) {}
 
   ngOnInit() {

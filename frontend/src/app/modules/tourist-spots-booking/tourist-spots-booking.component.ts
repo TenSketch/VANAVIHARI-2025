@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { TouristBookingSelection } from '../../shared/tourist-spot-selection/tourist-spot-selection.component';
+import { TOURIST_SPOT_CATEGORIES, TouristSpotCategory, TouristSpotConfig } from './tourist-spots.data';
 
 export interface BookedTouristSpot {
   id: string;
@@ -29,6 +30,17 @@ export interface BookedTouristSpot {
   addOns: string[];
 }
 
+interface CategoryFilter {
+  label: string;
+  value: string;
+  selected: boolean;
+}
+
+interface TimeFilter {
+  label: string;
+  value: string;
+}
+
 @Component({
   selector: 'app-tourist-spots-booking',
   templateUrl: './tourist-spots-booking.component.html',
@@ -36,10 +48,45 @@ export interface BookedTouristSpot {
 })
 export class TouristSpotsBookingComponent {
   bookedSpots: BookedTouristSpot[] = [];
+  categories: TouristSpotCategory[] = TOURIST_SPOT_CATEGORIES;
+  filteredCategories: TouristSpotCategory[] = [];
+
+  // Accordion state
+  isBookingSummaryExpanded: boolean = true;
+  isFiltersExpanded: boolean = true;
+
+  // Filter options
+  categoryFilters: CategoryFilter[] = [
+    { label: 'Waterfalls', value: 'Waterfall', selected: false },
+    { label: 'Picnic Spots', value: 'Picnic', selected: false },
+    { label: 'Eco Attractions', value: 'Eco', selected: false },
+    { label: 'Trekking Trails', value: 'Trek', selected: false },
+    { label: 'View Points', value: 'ViewPoint', selected: false }
+  ];
+
+  timeFilters: TimeFilter[] = [
+    { label: 'All Time Durations', value: 'all' },
+    { label: 'Morning to Afternoon', value: 'morning-afternoon' },
+    { label: 'Morning to Evening', value: 'morning-evening' },
+    { label: 'Morning and Evening', value: 'morning-and-evening' }
+  ];
+
+  selectedTimeFilter: string = 'all';
+
+  // Flatten map for quick lookup usage (e.g., pricing)
+  private spotMap: { [id: string]: TouristSpotConfig } = {};
 
   private storageKey = 'touristSpots_currentBooking';
 
+  // Hero slideshow state
+  heroImages: string[] = [];
+  activeSlide: number = 0;
+  private slideIntervalMs: number = 3000; // 3s per slide (user requested)
+  private slideTimer: any = null;
+
   constructor(private router: Router) {
+    // Build lookup map
+    this.categories.forEach(cat => cat.spots.forEach(s => this.spotMap[s.id] = s));
     // Load persisted state if present
     const raw = localStorage.getItem(this.storageKey);
     if (raw) {
@@ -49,6 +96,70 @@ export class TouristSpotsBookingComponent {
         this.bookedSpots = [];
       }
     }
+    // Initialize filtered  
+    this.applyFilters();
+
+    // Initialize hero images from first images found in categories (fallback safe list)
+    this.initHeroImages();
+    this.startAutoplay();
+  }
+
+  ngAfterViewInit(): void {
+    // ensure autoplay started after view init
+    this.startAutoplay();
+  }
+
+  ngOnDestroy(): void {
+    this.stopAutoplay();
+  }
+
+  private initHeroImages() {
+    const imgs: string[] = [];
+    // try to collect one representative image from each category
+    this.categories.forEach(cat => {
+      cat.spots.forEach(s => {
+        if (s.images && s.images.length) {
+          imgs.push(s.images[0]);
+        }
+      });
+    });
+
+    // Deduplicate and keep up to 6 images to avoid heavy loads
+    this.heroImages = Array.from(new Set(imgs)).slice(0, 6);
+
+    // Fallback images if none found
+    if (this.heroImages.length === 0) {
+      this.heroImages = [
+        'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg',
+        'assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls.jpg',
+        'assets/img/TOURIST-PLACES/MPCA.jpg'
+      ];
+    }
+  }
+
+  goToSlide(index: number) {
+    this.activeSlide = index % this.heroImages.length;
+    // reset timer so user interaction delays the next autoplay
+    this.restartAutoplay();
+  }
+
+  private startAutoplay() {
+    if (this.slideTimer) return;
+    this.slideTimer = setInterval(() => {
+      this.activeSlide = (this.activeSlide + 1) % this.heroImages.length;
+    }, this.slideIntervalMs);
+  }
+
+  private stopAutoplay() {
+    if (this.slideTimer) {
+      clearInterval(this.slideTimer);
+      this.slideTimer = null;
+    }
+  }
+
+  private restartAutoplay() {
+    this.stopAutoplay();
+    this.startAutoplay();
   }
 
   private persist() {
@@ -122,28 +233,21 @@ export class TouristSpotsBookingComponent {
   }
 
   private getSpotPrices(spotId: string): { entry: number; parking: number; camera: number } {
-    const priceMap: { [key: string]: { entry: number; parking: number; camera: number } } = {
-      'jalatarangini': { entry: 50, parking: 20, camera: 100 },
-      'amruthadhara': { entry: 30, parking: 15, camera: 50 },
-      'rampa': { entry: 40, parking: 25, camera: 75 },
-      'maredumilli': { entry: 60, parking: 30, camera: 120 }
-    };
-    
-    return priceMap[spotId] || { entry: 0, parking: 0, camera: 0 };
+    const cfg = this.spotMap[spotId];
+    if (!cfg) return { entry: 0, parking: 0, camera: 0 };
+    const { entryPerPerson, parkingPerVehicle, cameraPerCamera } = cfg.fees;
+    return { entry: entryPerPerson, parking: parkingPerVehicle, camera: cameraPerCamera };
   }
 
   private calculateAddOnsTotal(selectedAddOnIds: string[], spotId: string): number {
-    const addOnsMap: { [key: string]: { [key: string]: number } } = {
-      'jalatarangini': { 'guide-jalatarangini': 500 },
-      'amruthadhara': { 'guide-amruthadhara': 400, 'refreshments-amruthadhara': 200 },
-      'rampa': { 'guide-rampa': 600, 'trek-rampa': 300 },
-      'maredumilli': { 'guide-maredumilli': 700, 'boating-maredumilli': 500 }
-    };
-
-    const spotAddOns = addOnsMap[spotId] || {};
-    return selectedAddOnIds.reduce((total, addOnId) => {
-      return total + (spotAddOns[addOnId] || 0);
-    }, 0);
+    const cfg = this.spotMap[spotId];
+    if (!cfg) return 0;
+    // Build price map from config addOns (numeric prices only)
+    const priceMap: { [key: string]: number } = {};
+    cfg.addOns.forEach(a => {
+      if (typeof a.price === 'number') priceMap[a.id] = a.price;
+    });
+    return selectedAddOnIds.reduce((sum, id) => sum + (priceMap[id] || 0), 0);
   }
 
   private showAddedToBookingFeedback(spotName: string) {
@@ -156,5 +260,76 @@ export class TouristSpotsBookingComponent {
     setTimeout(() => {
       feedback.remove();
     }, 2000);
+  }
+
+  // Filter methods
+  applyFilters() {
+    const selectedCategories = this.categoryFilters
+      .filter(f => f.selected)
+      .map(f => f.value);
+
+    // If no category is selected, show all categories
+    const shouldFilterByCategory = selectedCategories.length > 0;
+
+    this.filteredCategories = this.categories.map(category => {
+      // Filter spots based on category filter
+      let filteredSpots = category.spots;
+
+      if (shouldFilterByCategory) {
+        filteredSpots = filteredSpots.filter(spot => 
+          selectedCategories.includes(spot.category)
+        );
+      }
+
+      // Apply time filter (placeholder logic - adjust based on your data)
+      if (this.selectedTimeFilter !== 'all') {
+        filteredSpots = this.filterByTime(filteredSpots);
+      }
+
+      return {
+        ...category,
+        spots: filteredSpots
+      };
+    }).filter(category => category.spots.length > 0);
+  }
+
+  private filterByTime(spots: TouristSpotConfig[]): TouristSpotConfig[] {
+    // Filter spots based on selected time filter
+    if (this.selectedTimeFilter === 'all') {
+      return spots;
+    }
+
+    return spots.filter(spot => {
+      // Match the timing field with the selected filter
+      return spot.timing === this.selectedTimeFilter;
+    });
+  }
+
+  clearFilters() {
+    // Reset all category filters
+    this.categoryFilters.forEach(f => f.selected = false);
+    // Reset time filter
+    this.selectedTimeFilter = 'all';
+    // Reapply filters
+    this.applyFilters();
+  }
+
+  hasActiveFilters(): boolean {
+    const hasCategoryFilter = this.categoryFilters.some(f => f.selected);
+    const hasTimeFilter = this.selectedTimeFilter !== 'all';
+    return hasCategoryFilter || hasTimeFilter;
+  }
+
+  hasAnySpots(): boolean {
+    return this.filteredCategories.some(cat => cat.spots.length > 0);
+  }
+
+  // Accordion toggle methods
+  toggleBookingSummary() {
+    this.isBookingSummaryExpanded = !this.isBookingSummaryExpanded;
+  }
+
+  toggleFilters() {
+    this.isFiltersExpanded = !this.isFiltersExpanded;
   }
 }

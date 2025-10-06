@@ -3,10 +3,10 @@
     <section class="page-banner d-grid place-items-center">
       <h1 class="display-4 text-center">Nearby tourist attractions</h1>
     </section>
-    <div class="container my-5 border rounded shadow-sm bg-light" id="jalatarangini">
+  <div class="container my-5 border rounded shadow-sm bg-light" id="jalatarangini" *ngIf="showWaterfalls">
       <h2 class="mb-4 text-primary">🌊 JALATARANGINI WATERFALL</h2>
 
-      <!-- Left-side selection (70%) -->
+      Left-side selection (70%)
       <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap">
         <div style="flex:1 1 700px; min-width:320px; max-width:900px">
           <app-tourist-spot-selection
@@ -28,10 +28,10 @@
             (addToBooking)="onAddTouristBooking($event)">
           </app-tourist-spot-selection>
         </div>
-        <!-- Optional right-side can hold other widgets later -->
+        Optional right-side can hold other widgets later
       </div>
 
-      <!-- Location -->
+      Location
       <p><strong>📍Location:</strong></p>
       <div class="iframe-container">
         <iframe class="responsive-iframe"
@@ -39,9 +39,9 @@
           style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
 
-  <!-- Photos & Videos -->
+  Photos & Videos
       <div class="row my-4 gap-4">
-        <!-- <label class="form-label"><strong>🖼️ Photos:</strong></label> -->
+        <label class="form-label"><strong>🖼️ Photos:</strong></label>
         <div class="col-md-3">
           <img src="assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg" class="rounded"
             alt="Jalatharangini image" />
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <!-- Description -->
+      Description
       <div class="mb-4">
         <h5>📝 Description</h5>
         <p>
@@ -77,7 +77,7 @@
         </p>
       </div>
 
-      <!-- Info Table -->
+      Info Table
       <table class="table table-bordered table-striped">
         <tbody>
           <tr>
@@ -144,10 +144,10 @@
     </div>
 
 
-    <div class="container my-5 border rounded shadow-sm bg-light">
+  <div class="container my-5 border rounded shadow-sm bg-light" *ngIf="showWaterfalls">
       <h2 class="mb-4 text-primary">💧 AMRUTHADHARA WATERFALL</h2>
 
-      <!-- Location -->
+      Location
       <div class="iframe-container"><strong>📍 Location:</strong>
 
 
@@ -156,9 +156,9 @@
           style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
 
-      <!-- Photos -->
+      Photos
       <div class="row my-4 gap-4">
-        <!-- <label class="form-label"><strong>🖼️ Photos:</strong></label> -->
+        <label class="form-label"><strong>🖼️ Photos:</strong></label>
         <div class="col-md-3">
           <img src="assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls.jpg" class="rounded" alt="Jalatharangini image" />
         </div>
@@ -263,19 +263,19 @@
       </table>
     </div>
 
-    <div class="container my-5 border rounded shadow-sm bg-light">
+  <div class="container my-5 border rounded shadow-sm bg-light" *ngIf="showPicnicSpots">
       <h2 class="mb-4 text-success">🏞️ KARTHIKAVANAM PICNIC SPOT</h2>
 
-      <!-- Location -->
+      Location
       <div class="iframe-container"><strong>📍 Location:</strong>
         <iframe class="responsive-iframe"
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3895466.2121816296!2d73.58540031250001!3d17.547271000000013!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb8fe746215047%3A0x19635d7cad2a8ee1!2sKarthika%20Vanam!5e0!3m2!1sen!2sin!4v1754669557872!5m2!1sen!2sin"
           style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
 
-      <!-- Photos -->
+      Photos
       <div class="row my-4 gap-4">
-        <!-- <label class="form-label"><strong>🖼️ Photos:</strong></label> -->
+        <label class="form-label"><strong>🖼️ Photos:</strong></label>
         <div class="col-md-3">
           <img src="assets/img/TOURIST-PLACES/karthikavanam-picnic-spot.jpg" class="rounded"
             alt="Jalatharangini image" />
@@ -284,10 +284,10 @@
           <img src="assets/img/TOURIST-PLACES/karthikavanam-picnic-spot-01.jpg" class="rounded"
             alt="Jalatharangini image" />
         </div>
-        <!-- <div class="col-md-3">
+        <div class="col-md-3">
           <img src="assets/img/TOURIST-PLACES/karthikavanam-picnic-spot-02.jpg" class="rounded"
             alt="Jalatharangini image" />
-        </div> -->
+        </div>
 
 
       </div>
@@ -371,11 +371,11 @@
           </tr>
         </tbody>
       </table>
-    </div>
-    <div class="container my-5 border rounded shadow-sm bg-light">
+  </div>
+  <div class="container my-5 border rounded shadow-sm bg-light" *ngIf="showPicnicSpots">
       <h2 class="mb-4 text-success">🌿 MEDICINAL PLANTS CONSERVATION AREA (MPCA) PICNIC SPOT</h2>
 
-      <!-- Location -->
+      Location
       <div class="iframe-container"><strong>📍 Location:</strong>
         <iframe class="responsive-iframe"
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3802.343934074646!2d81.650173!3d17.626803!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a3724f2d6f3c2e1%3A0x8a7f8e7a6f423cfb!2sMedicinal%20Plants%20Conservation%20Area%20(MPCA)!5e0!3m2!1sen!2sin!4v1754652808056!5m2!1sen!2sin"
@@ -385,9 +385,9 @@
           referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
 
-      <!-- Photos -->
+      Photos
       <div class="row my-4 gap-4">
-        <!-- <label class="form-label"><strong>🖼️ Photos:</strong></label> -->
+        <label class="form-label"><strong>🖼️ Photos:</strong></label>
         <div class="col-md-3">
           <img src="assets/img/TOURIST-PLACES/MPCA.jpg" class="rounded" alt="Jalatharangini image" />
         </div>
@@ -396,7 +396,7 @@
         </div>
       </div>
 
-      <!-- Description -->
+      Description
       <div class="mb-4">
         <h5>📝 Description</h5>
         <p>

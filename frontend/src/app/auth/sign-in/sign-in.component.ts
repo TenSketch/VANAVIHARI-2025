@@ -97,6 +97,13 @@ export class SignInComponent implements OnInit {
               this.authService.setAccountUsername(response.result.user.email);
               this.authService.setAccountUserFullname(response.result.user.name);
               
+              // Check if profile is completed
+              if (response.result.profileCompleted === false) {
+                // Redirect to settings page if profile is incomplete
+                this.router.navigateByUrl('/my-account/settings');
+                return;
+              }
+              
               let rooms = localStorage.getItem('booking_rooms');
               if (rooms == '[]' || rooms == null) {
                 this.router.navigateByUrl('home');

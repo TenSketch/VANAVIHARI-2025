@@ -1,138 +1,159 @@
 <app-layout>
   <div class="main">
     <section class="page-banner d-grid place-items-center">
-      <h1 class="display-4 text-center">Book Tourist Spots</h1>
+      <div class="hero-slideshow" aria-hidden="false">
+        <div class="slides">
+          <!-- Images referenced from assets/TOURIST-PLACES (can be adjusted in the component TS) -->
+          <img *ngFor="let img of heroImages; let i = index"
+               [src]="img"
+               [class.active]="i === activeSlide"
+               class="slide-img" alt="Tourist place image {{i + 1}}" />
+        </div>
+
+        <!-- Overlay title -->
+        <div class="hero-overlay">
+          <h1 class="display-4 text-center">Book Tourist Spots</h1>
+        </div>
+
+        <!-- Dots / manual navigation -->
+        <div class="hero-dots">
+          <button *ngFor="let img of heroImages; let i = index"
+                  class="dot"
+                  [class.active]="i === activeSlide"
+                  (click)="goToSlide(i)"
+                  [attr.aria-label]="'Show slide ' + (i + 1)">
+          </button>
+        </div>
+      </div>
     </section>
 
     <div class="container-fluid my-5">
       <div class="row g-4">
-        <!-- Left Side - Tourist Spot Selection (70%) -->
-        <div class="col-lg-8">
-          <div class="tourist-spots-list">
-            
-            <!-- Jalatarangini Waterfall -->
-            <div class="tourist-spot-card mb-4">
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <app-tourist-spot-selection
-                    [name]="'Jalatarangini Waterfalls'"
-                    [location]="'Maredumilli'"
-                    [type]="'Waterfall'"
-                    [images]="[
-                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls.jpg',
-                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-01.jpg',
-                      'assets/img/TOURIST-PLACES/Jalatarangini-Waterfalls-02.jpg'
-                    ]"
-                    [fees]="{ entryPerPerson: 50, parkingPerVehicle: 20, cameraPerCamera: 100 }"
-                    [addOns]="[
-                      { id: 'guide-jalatarangini', label: 'Guide', price: 500 },
-                      { id: 'transport-jalatarangini', label: 'Transport', price: 'On request' }
-                    ]"
-                    [detailsLink]="['/tourist-destination']"
-                    detailsFragment="jalatarangini"
-                    (addToBooking)="onAddTouristBooking($event, 'jalatarangini')">
-                  </app-tourist-spot-selection>
+  <!-- Left Side - Filters (narrow) -->
+  <div class="col-lg-2 order-lg-1 order-2">
+          <div class="filters-card sticky-top" style="top: 100px;">
+            <div class="card shadow">
+              <div class="card-header bg-secondary text-white" (click)="toggleFilters()" style="cursor: pointer;">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center">
+                    <h5 class="mb-0">
+                      <i class="fa-solid fa-filter me-2"></i>
+                      Filters
+                    </h5>
+                    <button class="btn btn-sm btn-light ms-2" (click)="clearFilters(); $event.stopPropagation()" *ngIf="hasActiveFilters()">
+                      <i class="fa-solid fa-times me-1"></i>
+                      Clear
+                    </button>
+                  </div>
+                  <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="!isFiltersExpanded"></i>
+                </div>
+              </div>
+              <div class="card-body accordion-content" [class.collapsed]="!isFiltersExpanded">
+                <!-- Category Filters -->
+                <div class="filter-group mb-4">
+                  <h6 class="filter-title mb-3">
+                    <i class="fa-solid fa-layer-group me-2"></i>
+                    Categories
+                  </h6>
+                  <div class="form-check" *ngFor="let cat of categoryFilters">
+                    <input 
+                      class="form-check-input" 
+                      type="checkbox" 
+                      [id]="'category-' + cat.value"
+                      [(ngModel)]="cat.selected"
+                      (change)="applyFilters()">
+                    <label class="form-check-label" [for]="'category-' + cat.value">
+                      {{ cat.label }}
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Time Filters -->
+                <div class="filter-group">
+                  <h6 class="filter-title mb-3">
+                    <i class="fa-solid fa-clock me-2"></i>
+                    Time Duration
+                  </h6>
+                  <div class="form-check" *ngFor="let time of timeFilters">
+                    <input 
+                      class="form-check-input" 
+                      type="radio" 
+                      name="timeFilter"
+                      [id]="'time-' + time.value"
+                      [value]="time.value"
+                      [(ngModel)]="selectedTimeFilter"
+                      (change)="applyFilters()">
+                    <label class="form-check-label" [for]="'time-' + time.value">
+                      {{ time.label }}
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <!-- Amruthadhara Falls -->
-            <div class="tourist-spot-card mb-4">
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <app-tourist-spot-selection
-                    [name]="'Amruthadhara Falls'"
-                    [location]="'Maredumilli'"
-                    [type]="'Waterfall'"
-                    [images]="[
-                      'assets/img/amruthadhara.jpg',
-                      'assets/img/TOURIST-PLACES/Amruthadhara-Falls-01.jpg',
-                      'assets/img/TOURIST-PLACES/Amruthadhara-Falls-02.jpg'
-                    ]"
-                    [fees]="{ entryPerPerson: 30, parkingPerVehicle: 15, cameraPerCamera: 50 }"
-                    [addOns]="[
-                      { id: 'guide-amruthadhara', label: 'Guide', price: 400 },
-                      { id: 'refreshments-amruthadhara', label: 'Refreshments', price: 200 }
-                    ]"
-                    [detailsLink]="['/tourist-destination']"
-                    detailsFragment="amruthadhara"
-                    (addToBooking)="onAddTouristBooking($event, 'amruthadhara')">
-                  </app-tourist-spot-selection>
-                </div>
-              </div>
-            </div>
-
-            <!-- Rampa Falls -->
-            <div class="tourist-spot-card mb-4">
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <app-tourist-spot-selection
-                    [name]="'Rampa Falls'"
-                    [location]="'East Godavari'"
-                    [type]="'Waterfall'"
-                    [images]="[
-                      'assets/img/Rampa-falls.jpg',
-                      'assets/img/TOURIST-PLACES/Rampa-Falls-01.jpg',
-                      'assets/img/TOURIST-PLACES/Rampa-Falls-02.jpg'
-                    ]"
-                    [fees]="{ entryPerPerson: 40, parkingPerVehicle: 25, cameraPerCamera: 75 }"
-                    [addOns]="[
-                      { id: 'guide-rampa', label: 'Guide', price: 600 },
-                      { id: 'trek-rampa', label: 'Trekking Equipment', price: 300 }
-                    ]"
-                    [detailsLink]="['/tourist-destination']"
-                    detailsFragment="rampa"
-                    (addToBooking)="onAddTouristBooking($event, 'rampa')">
-                  </app-tourist-spot-selection>
-                </div>
-              </div>
-            </div>
-
-            <!-- Maredumilli Waterfalls -->
-            <div class="tourist-spot-card mb-4">
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <app-tourist-spot-selection
-                    [name]="'Maredumilli Waterfalls'"
-                    [location]="'Maredumilli'"
-                    [type]="'Waterfall'"
-                    [images]="[
-                      'assets/img/MAREDUMILLI-waterfalls.jpg',
-                      'assets/img/TOURIST-PLACES/Maredumilli-Waterfalls-01.jpg',
-                      'assets/img/TOURIST-PLACES/Maredumilli-Waterfalls-02.jpg'
-                    ]"
-                    [fees]="{ entryPerPerson: 60, parkingPerVehicle: 30, cameraPerCamera: 120 }"
-                    [addOns]="[
-                      { id: 'guide-maredumilli', label: 'Guide', price: 700 },
-                      { id: 'boating-maredumilli', label: 'Boating', price: 500 }
-                    ]"
-                    [detailsLink]="['/tourist-destination']"
-                    detailsFragment="maredumilli"
-                    (addToBooking)="onAddTouristBooking($event, 'maredumilli')">
-                  </app-tourist-spot-selection>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
 
-        <!-- Right Side - Booking Summary (30%) -->
-        <div class="col-lg-4">
+  <!-- Middle - Tourist Spot Selection (wider) -->
+  <div class="col-lg-7 order-lg-2 order-3">
+          <div class="tourist-spots-list">
+            <!-- No Results Message -->
+            <div *ngIf="filteredCategories.length === 0 || !hasAnySpots()" class="alert alert-info">
+              <i class="fa-solid fa-info-circle me-2"></i>
+              No tourist spots match your selected filters. Try adjusting your filter criteria.
+            </div>
+
+            <!-- Filtered Categories -->
+            <div *ngFor="let category of filteredCategories" class="mb-5">
+              <div class="d-flex align-items-center mb-3" *ngIf="category.spots.length > 0">
+                <h2 class="h4 mb-0">{{ category.icon }} {{ category.title }}</h2>
+                <div class="flex-grow-1 border-top ms-3" style="opacity:.3"></div>
+              </div>
+              <div *ngFor="let spot of category.spots" class="tourist-spot-card mb-4" [attr.id]="spot.id">
+                <div class="card shadow-sm">
+                <div class="card-body">
+                    <app-tourist-spot-selection
+                      [name]="spot.name"
+                      [location]="spot.location"
+                      [type]="spot.typeLabel"
+                      [category]="spot.category"
+                      [images]="spot.images"
+                      [fees]="spot.fees"
+                      [addOns]="spot.addOns"
+                      [detailsLink]="['/tourist-destination']"
+                      [detailsFragment]="spot.detailsFragment || spot.id"
+                      (addToBooking)="onAddTouristBooking($event, spot.id)">
+                    </app-tourist-spot-selection>
+                    <div *ngIf="spot.category === 'Trek'" class="small text-muted mt-2 d-flex flex-wrap gap-3">
+                      <span *ngIf="spot.difficulty">Difficulty: {{ spot.difficulty }}</span>
+                      <span *ngIf="spot.distanceKm">Distance: {{ spot.distanceKm }} km</span>
+                      <span *ngIf="spot.elevationGainM">Elevation Gain: {{ spot.elevationGainM }} m</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+  <!-- Right Side - Booking Summary (25%) -->
+  <div class="col-lg-3 order-lg-3 order-1">
           <div class="booking-summary-card sticky-top" style="top: 100px;">
             <div class="card shadow">
-              <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                  <i class="fa-solid fa-shopping-cart me-2"></i>
-                  Booking Summary
-                </h5>
+              <div class="card-header bg-primary text-white" (click)="toggleBookingSummary()" style="cursor: pointer;">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">
+                    <i class="fa-solid fa-shopping-cart me-2"></i>
+                    Booking Summary
+                  </h5>
+                  <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="!isBookingSummaryExpanded"></i>
+                </div>
               </div>
-              <div class="card-body">
+              <div class="card-body accordion-content" [class.collapsed]="!isBookingSummaryExpanded">
                 <!-- Empty state -->
                 <div *ngIf="bookedSpots.length === 0" class="text-center py-4">
                   <i class="fa-solid fa-mountain-sun fa-3x text-muted mb-3"></i>
                   <p class="text-muted">No tourist spots added yet</p>
-                  <small class="text-muted">Add spots from the left to see your booking summary</small>
+                  <small class="text-muted">Add spots from the middle to see your booking summary</small>
                 </div>
 
                 <!-- Booked spots list -->
