@@ -75,7 +75,7 @@ export default function CottageDataTable() {
     setIsDetailSheetOpen(true);
   };
 
-  const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:5000";
+  const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
 
   const handleDisable = async (cottage: CottageType) => {
     try {
