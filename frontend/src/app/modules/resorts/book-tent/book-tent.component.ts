@@ -46,15 +46,15 @@ export class BookTentComponent implements OnInit {
     const path = this.route.snapshot.routeConfig?.path || '';
     if (path.startsWith('vanavihari')) {
       this.resortKey = 'vanavihari';
-      this.resortTitle = 'Decathlon';
+      this.resortTitle = 'vanavihari';
       this.selectedResortInfo = {
-        title: 'Decathlon',
+        title: 'vanavihari',
         about: 'Vanavihari, Maredumilli is situated in the serene landscapes of Maredumilli, beckoning eco-tourism aficionados with its abundance of bamboo trees. This guesthouse, committed to community well-being, offers a serene retreat amidst natural surroundings. With its snug cottages and rooms, it conveniently lies close to Amruthadhara Waterfalls, promising guests a peaceful ambiance. Nearby street food eateries present the opportunity to savor the distinctive flavor of bamboo biriyani. Stepping out for a night or morning stroll unveils a heavenly experience for visitors.'
       };
     } else if (path.startsWith('karthikavanm')) {
       this.resortKey = 'karthikavanm';
-      this.resortTitle = 'Decathlon';
-      this.selectedResortInfo = { title: 'Decathlon', about: 'Karthikavanm tented area offers eco-friendly tent stays with access to nearby nature attractions.' };
+      this.resortTitle = 'karthikavanm';
+      this.selectedResortInfo = { title: 'karthikavanm', about: 'Karthikavanm tented area offers eco-friendly tent stays with access to nearby nature attractions.' };
     }
 
     this.tentService.getTents(this.resortKey).subscribe({
@@ -77,6 +77,29 @@ export class BookTentComponent implements OnInit {
             `${folder}tent3.jpg`,
             `${folder}tent4.jpg`,
           ];
+          // If this is the 2-person tent, append the extra generated images from the shared folder
+          const isTwoPerson = (t.name || '').toLowerCase().includes('2 person') || (t.id || '').toLowerCase().includes('2p');
+          if (isTwoPerson) {
+            const sharedFolder = `/assets/images/Tent/2 person/`;
+            const sharedImgs = [
+              `${sharedFolder}Gemini_Generated_Image_93fsiz93fsiz93fs.png`,
+              `${sharedFolder}Screenshot 2025-10-07 202154.png`,
+              `${sharedFolder}Screenshot 2025-10-07 202203.png`,
+            ];
+            // Avoid duplicates
+            images = [...images, ...sharedImgs.filter(s => !images.includes(s))];
+          }
+          // Also support 4-person tent shared images
+          const isFourPerson = (t.name || '').toLowerCase().includes('4 person') || (t.id || '').toLowerCase().includes('4p');
+          if (isFourPerson) {
+            const sharedFolder4 = `/assets/images/Tent/4 person/`;
+            const sharedImgs4 = [
+              `${sharedFolder4}Screenshot 2025-10-07 203154.png`,
+              `${sharedFolder4}Screenshot 2025-10-07 203158.png`,
+              `${sharedFolder4}Screenshot 2025-10-07 203202.png`,
+            ];
+            images = [...images, ...sharedImgs4.filter(s => !images.includes(s))];
+          }
           return { ...t, images, price: t.price } as Tent;
         });
       },

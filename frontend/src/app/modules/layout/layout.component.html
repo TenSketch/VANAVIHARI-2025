@@ -1,22 +1,4 @@
 <header>
-  <!-- Top Navigation Bar with Contact Info -->
-  <div class="top-nav bg-dark text-white py-1">
-    <div class="container-fluid">
-      <div class="row align-items-center">
-        <div class="col-12 col-md-6"> <!-- left side reserved (logo/branding if needed) -->
-        </div>
-        <div class="col-12 col-md-6 text-md-end"> <!-- right aligned contacts on md+ -->
-          <a class="text-white text-decoration-none me-3" href="mailto:info@vanavihari.com">
-            <i class="fa-regular fa-envelope me-1"></i><span class="d-none d-sm-inline">info@vanavihari.com</span>
-          </a>
-          <a class="text-white text-decoration-none" href="tel:7382151617">
-            <i class="fa-solid fa-mobile-screen me-1"></i><span class="d-none d-sm-inline">7382151617</span>
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Main Navigation -->
   <nav class="navbar navbar-light py-0 fixed-top bg-light">
     <div class="container-fluid align-items-baseline px-3">
@@ -331,6 +313,10 @@
     </div>
   </div>
 </footer>
+<!-- WhatsApp Floating Button -->
+<a href="https://wa.me/7382151617" target="_blank" class="whatsapp-float">
+  <i class="fab fa-whatsapp"></i>
+</a>
 <div class="modal" tabindex="-1" *ngIf="isModalVisible" style="display: block">
   <div class="modal-overlay" [ngClass]="{'dark-overlay': isDarkMode}"></div> <!-- Light/Dark overlay -->
   <div class="modal-dialog">

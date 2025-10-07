@@ -73,7 +73,6 @@ aside {
 
   .booking-summary-bar {
     &--title {
-      // color: red;
       position: relative;
 
       &::after {
@@ -81,7 +80,7 @@ aside {
         content: "\f0f3";
         font-family: "Font Awesome 6 Free";
         font-size: 18px;
-        color: red;
+        color: hsl(90,100%,30%);
         top: 50%;
         transform: translateY(-50%);
         right: -22%;

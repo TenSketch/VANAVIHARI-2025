@@ -35,14 +35,14 @@
       </div>
 
       <div class="policy-section row py-3" *ngIf="selectedResortInfo">
-        <div class="col-md-4">
+        <div class="col-md-3">
           <h4 class="">Guest Policies & Accommodation</h4>
           <ul>
             <li><strong>Occupancy:</strong> 2 guests (for 2-person tent), 4 guests (for 4-person tent)</li>
             <li><strong>Amenities: </strong>Basic tent amenities, blankets, mats</li>
           </ul>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <h4 class="custom-h4">Cancellation</h4>
           <ul>
             <li><strong> More than 48 hours:</strong> 90% refund</li>
@@ -50,11 +50,19 @@
             <li><strong> Within 24 hours:</strong> No refund</li>
           </ul>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <h4 class="custom-h4">Check-In/Out:</h4>
           <ul>
             <li><strong>Check-in:</strong> 10:00 AM IST</li>
             <li><strong> Check-out:</strong> 9:00 AM IST</li>
+          </ul>
+        </div>
+        <div class="col-md-3">
+          <h4 class="">Common Amenities:</h4>
+          <ul>
+            <li>1 DECATLON TENT</li>
+            <li>1-HANING LIGHT led</li>
+            <li>1-CENTER TABLE</li>
           </ul>
         </div>
       </div>
@@ -112,6 +120,7 @@
                         <img class="img-responsive" [src]="img" alt="" (click)="openFullImage(img)" />
                       </div>
                     </div>
+                    
                     <div class="full-image-overlay" *ngIf="isFullImageVisible" (click)="closeFullImage()">
                       <div class="full-image-container">
                         <img class="full-image" [src]="fullImageSrc" alt="" />
@@ -139,6 +148,37 @@
                     <h6>
                       <span class="text-primary-dark font-weight-bold">Accommodation:</span> {{ tent.description }}
                     </h6>
+                    <!-- Amenities for specific tent capacities -->
+                    <div *ngIf="tent.capacity === 2 || tent.capacity === '2'" class="amenities-wrapper mt-2">
+                      <h6 class="mb-1">Amenities (2-person)</h6>
+                      <ul class="amenities-list mb-0">
+                        <li>Tent</li>
+                        <li>2 Beds</li>
+                        <li>2 Pillows</li>
+                        <li>2 Bed sheets</li>
+                        <li>2 Comforters</li>
+                        <li>Hanging light</li>
+                        <li>2 Towels</li>
+                        <li>2 Chairs</li>
+                        <li>Center table</li>
+                      </ul>
+                      <small class="text-muted d-block mt-1">Note: Iron stand provided below tent</small>
+                    </div>
+                    <div *ngIf="tent.capacity === 4 || tent.capacity === '4'" class="amenities-wrapper mt-2">
+                      <h6 class="mb-1">Amenities (4-person)</h6>
+                      <ul class="amenities-list mb-0">
+                        <li>Tent</li>
+                        <li>4 Beds</li>
+                        <li>4 Pillows</li>
+                        <li>4 Bed sheets</li>
+                        <li>4 Comforters</li>
+                        <li>Hanging light</li>
+                        <li>4 Towels</li>
+                        <li>2 Chairs</li>
+                        <li>Center table</li>
+                      </ul>
+                      <small class="text-muted d-block mt-1">Note: Iron stand provided below tent</small>
+                    </div>
                   </div>
                   <div class="col-md-5 row d-md-block gap-2 text-md-end mt-2 mt-md-0 pe-md-0">
                         <div class="col-auto">

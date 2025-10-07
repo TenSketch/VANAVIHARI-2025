@@ -11,7 +11,7 @@
 
 /* Brand title styling - make Decathlon stand out */
 .page-banner h1 {
-  color: #0b5a2b; /* dark green */
+  color: #ffffff; /* dark green */
   font-weight: 800;
   letter-spacing: 1px;
   font-variant: small-caps;
@@ -141,4 +141,69 @@
 .download-button:hover,
 .close-button:hover {
   background-color: #f0f0f0;
+}
+
+/* Amenities list styling - compact oval bubble style */
+.amenities-wrapper {
+  margin-top: 0.35rem;
+
+  h6 {
+    font-size: 0.88rem;
+    color: #0b5a2b;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+
+  .amenities-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 6px; /* tighter gaps */
+    align-items: center;
+
+    li {
+      display: inline-flex;
+      align-items: center;
+      flex: 0 1 auto;
+      padding: 3px 8px; /* reduced padding */
+      background: linear-gradient(135deg, #f7fcf8 0%, #fbfffb 100%);
+      border: 1px solid #e1f3e6;
+      border-radius: 14px;
+      color: #19692a;
+      font-size: 0.75rem; /* smaller font */
+      font-weight: 500;
+      line-height: 1.1;
+      box-shadow: 0 1px 1px rgba(11, 90, 43, 0.04);
+      transition: all 0.12s ease;
+
+      &::before {
+        content: '\2713';
+        display: inline-block;
+        margin-right: 5px;
+        color: #0b5a2b;
+        font-weight: 700;
+        font-size: 0.7rem;
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, #e9f6ec 0%, #f7fcf8 100%);
+        box-shadow: 0 2px 4px rgba(11, 90, 43, 0.08);
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  /* compact variant for the booking summary column */
+  &.compact {
+    .amenities-list {
+      gap: 4px 5px;
+      
+      li {
+        font-size: 0.72rem;
+        padding: 3px 7px;
+      }
+    }
+  }
 }

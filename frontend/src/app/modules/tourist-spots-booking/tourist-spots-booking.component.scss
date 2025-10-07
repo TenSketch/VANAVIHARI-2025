@@ -109,14 +109,14 @@
   }
   
   .card-header {
-    background: linear-gradient(135deg, #2c5aa0 0%, #1a4480 100%) !important;
+    background: linear-gradient(135deg, hsl(90, 100%, 30%) 0%, hsl(90, 100%, 20%) 100%) !important;
     border: none;
     padding: 1.25rem;
     user-select: none;
     transition: background 0.2s ease;
     
     &:hover {
-      background: linear-gradient(135deg, #1a4480 0%, #2c5aa0 100%) !important;
+      background: linear-gradient(135deg, hsl(90, 100%, 20%) 0%, hsl(90, 100%, 30%) 100%) !important;
     }
     
     h5 {
@@ -159,18 +159,41 @@
   transition: all 0.2s ease;
   
   &:hover {
-    border-color: #2c5aa0 !important;
-    box-shadow: 0 2px 8px rgba(44, 90, 160, 0.1);
+    border-color: hsl(90, 100%, 30%) !important;
+    box-shadow: 0 2px 8px rgba(77, 153, 0, 0.08);
   }
   
   h6 {
-    color: #0b5a2b; /* change to full dark green */
+    color: hsl(90, 100%, 20%); /* dark green matching resort */
     font-weight: 600;
   }
   
   .fee-breakdown {
     color: #6c757d;
     
+    /* Keep each fee row left-right aligned and prevent stacking on small screens */
+    > div.d-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+
+      /* Ensure left side can truncate while right side stays visible */
+      & > span:first-child {
+        flex: 1 1 auto; /* grow/shrink */
+        min-width: 0; /* allow truncation */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      & > span:last-child {
+        flex: 0 0 auto; /* keep size for amount */
+        margin-left: 1rem;
+        white-space: nowrap;
+      }
+    }
+
     .fw-bold {
       color: #212529;
     }
@@ -178,7 +201,7 @@
 }
 
 .grand-total {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, hsl(89, 100%, 92%) 0%, hsl(90, 100%, 85%) 100%);
   border-radius: 10px;
   padding: 1.25rem;
   
@@ -187,7 +210,7 @@
   }
   
   .btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    background: linear-gradient(135deg, hsl(90,100%,30%) 0%, hsl(90,100%,40%) 100%);
     border: none;
     border-radius: 10px;
     padding: 0.75rem 1.5rem;
@@ -196,7 +219,7 @@
     
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+      box-shadow: 0 4px 15px rgba(77,153,0,0.22);
     }
     
     &:disabled {
