@@ -8,72 +8,75 @@
       </a>
 
       <!-- Main Navigation (Desktop) - Right Aligned -->
-      <div class="ms-auto d-none d-lg-flex align-items-center gap-3">
-      <ul class="navbar-nav d-none d-lg-flex flex-row gap-2 mb-0">
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">
-            <i class="fa-solid fa-home me-2"></i>Home
-          </a>
-        </li>
-        <!-- Book Resort dropdown (desktop) -->
-        <li class="nav-item dropdown" [class.show]="isBookResortOpen">
-          <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true" [attr.aria-expanded]="isBookResortOpen" (click)="toggleBookResort($event)">
-            <i class="fa-solid fa-building me-2"></i>Book Resort
-          </a>
-          <div class="dropdown-menu position-absolute" [class.show]="isBookResortOpen">
-            <a class="dropdown-item" (click)="goToVanavihari(); isBookResortOpen=false">Vanavihari</a>
-            <a class="dropdown-item" (click)="goToJungleStar(); isBookResortOpen=false">Jungle Star</a>
-          </div>
-        </li>
-        <li class="nav-item dropdown" [class.show]="isBookTentsOpen">
-          <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true" [attr.aria-expanded]="isBookTentsOpen" (click)="toggleBookTents($event)">
-            <i class="fa-solid fa-campground me-2"></i>Book Tents
-          </a>
-          <div class="dropdown-menu position-absolute" [class.show]="isBookTentsOpen">
-            <a class="dropdown-item" routerLink="/vanavihari/book-tent" (click)="isBookTentsOpen=false">Vanavihari</a>
-            <a class="dropdown-item" routerLink="/karthikavanm/book-tent" (click)="isBookTentsOpen=false">Karthikavanam</a>
-          </div>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/tourist-places" routerLinkActive="active" ariaCurrentWhenActive="page">
-            <i class="fa-solid fa-mountain-sun me-2"></i>Book Tourist Spots
-          </a>
-        </li>
-      </ul>
+      <div class="mx-auto d-none d-lg-flex align-items-center gap-3">
+        <ul class="navbar-nav d-none d-lg-flex flex-row gap-2 mb-0">
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/home" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <i class="fa-solid fa-home me-2"></i>Home
+            </a>
+          </li>
+          <!-- Book Resort dropdown (desktop) -->
+          <li class="nav-item dropdown" [class.show]="isBookResortOpen">
+            <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true"
+              [attr.aria-expanded]="isBookResortOpen" (click)="toggleBookResort($event)">
+              <i class="fa-solid fa-building me-2"></i>Book Resort
+            </a>
+            <div class="dropdown-menu position-absolute" [class.show]="isBookResortOpen">
+              <a class="dropdown-item" (click)="goToVanavihari(); isBookResortOpen=false">Vanavihari</a>
+              <a class="dropdown-item" (click)="goToJungleStar(); isBookResortOpen=false">Jungle Star</a>
+            </div>
+          </li>
+          <li class="nav-item dropdown" [class.show]="isBookTentsOpen">
+            <a class="nav-link dropdown-toggle" href="#" role="button" aria-haspopup="true"
+              [attr.aria-expanded]="isBookTentsOpen" (click)="toggleBookTents($event)">
+              <i class="fa-solid fa-campground me-2"></i>Book Tents
+            </a>
+            <div class="dropdown-menu position-absolute" [class.show]="isBookTentsOpen">
+              <a class="dropdown-item" routerLink="/vanavihari/book-tent" (click)="isBookTentsOpen=false">Vanavihari</a>
+              <a class="dropdown-item" routerLink="/karthikavanm/book-tent"
+                (click)="isBookTentsOpen=false">Karthikavanam</a>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/tourist-places" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <i class="fa-solid fa-mountain-sun me-2"></i>Book Tourist Spots
+            </a>
+          </li>
+        </ul>
 
-      <!-- Right Side User Actions (Desktop) -->
-      <ul class="navbar-nav d-none d-lg-flex flex-row align-items-center gap-2 mb-0">
-        <li class="nav-item" *ngIf="!isLoggedIn()">
-          <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
-            <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in</a>
-        </li>
-        <li class="nav-item" *ngIf="!isLoggedIn()">
-          <a class="nav-link" routerLink="/sign-up" routerLinkActive="active" ariaCurrentWhenActive="page">
-            <i class="fa-solid fa-user-plus me-2"></i>Sign up</a>
-        </li>
-        <!-- User dropdown when logged in -->
-        <li class="nav-item dropdown" style="z-index: 1000" *ngIf="isLoggedIn()">
-          <a class="nav-link dropdown-toggle" href="#" id="dropdownId" data-bs-toggle="dropdown" aria-haspopup="true"
-            aria-expanded="false">
-            <i class="fa-regular fa-user-circle me-2"></i> {{ accountusername }}
-          </a>
-          <div class="dropdown-menu position-absolute py-3 px-2" aria-labelledby="dropdownId">
-            <a class="dropdown-item" (click)="goToMyAccSettings()">
-              <i class="fa-solid fa-cog me-3"></i><span>My account</span>
+        <!-- Right Side User Actions (Desktop) -->
+        <ul class="navbar-nav d-none d-lg-flex flex-row align-items-center gap-2 mb-0">
+          <li class="nav-item" *ngIf="!isLoggedIn()">
+            <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in</a>
+          </li>
+          <li class="nav-item" *ngIf="!isLoggedIn()">
+            <a class="nav-link" routerLink="/sign-up" routerLinkActive="active" ariaCurrentWhenActive="page">
+              <i class="fa-solid fa-user-plus me-2"></i>Sign up</a>
+          </li>
+          <!-- User dropdown when logged in -->
+          <li class="nav-item dropdown" style="z-index: 1000" *ngIf="isLoggedIn()">
+            <a class="nav-link dropdown-toggle" href="#" id="dropdownId" data-bs-toggle="dropdown" aria-haspopup="true"
+              aria-expanded="false">
+              <i class="fa-regular fa-user-circle me-2"></i> {{ accountusername }}
             </a>
-            <a class="dropdown-item" (click)="goToMyBookings()">
-              <i class="fa-regular fa-calendar-check me-3"></i><span>My Bookings</span>
-            </a>
-            <a class="dropdown-item" (click)="triggerModal()">
-              <i class="fa-solid fa-power-off me-3"></i><span>Sign out</span>
-            </a>
-          </div>
-        </li>
-      </ul>
+            <div class="dropdown-menu position-absolute py-3 px-2" aria-labelledby="dropdownId">
+              <a class="dropdown-item" (click)="goToMyAccSettings()">
+                <i class="fa-solid fa-cog me-3"></i><span>My account</span>
+              </a>
+              <a class="dropdown-item" (click)="goToMyBookings()">
+                <i class="fa-regular fa-calendar-check me-3"></i><span>My Bookings</span>
+              </a>
+              <a class="dropdown-item" (click)="triggerModal()">
+                <i class="fa-solid fa-power-off me-3"></i><span>Sign out</span>
+              </a>
+            </div>
+          </li>
+        </ul>
       </div>
 
       <!-- Menu Toggle (visible on all screen sizes) -->
-      <button class="navbar-toggler border-0" type="button" (click)="toggleSidebar()">
+      <button class="navbar-toggler border-0 ms-auto" type="button" (click)="toggleSidebar()">
         <i class="fa-solid fa-bars fa-2xl" [ngClass]="{ 'd-none': isSidebarOpen }"></i>
         <i class="fa-solid fa-xmark fa-2xl" [ngClass]="{ 'd-none': !isSidebarOpen }"></i>
       </button>
@@ -85,33 +88,36 @@
     <div class="sidebar-content">
       <!-- Sidebar content goes here -->
       <ul class="sidebar-menu list-unstyled">
-  <div class="accordion mb-3" id="accordionExample">
+        <div class="accordion mb-3 d-md-none" id="accordionExample">
           <div class="accordion-item pb-2">
             <h2 class="accordion-header" id="headingOne">
-        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
-          aria-expanded="false" aria-controls="collapseOne">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                 <i class="fa-solid fa-campground me-2"></i> Book Tents
               </button>
             </h2>
             <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne"
               data-bs-parent="#accordionExample">
               <div class="accordion-body mb-0">
-                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar()" routerLink="/vanavihari/book-tent">Vanavihari</a>
-                <a class="dropdown-item ps-4" (click)="toggleSidebar()" routerLink="/karthikavanm/book-tent">Karthikavanam</a>
+                <a class="dropdown-item ps-4 py-1" (click)="toggleSidebar()"
+                  routerLink="/vanavihari/book-tent">Vanavihari</a>
+                <a class="dropdown-item ps-4" (click)="toggleSidebar()"
+                  routerLink="/karthikavanm/book-tent">Karthikavanam</a>
               </div>
             </div>
           </div>
         </div>
         <!-- Book Resort accordion (mobile sidebar) -->
-  <div class="accordion mb-3" id="bookResortAccordion">
+        <div class="accordion mb-3 d-md-none" id="bookResortAccordion">
           <div class="accordion-item pb-2">
             <h2 class="accordion-header" id="headingResort">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseResort"
-                aria-expanded="false" aria-controls="collapseResort">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                data-bs-target="#collapseResort" aria-expanded="false" aria-controls="collapseResort">
                 <i class="fa-solid fa-building me-2"></i> Book Resort
               </button>
             </h2>
-            <div id="collapseResort" class="accordion-collapse collapse" aria-labelledby="headingResort" data-bs-parent="#bookResortAccordion">
+            <div id="collapseResort" class="accordion-collapse collapse" aria-labelledby="headingResort"
+              data-bs-parent="#bookResortAccordion">
               <div class="accordion-body mb-0">
                 <a class="dropdown-item ps-4 py-1" (click)="goToVanavihari(); toggleSidebar()">Vanavihari</a>
                 <a class="dropdown-item ps-4" (click)="goToJungleStar(); toggleSidebar()">Jungle Star</a>
@@ -156,16 +162,16 @@
             <a class="sidebar-link d-lg-none" href="tel:7382151617" title="call">7382151617</a>
           </div>
         </li>
-        <li class="sidebar-item d-lg-none ">
+        <!-- <li class="sidebar-item d-lg-none ">
           <a class="sidebar-link" href="mailto:info@vanavihari.com" title="click to send email">
             <i class="fa-regular fa-envelope me-2"></i>info@vanavihari.com</a>
-        </li>
+        </li> -->
         <!-- Sign in and Sign up for mobile -->
-        <li class="sidebar-item" *ngIf="!isLoggedIn()">
+        <li class="sidebar-item d-md-none" *ngIf="!isLoggedIn()">
           <a class="sidebar-link" routerLink="/sign-in" routerLinkActive="active" (click)="toggleSidebar()"
             ariaCurrentWhenActive="page"><i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Sign in</a>
         </li>
-        <li class="sidebar-item" *ngIf="!isLoggedIn()">
+        <li class="sidebar-item d-md-none" *ngIf="!isLoggedIn()">
           <a class="sidebar-link" routerLink="/sign-up" routerLinkActive="active" (click)="toggleSidebar()"
             ariaCurrentWhenActive="page"><i class="fa-solid fa-user-plus me-2"></i> Sign up</a>
         </li>

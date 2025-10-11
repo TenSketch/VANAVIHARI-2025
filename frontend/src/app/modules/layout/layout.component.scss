@@ -1,5 +1,4 @@
 @use "/src/scss/base/" as *;
-// $nav-bar-height: 8vh;
 
 // Top navigation bar styles
 .top-nav {
@@ -9,7 +8,7 @@
   right: 0;
   z-index: 1031;
   font-size: 0.875rem;
-  height: 32px;
+  height: $nav-bar-height;
   
   a {
     transition: color 0.3s ease;
@@ -38,7 +37,7 @@
 
   .navbar-brand {
     img {
-      width: clamp(10vw, 160px, 18vw);
+      width: clamp(10vw, 160px, 22vw);
     }
   }
 
@@ -94,11 +93,11 @@
 
 #sidebar {
   position: fixed;
-  top: calc(#{$nav-bar-height} + 32px); // Account for both top nav and main nav
+  top: calc(#{$nav-bar-height}); // Account for both top nav and main nav
   right: -100%;
-  height: calc(100% - #{$nav-bar-height} - 32px);
+  // height: calc(100vh - #{$nav-bar-height});
   width: 100%;
-  background-color: #131313;
+  background-color: $white;
   z-index: 10000;
   transition: right 0.3s ease;
 
@@ -118,7 +117,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: $white;
     z-index: -1;
     display: none;
 
@@ -130,7 +129,7 @@
   }
 
   .sidebar-content {
-    padding: 20px;
+    padding: 2.5rem;
     color: #fff;
 
     .sidebar-menu {
@@ -145,7 +144,7 @@
 
         .sidebar-link{
           // font-size: 18px;
-          color: white !important;
+          // color: white !important;
           gap: 20px !important;
           text-decoration: none !important;
           padding-right: 5px!important;
@@ -155,7 +154,7 @@
           transition: color 0.3s;
 
           &:hover {
-            color: #ccc;
+            // color: #ccc;
           }
         }
       }
@@ -163,7 +162,7 @@
 
       .accordion {
         --bs-accordion-bg: transparent;
-        --bs-accordion-color: #fff;
+        // --bs-accordion-color: #fff;
         // --bs-accordion-btn-active-icon: 
       }
 
@@ -174,7 +173,7 @@
 
       .accordion-button {
         background-color: transparent;
-        color: inherit!important;
+        // color: inherit!important;
         border: none;
         padding: 0;
         margin: 0;
@@ -183,13 +182,13 @@
         box-shadow: none;
 
         &::after {
-          background-image: url(/assets/img/angle-down-solid.svg);
+          // background-image: url(/assets/img/angle-down-solid.svg);
         }
       }
 
       .accordion-header {
         background-color: transparent;
-        color: inherit;
+        // color: inherit;
         border: none;
         padding: 0;
         margin: 0;
@@ -207,7 +206,7 @@
         padding: 0;
         margin-bottom: 1rem;
         .dropdown-item{
-          color: $white!important;
+          // color: $white!important;
           text-decoration: none!important;
           transition: color 0.3s;
           margin-top: 0.5rem;

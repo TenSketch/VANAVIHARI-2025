@@ -84,7 +84,7 @@ h6 {
     box-shadow: inset 0 0 4px 0px hsla(0, 0%, 91%, 0.637);
     border-radius: 5px;
   }
-}
+}        
 
 .icon {
   width: 30px;
@@ -405,10 +405,10 @@ gallery-thumbs {
 }
 
 /* When the button has the `collapsed` class (Bootstrap's collapsed state) show the arrow pointing right */
-#sidebar .accordion-button.collapsed::after,
-.sidebar-content .accordion-button.collapsed::after {
-  transform: rotate(90deg) !important;
-}
+// #sidebar .accordion-button.collapsed::after,
+// .sidebar-content .accordion-button.collapsed::after {
+//   transform: rotate(90deg) !important;
+// }
 
 /* When the button is expanded (no `.collapsed` class) show the arrow pointing down */
 #sidebar .accordion-button:not(.collapsed)::after,
