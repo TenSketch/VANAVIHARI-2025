@@ -11,6 +11,10 @@ interface Tent {
   image?: string;
   images?: string[];
   price?: number;
+  accommodationType?: string;
+  brand?: string;
+  tentBase?: string;
+  amenities?: string[];
 }
 
 interface ResortInfo {
@@ -60,7 +64,7 @@ export class BookTentComponent implements OnInit {
     this.tentService.getTents(this.resortKey).subscribe({
       next: (data) => {
         // enrich tents with full images array: if image is present, generate 4 variants or reuse same
-        this.tents = (data || []).map((t: any) => {
+          this.tents = (data || []).map((t: any) => {
           const base = t.image || '';
           // if base contains 'tent1' or 'tent2' we'll also include tent3,tent4 from same folder
           let images: string[] = [];
@@ -100,7 +104,15 @@ export class BookTentComponent implements OnInit {
             ];
             images = [...images, ...sharedImgs4.filter(s => !images.includes(s))];
           }
-          return { ...t, images, price: t.price } as Tent;
+          return { 
+            ...t,
+            images,
+            price: t.price,
+            accommodationType: t.accommodationType || 'Camping Tent',
+            brand: t.brand || 'Decathlon',
+            tentBase: t.tentBase || 'Concrete',
+            amenities: t.amenities || [],
+          } as Tent;
         });
       },
       error: (err) => console.error('Failed to load tents', err),
@@ -171,4 +183,31 @@ export class BookTentComponent implements OnInit {
   }
 
   bookingTents: any[] = [];
+
+  // Pricing helpers for booking summary
+  getTentCharges(): number {
+    return (this.bookingTents || []).reduce((sum, t) => sum + (Number(t.price) || 0), 0);
+  }
+
+  calculateTotalGst(): number {
+    return this.getTentCharges() * 0.12; // 12% GST
+  }
+
+  calculatePayablePrice(): number {
+    return this.getTentCharges() + this.calculateTotalGst();
+  }
+
+  goToBooking() {
+    // Placeholder: navigate to booking/checkout flow or open booking modal
+    console.log('Proceeding to booking with', this.bookingTents);
+  }
+
+  // Total guests across selected tents
+  totalGuestsCount(): number {
+    if (!this.bookingTents || this.bookingTents.length === 0) return 0;
+    return this.bookingTents.reduce((sum: number, t: any) => {
+      const c = Number(t.capacity) || 0;
+      return sum + c;
+    }, 0);
+  }
 }

@@ -39,7 +39,6 @@
           <h4 class="">Guest Policies & Accommodation</h4>
           <ul>
             <li><strong>Occupancy:</strong> 2 guests (for 2-person tent), 4 guests (for 4-person tent)</li>
-            <li><strong>Amenities: </strong>Basic tent amenities, blankets, mats</li>
           </ul>
         </div>
         <div class="col-md-3">
@@ -74,28 +73,87 @@
 
       <div class="row mt-3">
         <aside class="col-lg-4 mt-3">
-          <!-- Booking Summary section -->
-          <ng-template #bookingSummaryContent>
-            <div class="border-top pt-2" *ngIf="showBookingSummary; else noBookings">
-              <div *ngFor="let b of bookingTents" class="p-2 d-flex align-items-center justify-content-between">
+          <!-- Booking Summary (mirroring resort layout) -->
+          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3 p-3" [ngClass]="{'empty': !showBookingSummary}">
+            <h4 class="m-0 pb-1 font-weight-bold">Booking Summary</h4>
+
+            <div class="border-top py-2" *ngIf="showBookingSummary; else noBookings">
+              <div class="pt-2" *ngFor="let b of bookingTents">
+                <a href="javascript:void(0)" class="float-end" (click)="removeTentFromBooking(b.id)"><i class="fa fa-trash"></i></a>
                 <div>
-                  <strong>{{ b.name }}</strong>
-                  <div><small>{{ b.capacity }} person</small></div>
-                  <div><small class="text-success">₹{{ b.price }} / day</small></div>
+                  <strong class="me-2">Tent Name: {{ b.name }}</strong>
                 </div>
-                <div>
-                  <button class="btn btn-link text-danger p-0" (click)="removeTentFromBooking(b.id)"><i class="fa fa-trash"></i></button>
+                <small>
+                  <span class="d-block">Capacity: {{ b.capacity }} person</span>
+                  <span class="d-block">Price: <strong class="text-success">₹{{ b.price }} / day</strong></span>
+                </small>
+                <div class="pt-2">
+                  <mat-form-field appearance="outline" class="mat-small w-100">
+                    <mat-label>No. of. Guests</mat-label>
+                    <mat-select [(ngModel)]="b.capacity">
+                      <mat-option [value]="1">1</mat-option>
+                      <mat-option [value]="2">2</mat-option>
+                      <mat-option [value]="3">3</mat-option>
+                    </mat-select>
+                    <mat-hint class="px-0">Adults/Child over 5 yrs</mat-hint>
+                  </mat-form-field>
                 </div>
               </div>
             </div>
-            <hr class="my-1" />
-            <button mat-raised-button color="primary" class="w-100 mt-3" [disabled]="!showBookingSummary">Proceed</button>
-          </ng-template>
 
-          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3">
-            <h4 class="mt-2 mb-0 pb-1 font-weight-bold">Booking Summary</h4>
-            <ng-container *ngTemplateOutlet="bookingSummaryContent"></ng-container>
+            <hr />
+
+            <ng-container *ngIf="showBookingSummary">
+              <div class="d-flex justify-content-between pt-1">
+                <span>Tent charges</span>
+                <span>₹{{ getTentCharges() | number:'1.0-0' }}</span>
+              </div>
+              <div class="d-flex justify-content-between pt-1">
+                <span>GST @12%</span>
+                <span>₹{{ calculateTotalGst() | number:'1.0-0' }}</span>
+              </div>
+              <div class="d-flex justify-content-between border-top border-bottom border-primary py-2 font-weight-bold text-secondary h5">
+                <span class="mb-0">Grand Total</span>
+                <span>₹{{ calculatePayablePrice() | number:'1.0-0' }}</span>
+              </div>
+            </ng-container>
+
+            <button mat-raised-button color="primary" class="w-100 mt-3" (click)="goToBooking()" [disabled]="!showBookingSummary">Proceed</button>
+
+            <ng-template #noBookings>
+              <div class="empty-state w-100 d-flex flex-column align-items-start">
+                <div class="d-flex align-items-center w-100 py-2">
+                  <div class="plus-icon">+</div>
+                  <div class="empty-title ms-3">Add your preferred rooms</div>
+                </div>
+                <hr class="w-100 mt-2" />
+                <!-- keep space below to match visual height -->
+                <div class="flex-grow-1"></div>
+              </div>
+            </ng-template>
           </div>
+
+          <!-- Mobile accordion fallback -->
+          <mat-accordion *ngIf="isMobile">
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  <div class="booking-summary-bar text-dark rounded-3 p-3">
+                    <h4 class="m-0 pb-1 font-weight-bold">Booking Summary</h4>
+                  </div>
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="border-top py-2" *ngIf="showBookingSummary; else noBookingsMobile">
+                <div *ngFor="let b of bookingTents" class="pt-2">
+                  <div>
+                    <strong>Tent: {{ b.name }}</strong>
+                    <a class="float-end" (click)="removeTentFromBooking(b.id)"><i class="fa fa-trash"></i></a>
+                  </div>
+                </div>
+              </div>
+              <ng-template #noBookingsMobile><small class="text-muted p-2">Add tents to see booking summary</small></ng-template>
+            </mat-expansion-panel>
+          </mat-accordion>
         </aside>
 
         <main class="rooms-listing col-lg-8">
@@ -141,18 +199,20 @@
                 </div>
                 <div class="col-md-7 row justify-content-between">
                   <div class="col-md-7">
-                    <h5>
-                      <span class="text-primary-dark font-weight-bold">Tent name:</span> {{ tent.name }}
-                    </h5>
-                    <div *ngIf="tent.subtitle" class="text-muted small">{{ tent.subtitle }}</div>
-                    <h6>
-                      <span class="text-primary-dark font-weight-bold">Accommodation:</span> {{ tent.description }}
-                    </h6>
+                    <!-- New compact tent details block -->
+                    <div class="tent-details mt-2">
+                      <div class="row">
+                        <div class="col-12 detail-row"><strong>Tent Name:</strong> {{ tent.name || '2 Person tent' }}</div>
+                        <div class="col-12 detail-row"><strong>Accommodation Type:</strong> {{ tent.accommodationType || 'Camping Tent' }}</div>
+                        <div class="col-12 detail-row"><strong>Brand Name:</strong> {{ tent.brand || 'Decathlon' }}</div>
+                        <div class="col-12 detail-row"><strong>Tent Base:</strong> {{ tent.tentBase || 'Concrete' }}</div>
+                        <div class="col-12 detail-row"><strong>Resort:</strong> {{ selectedResortInfo?.title || 'Vanavihari' }}</div>
+                      </div>
+                    </div>
                     <!-- Amenities for specific tent capacities -->
                     <div *ngIf="tent.capacity === 2 || tent.capacity === '2'" class="amenities-wrapper mt-2">
-                      <h6 class="mb-1">Amenities (2-person)</h6>
+                      <h6 class="mb-1">Amenities</h6>
                       <ul class="amenities-list mb-0">
-                        <li>Tent</li>
                         <li>2 Beds</li>
                         <li>2 Pillows</li>
                         <li>2 Bed sheets</li>
@@ -165,9 +225,8 @@
                       <small class="text-muted d-block mt-1">Note: Iron stand provided below tent</small>
                     </div>
                     <div *ngIf="tent.capacity === 4 || tent.capacity === '4'" class="amenities-wrapper mt-2">
-                      <h6 class="mb-1">Amenities (4-person)</h6>
+                      <h6 class="mb-1">Amenities</h6>
                       <ul class="amenities-list mb-0">
-                        <li>Tent</li>
                         <li>4 Beds</li>
                         <li>4 Pillows</li>
                         <li>4 Bed sheets</li>
