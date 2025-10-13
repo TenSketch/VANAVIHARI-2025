@@ -180,7 +180,7 @@
 
                   <div class="custom-dropdown mt-4">
                     <mat-form-field appearance="outline" class="mat-small">
-                      <mat-label>No. of Guests </mat-label>
+                      <mat-label>No. of Guests <span class="text-danger">*</span></mat-label>
                       <mat-select (selectionChange)="noOfGuestAction($event, roomId)"
                         [(ngModel)]="selectedValues[roomId]" size="small" #guestSelect="matSelect" required>
                         <mat-option value="1">1</mat-option>
@@ -188,15 +188,6 @@
                       </mat-select>
                       <mat-hint class="px-0">Adults/Child over 5 yrs</mat-hint>
                     </mat-form-field>
-                    <mat-checkbox [checked]="findRoomById(roomId).extra_guest" class="example-margin" color="primary"
-                      (change)="extraGuestActions($event, roomId)">
-                      <label>Add an extra guest </label>
-                    </mat-checkbox>
-
-                    <div *ngIf="findRoomById(roomId).extra_guest" class="pt-3">
-                      <strong *ngIf="selectedResort == 'Jungle Star, Valamuru'">INR 1500</strong>
-                      <strong *ngIf="selectedResort == 'Vanavihari, Maredumilli'">INR 500</strong>
-                    </div>
 
                     <div class="custom-dropdown mt-3">
                       <mat-form-field appearance="outline" class="mat-small">
@@ -208,6 +199,16 @@
                         </mat-select>
                         <mat-hint class="px-0">Up to 5 years</mat-hint>
                       </mat-form-field>
+                    </div>
+
+                    <mat-checkbox [checked]="findRoomById(roomId).extra_guest" class="example-margin" color="primary"
+                      (change)="extraGuestActions($event, roomId)">
+                      <label>Add an extra guest </label>
+                    </mat-checkbox>
+
+                    <div *ngIf="findRoomById(roomId).extra_guest" class="pt-3">
+                      <strong *ngIf="selectedResort == 'Jungle Star, Valamuru'">INR 1500</strong>
+                      <strong *ngIf="selectedResort == 'Vanavihari, Maredumilli'">INR 500</strong>
                     </div>
                   </div>
                 </div>
