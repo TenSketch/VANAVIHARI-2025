@@ -180,9 +180,9 @@
 
                   <div class="custom-dropdown mt-4">
                     <mat-form-field appearance="outline" class="mat-small">
-                      <mat-label>No. of Guests</mat-label>
+                      <mat-label>No. of Guests </mat-label>
                       <mat-select (selectionChange)="noOfGuestAction($event, roomId)"
-                        [(ngModel)]="selectedValues[roomId]" size="small" #guestSelect="matSelect">
+                        [(ngModel)]="selectedValues[roomId]" size="small" #guestSelect="matSelect" required>
                         <mat-option value="1">1</mat-option>
                         <mat-option value="2">2</mat-option>
                       </mat-select>
@@ -197,25 +197,24 @@
                       <strong *ngIf="selectedResort == 'Jungle Star, Valamuru'">INR 1500</strong>
                       <strong *ngIf="selectedResort == 'Vanavihari, Maredumilli'">INR 500</strong>
                     </div>
+
+                    <div class="custom-dropdown mt-3">
+                      <mat-form-field appearance="outline" class="mat-small">
+                        <mat-label>No of children</mat-label>
+                        <mat-select [(ngModel)]="selectedChildrenValues[roomId]" size="small">
+                          <mat-option value="0">0</mat-option>
+                          <mat-option value="1">1</mat-option>
+                          <mat-option value="2">2</mat-option>
+                        </mat-select>
+                        <mat-hint class="px-0">Up to 5 years</mat-hint>
+                      </mat-form-field>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
             <hr class="my-1" />
             <ng-container *ngIf="showBookingSummary">
-              <div class="custom-dropdown mt-4">
-                <mat-form-field appearance="outline" class="mat-small">
-                  <mat-label>No of children</mat-label>
-                  <mat-select required [(ngModel)]="extraChildren" size="small">
-                    <mat-option value="0">0</mat-option>
-                    <mat-option value="1">1</mat-option>
-                    <mat-option value="2">2</mat-option>
-                    <mat-option value="3">3</mat-option>
-                    <mat-option value="4">4</mat-option>
-                  </mat-select>
-                  <mat-hint class="px-0">Up to 5 years</mat-hint>
-                </mat-form-field>
-              </div>
               <div class="d-flex justify-content-between pt-1">
                 <span>
                   Room charges<br>
