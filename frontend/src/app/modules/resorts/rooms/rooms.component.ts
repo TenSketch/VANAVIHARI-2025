@@ -775,6 +775,9 @@ export class RoomsComponent implements OnInit {
     this.showBookingSummary = true;
     room.is_button_disabled = true;
 
+    // Initialize children count to 0 for the new room
+    this.selectedChildrenValues[room.Room_Id] = 0;
+
     this.authService.setBookingRooms(this.bookingTypeResort, this.roomIds);
     this.showSnackBarAlert('Room added successfully', false);
 
@@ -798,6 +801,10 @@ export class RoomsComponent implements OnInit {
     if (indexToRemove !== -1) {
       this.extraGuestsIds.splice(indexToRemoveEg, 1);
     }
+
+    // Remove children value for this room
+    delete this.selectedChildrenValues[roomId];
+    delete this.selectedValues[roomId];
 
     this.authService.setExtraGuests(this.extraGuestsType, this.extraGuestsIds);
     if (this.roomIds.length > 0) {
@@ -904,7 +911,7 @@ export class RoomsComponent implements OnInit {
       booking_rooms: localStorage.getItem('booking_rooms'),
       noof_guests: localStorage.getItem('noof_guests'),
       extra_guests: localStorage.getItem('extra_guests'),
-      extra_children: this.extraChildren,
+      extra_children: this.getTotalChildren(),
       grand_total: this.calculatePayablePrice(),
       room_charges: this.calculateTotalPrice(),
       total_gst: this.calculateTotalGst(),
@@ -964,6 +971,7 @@ export class RoomsComponent implements OnInit {
     return card.roomName;
   }
   selectedValues: { [key: string]: number } = {};
+  selectedChildrenValues: { [key: string]: number } = {};
 
   isGuestSelectEmpty(): boolean {
     const roomIdsWithNoValue = this.roomIds.filter(
@@ -1054,5 +1062,14 @@ export class RoomsComponent implements OnInit {
   }
   toggleFilter() {
     this.isFilterOpen = !this.isFilterOpen;
+  }
+
+  getTotalChildren(): number {
+    let total = 0;
+    for (const roomId of this.roomIds) {
+      const childrenCount = this.selectedChildrenValues[roomId] || 0;
+      total += Number(childrenCount);
+    }
+    return total;
   }
 }
