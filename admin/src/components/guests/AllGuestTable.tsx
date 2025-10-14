@@ -12,6 +12,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 // Guests will be loaded from backend API (MongoDB)
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,8 @@ const exportToExcel = (guestsParam: Guest[]) => {
 
 export default function GuestTable() {
   const tableRef = useRef(null);
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   // sheetMode toggles between viewing details and editing inside the sheet
   const [sheetMode, setSheetMode] = useState<'view' | 'edit'>('view');
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
@@ -106,6 +109,11 @@ export default function GuestTable() {
     guestsRef.current = guestsState;
   }, [guestsState]);
 
+  // keep perms ref up-to-date for event handlers attached to document
+  useEffect(() => {
+    permsRef.current = perms
+  }, [perms])
+
   const handleEdit = (guest: Guest) => {
     // open the side sheet in edit mode
     setSelectedGuest(guest);
@@ -121,18 +129,22 @@ export default function GuestTable() {
   };
 
   const handleRowClick = (guest: Guest) => {
+    // Always open in view mode when a row is clicked
     setSelectedGuest(guest);
+    setEditingGuest(null);
+    setSheetMode('view');
     setIsDetailSheetOpen(true);
   };
 
   const confirmDisable = async () => {
     if (disablingGuest) {
       try {
+        const token = localStorage.getItem('admin_token')
+        const headers: any = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
         const response = await fetch(`/api/guests/${disablingGuest.id}`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ disabled: true })
         });
 
@@ -164,13 +176,18 @@ export default function GuestTable() {
   };
 
   const handleUpdate = async () => {
+    if (!permsRef.current.canEdit) {
+      // extra guard: do nothing if user lacks edit permission
+      return
+    }
     if (editingGuest && formData) {
       try {
+        const token = localStorage.getItem('admin_token')
+        const headers: any = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
         const response = await fetch(`/api/guests/${editingGuest.id}`, {
           method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify(formData)
         });
 
@@ -227,7 +244,10 @@ export default function GuestTable() {
     const fetchGuests = async () => {
       setLoading(true);
       try {
-  const res = await fetch('/api/guests');
+        const token = localStorage.getItem('admin_token')
+        const headers: any = {}
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const res = await fetch('/api/guests', { headers });
         const json = await res.json();
         if (json && json.success && Array.isArray(json.guests)) {
           const mappedGuests = json.guests.map((g: any) => ({
@@ -385,10 +405,14 @@ export default function GuestTable() {
         // Stop propagation to prevent row click when button is clicked
         event.stopPropagation();
         
-        if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+        if ((target.classList.contains('edit-btn') || target.closest('.edit-btn')) && permsRef.current.canEdit) {
+          // double-check permission before opening edit
           handleEdit(guest);
-        } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
+        } else if ((target.classList.contains('disable-btn') || target.closest('.disable-btn')) && permsRef.current.canDisable) {
           handleDisable(guest);
+        } else {
+          // user clicked a button they lack permission for - ignore
+          return;
         }
       }
     };
@@ -452,6 +476,7 @@ export default function GuestTable() {
         const isDisabled = disabledGuests.has(row.id);
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}" 
@@ -474,6 +499,8 @@ export default function GuestTable() {
             >
               Edit
             </button>
+            ` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row.id}" 
@@ -496,6 +523,7 @@ export default function GuestTable() {
             >
               ${isDisabled ? 'Disabled' : 'Disable'}
             </button>
+            ` : ''}
           </div>
         `;
       },
@@ -507,9 +535,10 @@ export default function GuestTable() {
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-800">Guest Records</h2>
         <button
-          onClick={() => exportToExcel(guestsState)}
-          className="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
-          disabled={loading}
+          onClick={() => perms.canViewDownload ? exportToExcel(guestsState) : null}
+          className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${perms.canViewDownload ? 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}
+          disabled={loading || !perms.canViewDownload}
+          title={perms.canViewDownload ? 'Export to Excel' : 'You do not have permission to download/export'}
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
@@ -773,23 +802,27 @@ export default function GuestTable() {
                   <>
                     <Button 
                       onClick={() => {
+                        if (!perms.canEdit) return
                         // switch to edit mode inside the same sheet
                         setSheetMode('edit');
                         setEditingGuest(selectedGuest);
                         setFormData({ ...selectedGuest });
                       }}
                       className="flex-1"
-                      disabled={disabledGuests.has(selectedGuest.id)}
+                      disabled={disabledGuests.has(selectedGuest.id) || !perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
                     >
                       Edit Guest
                     </Button>
                     <Button 
                       variant="destructive" 
                       onClick={() => {
+                        if (!perms.canDisable) return
                         setIsDetailSheetOpen(false);
                         handleDisable(selectedGuest);
                       }}
-                      disabled={disabledGuests.has(selectedGuest.id)}
+                      disabled={disabledGuests.has(selectedGuest.id) || !perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
                     >
                       Disable
                     </Button>
@@ -799,7 +832,11 @@ export default function GuestTable() {
                     <Button variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
-                    <Button onClick={handleUpdate}>
+                    <Button 
+                      onClick={() => { if (!perms.canEdit) return; handleUpdate(); }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to update' : undefined}
+                    >
                       Update
                     </Button>
                   </>

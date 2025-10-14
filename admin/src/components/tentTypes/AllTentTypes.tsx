@@ -10,6 +10,7 @@ import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 import {
   Sheet,
   SheetContent,
@@ -38,9 +39,13 @@ interface TentType {
 
 export default function AllTentTypesTable() {
   const tableRef = useRef(null);
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedTent, setSelectedTent] = useState<TentType | null>(null);
   const [tentTypes, setTentTypes] = useState<TentType[]>([]);
+  const tentTypesRef = useRef<TentType[]>([])
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editTentType, setEditTentType] = useState("");
@@ -89,7 +94,11 @@ export default function AllTentTypesTable() {
     fetchTentTypes();
   }, []);
 
-  const handleEdit = (tent: TentType) => {
+  // keep refs up to date for DOM handlers
+  useEffect(()=>{ tentTypesRef.current = tentTypes }, [tentTypes])
+  useEffect(()=>{ permsRef.current = perms }, [perms])
+
+  const openForView = (tent: TentType) => {
     setSelectedTent(tent);
     setEditTentType(tent.tentType);
     setEditDimensions(tent.dimensions);
@@ -97,10 +106,18 @@ export default function AllTentTypesTable() {
     setEditFeatures(tent.features);
     setEditPrice(String(tent.price));
     setEditAmenities(tent.amenities);
+    setSheetMode('view')
     setIsDetailSheetOpen(true);
+  }
+
+  const handleEdit = (tent: TentType) => {
+    if (!permsRef.current.canEdit) return
+    openForView(tent)
+    setSheetMode('edit')
   };
 
   const toggleActiveStatus = (tent: TentType) => {
+    if (!permsRef.current.canDisable) return
     setTentTypes((prev) =>
       prev.map((t) =>
         t.id === tent.id ? { ...t, isActive: !t.isActive } : t
@@ -150,23 +167,28 @@ export default function AllTentTypesTable() {
         const isDisabled = !row.isActive;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}"
               style="background: #3b82f6; color: white; border: none; padding: 6px 12px;
                 border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              title="Edit Tent Type"
             >
               Edit
-            </button>
+            </button>` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row.id}"
               style="background: ${isDisabled ? "#6b7280" : "#dc2626"}; color: white;
                 border: none; padding: 6px 12px; border-radius: 6px;
-                font-size: 12px; font-weight: 500; cursor: pointer;"
+                font-size: 12px; font-weight: 500; cursor: ${isDisabled ? 'not-allowed' : 'pointer'};"
+              ${isDisabled ? 'disabled' : ''}
+              title="${isDisabled ? 'Already inactive' : 'Deactivate'}"
             >
               ${isDisabled ? "Inactive" : "Deactivate"}
-            </button>
+            </button>` : ''}
           </div>
         `;
       },
@@ -177,22 +199,33 @@ export default function AllTentTypesTable() {
   useEffect(() => {
     const handleClick = (event: Event) => {
       const target = event.target as HTMLElement;
-      const tentId =
-        target.getAttribute("data-id") ||
-        target.closest("button")?.getAttribute("data-id");
-      const tent = tentTypes.find((t) => t.id === tentId);
-
-      if (tent) {
-        if (target.classList.contains("edit-btn")) {
-          handleEdit(tent);
-        } else if (target.classList.contains("disable-btn")) {
-          toggleActiveStatus(tent);
+      const button = target.closest('button') as HTMLElement | null
+      if (button?.classList.contains('edit-btn') || button?.classList.contains('disable-btn')) {
+        event.stopPropagation()
+        const tentId = button.getAttribute('data-id') || ''
+        const tent = tentTypesRef.current.find(t => t.id === tentId)
+        if (!tent) return
+        if (button.classList.contains('edit-btn')) {
+          if (!permsRef.current.canEdit) return
+          handleEdit(tent)
+        } else if (button.classList.contains('disable-btn')) {
+          if (!permsRef.current.canDisable) return
+          toggleActiveStatus(tent)
         }
+        return
+      }
+
+      // Row click opens view-only sheet
+      const row = target.closest('tr')
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row as any)
+        const tent = tentTypesRef.current[rowIndex]
+        if (tent) openForView(tent)
       }
     };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [tentTypes]);
+  }, []);
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
@@ -269,32 +302,56 @@ export default function AllTentTypesTable() {
 
                 <div>
                   <Label>Tent Type</Label>
-                  <Input value={editTentType} onChange={(e) => setEditTentType(e.target.value)} />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editTentType} onChange={(e) => setEditTentType(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentType}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Dimensions</Label>
-                  <Input value={editDimensions} onChange={(e) => setEditDimensions(e.target.value)} />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editDimensions} onChange={(e) => setEditDimensions(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.dimensions}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Brand name</Label>
-                  <Input value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editBrand} onChange={(e) => setEditBrand(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.brand}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Features</Label>
-                  <textarea rows={4} value={editFeatures} onChange={(e) => setEditFeatures(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                  {sheetMode === 'edit' ? (
+                    <textarea rows={4} value={editFeatures} onChange={(e) => setEditFeatures(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border whitespace-pre-wrap">{selectedTent.features}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Price</Label>
-                  <Input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                  {sheetMode === 'edit' ? (
+                    <Input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">₹{selectedTent.price.toLocaleString()}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Amenities</Label>
-                  <textarea rows={3} value={editAmenities} onChange={(e) => setEditAmenities(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                  {sheetMode === 'edit' ? (
+                    <textarea rows={3} value={editAmenities} onChange={(e) => setEditAmenities(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border whitespace-pre-wrap">{selectedTent.amenities}</div>
+                  )}
                 </div>
 
                 <div>
@@ -304,38 +361,59 @@ export default function AllTentTypesTable() {
               </div>
 
               <div className="flex-shrink-0 flex gap-2 p-6 border-t bg-white">
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    setTentTypes((prev) =>
-                      prev.map((t) =>
-                        t.id === selectedTent.id
-                          ? {
-                              ...t,
-                              tentType: editTentType,
-                              dimensions: editDimensions,
-                              brand: editBrand,
-                              features: editFeatures,
-                              price: Number(editPrice),
-                              amenities: editAmenities,
-                            }
-                          : t
-                      )
-                    );
-                    setIsDetailSheetOpen(false);
-                  }}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant={selectedTent.isActive ? "destructive" : "default"}
-                  onClick={() => toggleActiveStatus(selectedTent)}
-                >
-                  {selectedTent.isActive ? "Deactivate" : "Activate"}
-                </Button>
-                <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>
-                  Close
-                </Button>
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button
+                      className="flex-1"
+                      onClick={() => { if (!perms.canEdit) return; setSheetMode('edit') }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant={selectedTent.isActive ? "destructive" : "default"}
+                      onClick={() => { if (!perms.canDisable) return; toggleActiveStatus(selectedTent) }}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to change status' : undefined}
+                    >
+                      {selectedTent.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>
+                      Close
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setSheetMode('view')}>Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (!perms.canEdit) return
+                        setTentTypes((prev) =>
+                          prev.map((t) =>
+                            t.id === selectedTent.id
+                              ? {
+                                  ...t,
+                                  tentType: editTentType,
+                                  dimensions: editDimensions,
+                                  brand: editBrand,
+                                  features: editFeatures,
+                                  price: Number(editPrice),
+                                  amenities: editAmenities,
+                                }
+                              : t
+                          )
+                        );
+                        setSheetMode('view')
+                        setIsDetailSheetOpen(false);
+                      }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to save' : undefined}
+                    >
+                      Save
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

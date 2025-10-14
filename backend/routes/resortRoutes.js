@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import path from 'path'
 import { createResort, listResorts, updateResort } from '../controllers/resortController.js'
+import requirePermission from '../middlewares/requirePermission.js'
 
 const router = express.Router()
 
@@ -12,8 +13,8 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
-router.post('/add', upload.single('logo'), createResort)
+router.post('/add', requirePermission('canEdit'), upload.single('logo'), createResort)
 router.get('/', listResorts)
-router.put('/:id', upload.single('logo'), updateResort)
+router.put('/:id', requirePermission('canEdit'), upload.single('logo'), updateResort)
 
 export default router

@@ -16,6 +16,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import AllRoomTypes from "./allrooms.json";
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 // Removed Dialog imports (edit & confirm modals eliminated)
 import {
   Sheet,
@@ -52,8 +53,11 @@ const staticSeedRooms: Room[] = AllRoomTypes as any;
 
 export default function RoomsTable() {
   const tableRef = useRef(null);
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   // Removed separate edit & confirm disable dialogs
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [disabledRooms, setDisabledRooms] = useState<Set<string>>(new Set());
   const [roomsData, setRoomsData] = useState<Room[]>(staticSeedRooms);
@@ -61,18 +65,21 @@ export default function RoomsTable() {
   // keep a ref to always have latest rooms list for event listeners
   const roomsDataRef = useRef<Room[]>(roomsData);
   useEffect(() => { roomsDataRef.current = roomsData; }, [roomsData]);
+  useEffect(() => { permsRef.current = perms }, [perms])
   const [editData, setEditData] = useState<Partial<Room>>({});
   const [saving, setSaving] = useState(false);
   const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
   
   const handleEdit = (room: Room) => {
-    // Open the detail sheet directly when clicking Edit
+    if (!permsRef.current.canEdit) return
     setSelectedRoom(room);
+    setEditData({ ...room });
+    setSheetMode('edit')
     setIsDetailSheetOpen(true);
-  setEditData({ ...room });
   };
 
   const handleDisable = (room: Room) => {
+    if (!permsRef.current.canDisable) return
     // Directly disable without confirmation modal
     setDisabledRooms(prev => new Set([...prev, room.id]));
   };
@@ -81,6 +88,7 @@ export default function RoomsTable() {
     setSelectedRoom(room);
     setIsDetailSheetOpen(true);
     setEditData({ ...room });
+    setSheetMode('view')
   };
 
   const handleFieldChange = (field: keyof Room, value: any) => {
@@ -88,6 +96,7 @@ export default function RoomsTable() {
   };
 
   const handleSave = async () => {
+    if (!permsRef.current.canEdit) return
     if (!selectedRoom) return;
     if (!selectedRoom._id) {
       alert('This room exists only in static seed data. Create it in backend first to enable saving.');
@@ -106,9 +115,10 @@ export default function RoomsTable() {
     };
     setSaving(true);
     try {
+      const token = localStorage.getItem('admin_token')
       const res = await fetch(`${apiBase}/api/rooms/${idForApi}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload)
       });
       const data = await res.json().catch(() => null);
@@ -134,6 +144,7 @@ export default function RoomsTable() {
         setRoomsData(prev => prev.map(r => (r._id === srv._id ? { ...r, ...mapped } as Room : r)));
       }
       alert('Saved');
+      setSheetMode('view')
     } catch (e: any) {
       console.error(e);
       alert('Save failed: ' + e.message);
@@ -266,8 +277,10 @@ export default function RoomsTable() {
         event.stopPropagation();
         
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+          if (!permsRef.current.canEdit) return
           handleEdit(room);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
+          if (!permsRef.current.canDisable) return
           handleDisable(room);
         }
       }
@@ -301,7 +314,7 @@ export default function RoomsTable() {
   }, []);
 
   const columns = [
-    { data: "id", title: "ID" },
+  { data: "id", title: "ID" },
     { data: "resort", title: "Resort" },
     { data: "cottageType", title: "Cottage Type" },
     { data: "roomId", title: "Room ID" },
@@ -344,6 +357,7 @@ export default function RoomsTable() {
         const isDisabled = disabledRooms.has(row.id);
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}" 
@@ -365,7 +379,8 @@ export default function RoomsTable() {
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
               Edit
-            </button>
+            </button>` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row.id}" 
@@ -387,7 +402,7 @@ export default function RoomsTable() {
               onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
             >
               ${isDisabled ? 'Disabled' : 'Disable'}
-            </button>
+            </button>` : ''}
           </div>
         `;
       },
@@ -579,15 +594,33 @@ export default function RoomsTable() {
               
               {/* Fixed Action Buttons */}
               <div className="flex-shrink-0 flex gap-3 justify-end p-6 pt-4 border-t bg-white">
-                <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)} disabled={saving}>Close</Button>
-                <Button onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => handleDisable(selectedRoom)}
-                  disabled={disabledRooms.has(selectedRoom.id)}
-                >
-                  {disabledRooms.has(selectedRoom.id) ? 'Disabled' : 'Disable'}
-                </Button>
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button
+                      onClick={() => { if (!perms.canEdit) return; setSheetMode('edit') }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
+                    >
+                      Edit Room
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => { if (!perms.canDisable) return; handleDisable(selectedRoom) }}
+                      disabled={disabledRooms.has(selectedRoom.id) || !perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
+                    >
+                      {disabledRooms.has(selectedRoom.id) ? 'Disabled' : 'Disable'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)} disabled={saving}>Close</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setSheetMode('view')} disabled={saving}>Cancel</Button>
+                    <Button onClick={handleSave} disabled={saving || !perms.canEdit} title={!perms.canEdit ? 'You do not have permission to update' : undefined}>
+                      {saving ? 'Saving...' : 'Update'}
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

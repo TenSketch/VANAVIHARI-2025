@@ -16,6 +16,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 // Using backend data instead of local JSON
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 // Removed small modals (edit & confirm disable)
 import {
   Sheet,
@@ -24,6 +25,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,8 +70,13 @@ interface Reservation {
 export default function ReservationTable() {
   const tableRef = useRef(null);
   const apiUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000';
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false)
+  const [disablingReservation, setDisablingReservation] = useState<Reservation | null>(null)
   const [disabledReservations, setDisabledReservations] = useState<Set<string>>(new Set());
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const reservationsRef = useRef<Reservation[]>([])
@@ -83,11 +97,15 @@ export default function ReservationTable() {
     }
   }, [selectedReservation])
 
+  // keep perms ref up-to-date for event handlers attached to document
+  useEffect(() => { permsRef.current = perms }, [perms])
+
   const handleEditChange = (field: keyof Reservation, value: any) => {
     setEditForm(prev => ({ ...(prev || {}), [field]: value }))
   }
 
   const saveChanges = async () => {
+    if (!permsRef.current.canEdit) return
     if (!editForm || !selectedReservation) return
     setIsSaving(true)
     // optimistic local update
@@ -108,9 +126,12 @@ export default function ReservationTable() {
       if (payload.noOfDays) delete payload.noOfDays
       if (payload.totalGuests) delete payload.totalGuests
 
+      const token = localStorage.getItem('admin_token')
+      const headers: any = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
       const res = await fetch(`${apiUrl}/api/reservations/${selectedReservation.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       })
 
@@ -153,7 +174,7 @@ export default function ReservationTable() {
       }
 
       setIsSaving(false)
-      alert('Saved successfully')
+      setSheetMode('view')
     } catch (err: any) {
       console.error('Save failed', err)
       alert('Failed to save: ' + (err?.message || String(err)))
@@ -210,6 +231,7 @@ export default function ReservationTable() {
 
   // Toggle/disable a reservation (mirrors cottage-type pattern)
   const disableReservation = async (reservation: Reservation | null) => {
+    if (!permsRef.current.canDisable) return
     if (!reservation) return
     const target = !Boolean(reservation.disabled)
 
@@ -227,9 +249,12 @@ export default function ReservationTable() {
         return
       }
 
+      const token = localStorage.getItem('admin_token')
+      const headers: any = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
       const res = await fetch(`${apiUrl}/api/reservations/${reservation.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ disabled: target }),
       })
 
@@ -281,10 +306,24 @@ export default function ReservationTable() {
     }
   }
 
-  // row click toggles disabled (keeps previous behavior)
+  // Row click opens view-only details
   const handleRowClick = (reservation: Reservation) => {
     if (!reservation) return
-    void disableReservation(reservation)
+    setSelectedReservation(reservation)
+    setSheetMode('view')
+    setIsDetailSheetOpen(true)
+  }
+
+  const confirmDisable = async () => {
+    if (!disablingReservation) return
+    await disableReservation(disablingReservation)
+    setIsConfirmDisableOpen(false)
+    setDisablingReservation(null)
+  }
+
+  const cancelDisable = () => {
+    setIsConfirmDisableOpen(false)
+    setDisablingReservation(null)
   }
 
   useEffect(() => {
@@ -431,7 +470,7 @@ export default function ReservationTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       // support clicks on inner text/nodes by finding the closest button
-  const btn = target.closest('.edit-btn') as HTMLElement | null;
+      const btn = target.closest('.edit-btn, .disable-btn') as HTMLElement | null;
       if (!btn) return;
 
       // Stop propagation to prevent row click when button is clicked
@@ -442,11 +481,15 @@ export default function ReservationTable() {
       if (!reservation) return;
 
       if (btn.classList.contains('edit-btn')) {
-        // Open detail sheet on edit
+        if (!permsRef.current.canEdit) return
+        // Open detail sheet in edit mode
         setSelectedReservation(reservation);
+        setSheetMode('edit')
         setIsDetailSheetOpen(true);
       } else if (btn.classList.contains('disable-btn')) {
-        void disableReservation(reservation);
+        if (!permsRef.current.canDisable) return
+        setDisablingReservation(reservation)
+        setIsConfirmDisableOpen(true)
       }
     };
 
@@ -521,6 +564,7 @@ export default function ReservationTable() {
         const isDisabled = disabledReservations.has(row.id);
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}" 
@@ -543,6 +587,31 @@ export default function ReservationTable() {
             >
               Edit
             </button>
+            ` : ''}
+            ${perms.canDisable ? `
+            <button 
+              class="disable-btn" 
+              data-id="${row.id}" 
+              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
+              style="
+                background: ${isDisabled ? '#6b7280' : '#dc2626'};
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                transition: all 0.2s ease;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+              "
+              ${isDisabled ? 'disabled' : ''}
+              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
+              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
+            >
+              ${isDisabled ? 'Disabled' : 'Disable'}
+            </button>
+            ` : ''}
           </div>
         `;
       },
@@ -555,8 +624,10 @@ export default function ReservationTable() {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-slate-800">Reservations</h2>
         <button
-          onClick={exportToExcel}
-          className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors duration-200"
+          onClick={() => perms.canViewDownload ? exportToExcel() : null}
+          className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 ${perms.canViewDownload ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-gray-300 cursor-not-allowed'}`}
+          disabled={!perms.canViewDownload}
+          title={perms.canViewDownload ? 'Export to Excel' : 'You do not have permission to download/export'}
         >
           ⬇ Export to Excel
         </button>
@@ -603,6 +674,29 @@ export default function ReservationTable() {
 
   {/* Removed edit & confirmation dialogs */}
 
+      {/* Confirm Disable Dialog */}
+      <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Disable</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disable this reservation record?
+            </DialogDescription>
+          </DialogHeader>
+          {disablingReservation && (
+            <div className="py-4 space-y-2 text-sm text-gray-700">
+              <p><strong>Reservation ID:</strong> {disablingReservation.id}</p>
+              <p><strong>Booking ID:</strong> {disablingReservation.bookingId}</p>
+              <p><strong>Name:</strong> {disablingReservation.fullName}</p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDisable}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDisable}>Yes, Disable</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Reservation Details Sheet */}
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
         <SheetContent className="w-[400px] sm:w-[700px] lg:w-[800px] flex flex-col">
@@ -624,17 +718,35 @@ export default function ReservationTable() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Full Name</Label>
-                        <Input className="mt-1" value={editForm?.fullName || ''} onChange={(e)=>handleEditChange('fullName', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.fullName || ''} onChange={(e)=>handleEditChange('fullName', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.fullName}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Phone</Label>
-                        <Input className="mt-1" value={editForm?.phone || ''} onChange={(e)=>handleEditChange('phone', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.phone || ''} onChange={(e)=>handleEditChange('phone', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.phone}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="md:col-span-2">
                         <Label className="text-sm font-medium text-gray-700">Email</Label>
-                        <Input className="mt-1" value={editForm?.email || ''} onChange={(e)=>handleEditChange('email', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.email || ''} onChange={(e)=>handleEditChange('email', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.email}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -659,14 +771,24 @@ export default function ReservationTable() {
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Check In</Label>
-                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                          <span className="text-sm text-gray-900">{selectedReservation.checkIn}</span>
-                        </div>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" type="date" value={editForm?.checkIn || ''} onChange={(e)=>handleEditChange('checkIn', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.checkIn}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Check Out</Label>
-                        <Input className="mt-1" type="date" value={editForm?.checkOut || ''} onChange={(e)=>handleEditChange('checkOut', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" type="date" value={editForm?.checkOut || ''} onChange={(e)=>handleEditChange('checkOut', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.checkOut}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
@@ -678,7 +800,13 @@ export default function ReservationTable() {
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Resort</Label>
-                        <Input className="mt-1" value={editForm?.resort || ''} onChange={(e)=>handleEditChange('resort', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.resort || ''} onChange={(e)=>handleEditChange('resort', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.resort}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -689,17 +817,35 @@ export default function ReservationTable() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Guests</Label>
-                        <Input className="mt-1 text-center" type="number" value={String(editForm?.guests ?? 0)} onChange={(e)=>handleEditChange('guests', parseInt(e.target.value)||0)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.guests ?? 0)} onChange={(e)=>handleEditChange('guests', parseInt(e.target.value)||0)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                            <span className="text-sm text-gray-900">{selectedReservation.guests}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Children</Label>
-                        <Input className="mt-1 text-center" type="number" value={String(editForm?.children ?? 0)} onChange={(e)=>handleEditChange('children', parseInt(e.target.value)||0)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.children ?? 0)} onChange={(e)=>handleEditChange('children', parseInt(e.target.value)||0)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                            <span className="text-sm text-gray-900">{selectedReservation.children}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Extra Guests</Label>
-                        <Input className="mt-1 text-center" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e)=>handleEditChange('extraGuests', parseInt(e.target.value)||0)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e)=>handleEditChange('extraGuests', parseInt(e.target.value)||0)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                            <span className="text-sm text-gray-900">{selectedReservation.extraGuests}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
@@ -717,17 +863,35 @@ export default function ReservationTable() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Rooms</Label>
-                        <Input className="mt-1 text-center" type="number" value={String(editForm?.rooms ?? 0)} onChange={(e)=>handleEditChange('rooms', parseInt(e.target.value)||0)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.rooms ?? 0)} onChange={(e)=>handleEditChange('rooms', parseInt(e.target.value)||0)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                            <span className="text-sm text-gray-900">{selectedReservation.rooms}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">No. of Foods</Label>
-                        <Input className="mt-1 text-center" type="number" value={String(editForm?.noOfFoods ?? 0)} onChange={(e)=>handleEditChange('noOfFoods', parseInt(e.target.value)||0)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.noOfFoods ?? 0)} onChange={(e)=>handleEditChange('noOfFoods', parseInt(e.target.value)||0)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
+                            <span className="text-sm text-gray-900">{selectedReservation.noOfFoods}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="md:col-span-2">
                         <Label className="text-sm font-medium text-gray-700">Room Types (comma separated)</Label>
-                        <Input className="mt-2" value={(editForm?.roomTypes || []).join(', ')} onChange={(e)=>handleEditChange('roomTypes', e.target.value.split(',').map((s:string)=>s.trim()).filter(Boolean))} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-2" value={(editForm?.roomTypes || []).join(', ')} onChange={(e)=>handleEditChange('roomTypes', e.target.value.split(',').map((s:string)=>s.trim()).filter(Boolean))} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.roomTypes.join(', ')}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -738,17 +902,35 @@ export default function ReservationTable() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Reservation Status</Label>
-                        <Input className="mt-1" value={editForm?.status || ''} onChange={(e)=>handleEditChange('status', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.status || ''} onChange={(e)=>handleEditChange('status', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.status}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Payment Status</Label>
-                        <Input className="mt-1" value={editForm?.paymentStatus || ''} onChange={(e)=>handleEditChange('paymentStatus', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.paymentStatus || ''} onChange={(e)=>handleEditChange('paymentStatus', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.paymentStatus}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Refund Percentage</Label>
-                        <Input className="mt-1" value={editForm?.refundPercent || ''} onChange={(e)=>handleEditChange('refundPercent', e.target.value)} />
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.refundPercent || ''} onChange={(e)=>handleEditChange('refundPercent', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.refundPercent}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
@@ -768,18 +950,49 @@ export default function ReservationTable() {
               </div>
               
               {/* Fixed Action Buttons */}
-              <div className="flex-shrink-0 flex gap-2 justify-end p-6 pt-4 border-t bg-white">
-                <Button variant="outline" onClick={() => { setIsDetailSheetOpen(false); setSelectedReservation(null); }}>Cancel</Button>
-                <Button onClick={saveChanges} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </Button>
-                <Button
-                  onClick={() => disableReservation(selectedReservation)}
-                  disabled={false}
-                  className={disabledReservations.has(selectedReservation.id) ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
-                >
-                  {disabledReservations.has(selectedReservation.id) ? 'Enable' : 'Disable'}
-                </Button>
+              <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button 
+                      onClick={() => {
+                        if (!perms.canEdit) return
+                        setSheetMode('edit')
+                        setEditForm({ ...(selectedReservation as Reservation) })
+                      }}
+                      className="flex-1"
+                      disabled={disabledReservations.has(selectedReservation.id) || !perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
+                    >
+                      Edit Reservation
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => {
+                        if (!perms.canDisable) return
+                        setIsDetailSheetOpen(false)
+                        setDisablingReservation(selectedReservation)
+                        setIsConfirmDisableOpen(true)
+                      }}
+                      disabled={disabledReservations.has(selectedReservation.id) || !perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
+                    >
+                      Disable
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => { setSheetMode('view') }}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={saveChanges}
+                      disabled={isSaving || !perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to update' : undefined}
+                    >
+                      {isSaving ? 'Saving...' : 'Update'}
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

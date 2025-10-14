@@ -12,6 +12,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 // Remote data fetched from backend API
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 // Dialog imports removed (small modals no longer used)
 import {
   Sheet,
@@ -37,8 +38,11 @@ interface Amenity {
 export default function AllRoomAmenitiesTable() {
   const tableRef = useRef(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedAmenity, setSelectedAmenity] = useState<Amenity | null>(null);
   const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -48,21 +52,26 @@ export default function AllRoomAmenitiesTable() {
   // keep a live ref to amenities to avoid stale closure in global event handlers
   const amenitiesRef = useRef<Amenity[]>([]);
   useEffect(() => { amenitiesRef.current = amenities; }, [amenities]);
+  useEffect(() => { permsRef.current = perms }, [perms])
 
   const handleEdit = (amenity: Amenity) => {
+    if (!permsRef.current.canEdit) return
     // Open details sheet instead of a modal
     setSelectedAmenity(amenity);
-  setEditName(amenity.name || "");
-  setEditDescription(amenity.description || "");
+    setEditName(amenity.name || "");
+    setEditDescription(amenity.description || "");
+    setSheetMode('edit')
     setIsDetailSheetOpen(true);
   };
 
   const toggleActiveStatus = async (amenity: Amenity) => {
+    if (!permsRef.current.canDisable) return
     try {
       setUpdatingId(amenity._id);
+      const token = localStorage.getItem('admin_token')
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities/${amenity._id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({ isActive: !amenity.isActive })
       });
       if (!res.ok) throw new Error('Failed to update amenity status');
@@ -79,8 +88,9 @@ export default function AllRoomAmenitiesTable() {
 
   const handleRowClick = (amenity: Amenity) => {
     setSelectedAmenity(amenity);
-  setEditName(amenity.name || "");
-  setEditDescription(amenity.description || "");
+    setEditName(amenity.name || "");
+    setEditDescription(amenity.description || "");
+    setSheetMode('view')
     setIsDetailSheetOpen(true);
   };
 
@@ -209,8 +219,10 @@ export default function AllRoomAmenitiesTable() {
         event.stopPropagation();
         
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+          if (!permsRef.current.canEdit) return
           handleEdit(amenity);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
+          if (!permsRef.current.canDisable) return
           toggleActiveStatus(amenity);
         }
       }
@@ -273,9 +285,10 @@ export default function AllRoomAmenitiesTable() {
     const isDisabled = !row.isActive;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
-      data-id="${row._id}" 
+              data-id="${row._id}" 
               title="Edit Amenity"
               style="
                 background: #3b82f6;
@@ -294,7 +307,8 @@ export default function AllRoomAmenitiesTable() {
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
               Edit
-            </button>
+            </button>` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row._id}" 
@@ -307,15 +321,16 @@ export default function AllRoomAmenitiesTable() {
                 border-radius: 6px;
                 font-size: 12px;
                 font-weight: 500;
-                cursor: pointer;
+                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               "
+              ${isDisabled ? 'disabled' : ''}
               onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
               onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
             >
               ${isDisabled ? 'Inactive' : 'Deactivate'}
-            </button>
+            </button>` : ''}
           </div>
         `;
       },
@@ -445,42 +460,62 @@ export default function AllRoomAmenitiesTable() {
               
               {/* Fixed Action Buttons */}
               <div className="flex-shrink-0 flex flex-wrap gap-2 p-6 pt-4 border-t bg-white">
-                <Button
-                  onClick={async () => {
-                    if (!editName.trim()) { setError('Name is required'); return; }
-                    try {
-                      setSaving(true);
-                      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities/${selectedAmenity._id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: editName, description: editDescription })
-                      });
-                      if (!res.ok) throw new Error('Save failed');
-                      const data = await res.json();
-                      setAmenities(prev => prev.map(a => a._id === data.amenity._id ? data.amenity : a));
-                      setSelectedAmenity(data.amenity);
-                      setEditName(data.amenity.name || '');
-                      setEditDescription(data.amenity.description || '');
-                      setError(null);
-                    } catch (e:any) {
-                      setError(e.message || 'Save error');
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
-                  disabled={saving}
-                  className="flex-1"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </Button>
-                <Button
-                  onClick={() => toggleActiveStatus(selectedAmenity)}
-                  variant={selectedAmenity.isActive ? 'destructive' : 'default'}
-                  disabled={updatingId === selectedAmenity._id}
-                >
-                  {updatingId === selectedAmenity._id ? 'Updating...' : (selectedAmenity.isActive ? 'Deactivate' : 'Activate')}
-                </Button>
-                <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>Close</Button>
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button
+                      onClick={() => { if (!perms.canEdit) return; setSheetMode('edit') }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
+                      className="flex-1"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => { if (!perms.canDisable) return; toggleActiveStatus(selectedAmenity) }}
+                      variant={selectedAmenity.isActive ? 'destructive' : 'default'}
+                      disabled={updatingId === selectedAmenity._id || !perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to change status' : undefined}
+                    >
+                      {updatingId === selectedAmenity._id ? 'Updating...' : (selectedAmenity.isActive ? 'Deactivate' : 'Activate')}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>Close</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setSheetMode('view')}>Cancel</Button>
+                    <Button
+                      onClick={async () => {
+                        if (!perms.canEdit) return
+                        if (!editName.trim()) { setError('Name is required'); return; }
+                        try {
+                          setSaving(true);
+                          const token = localStorage.getItem('admin_token')
+                          const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/amenities/${selectedAmenity._id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+                            body: JSON.stringify({ name: editName, description: editDescription })
+                          });
+                          if (!res.ok) throw new Error('Save failed');
+                          const data = await res.json();
+                          setAmenities(prev => prev.map(a => a._id === data.amenity._id ? data.amenity : a));
+                          setSelectedAmenity(data.amenity);
+                          setEditName(data.amenity.name || '');
+                          setEditDescription(data.amenity.description || '');
+                          setError(null);
+                          setSheetMode('view')
+                        } catch (e:any) {
+                          setError(e.message || 'Save error');
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                      disabled={saving || !perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to save' : undefined}
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

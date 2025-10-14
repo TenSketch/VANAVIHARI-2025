@@ -1,6 +1,7 @@
 import express from 'express'
 import multer from 'multer'
 import { createRoom, listRooms, updateRoom } from '../controllers/roomController.js'
+import requirePermission from '../middlewares/requirePermission.js'
 
 const router = express.Router()
 
@@ -10,8 +11,8 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
-router.post('/add', upload.array('images'), createRoom)
+router.post('/add', requirePermission('canEdit'), upload.array('images'), createRoom)
 router.get('/', listRooms)
-router.put('/:id', upload.array('images'), updateRoom)
+router.put('/:id', requirePermission('canEdit'), upload.array('images'), updateRoom)
 
 export default router

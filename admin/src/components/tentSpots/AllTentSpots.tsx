@@ -10,6 +10,7 @@ import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 import {
   Sheet,
   SheetContent,
@@ -44,9 +45,13 @@ interface TentSpot {
 
 export default function AllTentSpotsTable() {
   const tableRef = useRef(null);
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedSpot, setSelectedSpot] = useState<TentSpot | null>(null);
   const [tentSpots, setTentSpots] = useState<TentSpot[]>([]);
+  const tentSpotsRef = useRef<TentSpot[]>([])
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -107,7 +112,10 @@ export default function AllTentSpotsTable() {
     fetchTentSpots();
   }, []);
 
-  const handleEdit = (spot: TentSpot) => {
+  useEffect(()=>{ tentSpotsRef.current = tentSpots }, [tentSpots])
+  useEffect(()=>{ permsRef.current = perms }, [perms])
+
+  const openForView = (spot: TentSpot) => {
     setSelectedSpot(spot);
     setEditSpotName(spot.spotName);
     setEditLocation(spot.location);
@@ -121,10 +129,18 @@ export default function AllTentSpotsTable() {
     setEditWomenStay(spot.womenStay);
     setEditCheckIn(spot.checkIn);
     setEditCheckOut(spot.checkOut);
+    setSheetMode('view')
     setIsDetailSheetOpen(true);
   };
 
+  const handleEdit = (spot: TentSpot) => {
+    if (!permsRef.current.canEdit) return
+    openForView(spot)
+    setSheetMode('edit')
+  };
+
   const toggleActiveStatus = (spot: TentSpot) => {
+    if (!permsRef.current.canDisable) return
     setTentSpots((prev) =>
       prev.map((t) =>
         t.id === spot.id ? { ...t, isActive: !t.isActive } : t
@@ -177,23 +193,28 @@ export default function AllTentSpotsTable() {
         const isDisabled = !row.isActive;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}"
               style="background: #3b82f6; color: white; border: none; padding: 6px 12px;
                 border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;"
+              title="Edit Tent Spot"
             >
               Edit
-            </button>
+            </button>` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row.id}"
               style="background: ${isDisabled ? "#6b7280" : "#dc2626"}; color: white;
                 border: none; padding: 6px 12px; border-radius: 6px;
-                font-size: 12px; font-weight: 500; cursor: pointer;"
+                font-size: 12px; font-weight: 500; cursor: ${isDisabled ? 'not-allowed' : 'pointer'};"
+              ${isDisabled ? 'disabled' : ''}
+              title="${isDisabled ? 'Already inactive' : 'Deactivate'}"
             >
               ${isDisabled ? "Inactive" : "Deactivate"}
-            </button>
+            </button>` : ''}
           </div>
         `;
       },
@@ -204,22 +225,33 @@ export default function AllTentSpotsTable() {
   useEffect(() => {
     const handleClick = (event: Event) => {
       const target = event.target as HTMLElement;
-      const spotId =
-        target.getAttribute("data-id") ||
-        target.closest("button")?.getAttribute("data-id");
-      const spot = tentSpots.find((t) => t.id === spotId);
-
-      if (spot) {
-        if (target.classList.contains("edit-btn")) {
-          handleEdit(spot);
-        } else if (target.classList.contains("disable-btn")) {
-          toggleActiveStatus(spot);
+      const button = target.closest('button') as HTMLElement | null
+      if (button?.classList.contains('edit-btn') || button?.classList.contains('disable-btn')) {
+        event.stopPropagation()
+        const spotId = button.getAttribute('data-id') || ''
+        const spot = tentSpotsRef.current.find(t => t.id === spotId)
+        if (!spot) return
+        if (button.classList.contains('edit-btn')) {
+          if (!permsRef.current.canEdit) return
+          handleEdit(spot)
+        } else if (button.classList.contains('disable-btn')) {
+          if (!permsRef.current.canDisable) return
+          toggleActiveStatus(spot)
         }
+        return
+      }
+
+      // Row click opens view-only detail
+      const row = target.closest('tr')
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const rowIndex = Array.from(row.parentElement.children).indexOf(row as any)
+        const spot = tentSpotsRef.current[rowIndex]
+        if (spot) openForView(spot)
       }
     };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [tentSpots]);
+  }, []);
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
@@ -313,100 +345,110 @@ export default function AllTentSpotsTable() {
 
                 <div>
                   <Label>Spot Name</Label>
-                  <Input
-                    value={editSpotName}
-                    onChange={(e) => setEditSpotName(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editSpotName} onChange={(e) => setEditSpotName(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.spotName}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Location & Map</Label>
-                  <Input
-                    value={editLocation}
-                    onChange={(e) => setEditLocation(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.location}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Contact Person</Label>
-                  <Input
-                    value={editContactPerson}
-                    onChange={(e) => setEditContactPerson(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editContactPerson} onChange={(e) => setEditContactPerson(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.contactPerson}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Contact No</Label>
-                  <Input
-                    value={editContactNo}
-                    onChange={(e) => setEditContactNo(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editContactNo} onChange={(e) => setEditContactNo(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.contactNo}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Email</Label>
-                  <Input
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.email}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Rules</Label>
-                  <textarea
-                    rows={4}
-                    value={editRules}
-                    onChange={(e) => setEditRules(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md bg-slate-50"
-                  />
+                  {sheetMode === 'edit' ? (
+                    <textarea rows={4} value={editRules} onChange={(e) => setEditRules(e.target.value)} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border whitespace-pre-wrap">{selectedSpot.rules}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Accommodation</Label>
-                  <Input
-                    value={editAccommodation}
-                    onChange={(e) => setEditAccommodation(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editAccommodation} onChange={(e) => setEditAccommodation(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.accommodation}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Food Availability</Label>
-                  <Input
-                    value={editFoodAvailable}
-                    onChange={(e) => setEditFoodAvailable(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editFoodAvailable} onChange={(e) => setEditFoodAvailable(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.foodAvailable}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Kids Stay</Label>
-                  <Input
-                    value={editKidsStay}
-                    onChange={(e) => setEditKidsStay(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editKidsStay} onChange={(e) => setEditKidsStay(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.kidsStay}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Women Stay</Label>
-                  <Input
-                    value={editWomenStay}
-                    onChange={(e) => setEditWomenStay(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editWomenStay} onChange={(e) => setEditWomenStay(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.womenStay}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Check-In</Label>
-                  <Input
-                    value={editCheckIn}
-                    onChange={(e) => setEditCheckIn(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.checkIn}</div>
+                  )}
                 </div>
 
                 <div>
                   <Label>Check-Out</Label>
-                  <Input
-                    value={editCheckOut}
-                    onChange={(e) => setEditCheckOut(e.target.value)}
-                  />
+                  {sheetMode === 'edit' ? (
+                    <Input value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.checkOut}</div>
+                  )}
                 </div>
 
                 <div>
@@ -420,47 +462,63 @@ export default function AllTentSpotsTable() {
               </div>
 
               <div className="flex-shrink-0 flex gap-2 p-6 border-t bg-white">
-                <Button
-                  className="flex-1"
-                  onClick={() => {
-                    setTentSpots((prev) =>
-                      prev.map((t) =>
-                        t.id === selectedSpot.id
-                          ? {
-                              ...t,
-                              spotName: editSpotName,
-                              location: editLocation,
-                              contactPerson: editContactPerson,
-                              contactNo: editContactNo,
-                              email: editEmail,
-                              rules: editRules,
-                              accommodation: editAccommodation,
-                              foodAvailable: editFoodAvailable,
-                              kidsStay: editKidsStay,
-                              womenStay: editWomenStay,
-                              checkIn: editCheckIn,
-                              checkOut: editCheckOut,
-                            }
-                          : t
-                      )
-                    );
-                    setIsDetailSheetOpen(false);
-                  }}
-                >
-                  Save
-                </Button>
-                <Button
-                  variant={selectedSpot.isActive ? "destructive" : "default"}
-                  onClick={() => toggleActiveStatus(selectedSpot)}
-                >
-                  {selectedSpot.isActive ? "Deactivate" : "Activate"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDetailSheetOpen(false)}
-                >
-                  Close
-                </Button>
+                {sheetMode === 'view' ? (
+                  <>
+                    <Button
+                      className="flex-1"
+                      onClick={() => { if (!perms.canEdit) return; setSheetMode('edit') }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant={selectedSpot.isActive ? "destructive" : "default"}
+                      onClick={() => { if (!perms.canDisable) return; toggleActiveStatus(selectedSpot) }}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to change status' : undefined}
+                    >
+                      {selectedSpot.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>Close</Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setSheetMode('view')}>Cancel</Button>
+                    <Button
+                      onClick={() => {
+                        if (!perms.canEdit) return
+                        setTentSpots((prev) =>
+                          prev.map((t) =>
+                            t.id === selectedSpot.id
+                              ? {
+                                  ...t,
+                                  spotName: editSpotName,
+                                  location: editLocation,
+                                  contactPerson: editContactPerson,
+                                  contactNo: editContactNo,
+                                  email: editEmail,
+                                  rules: editRules,
+                                  accommodation: editAccommodation,
+                                  foodAvailable: editFoodAvailable,
+                                  kidsStay: editKidsStay,
+                                  womenStay: editWomenStay,
+                                  checkIn: editCheckIn,
+                                  checkOut: editCheckOut,
+                                }
+                              : t
+                          )
+                        );
+                        setSheetMode('view')
+                        setIsDetailSheetOpen(false);
+                      }}
+                      disabled={!perms.canEdit}
+                      title={!perms.canEdit ? 'You do not have permission to save' : undefined}
+                    >
+                      Save
+                    </Button>
+                  </>
+                )}
               </div>
             </>
           )}

@@ -12,6 +12,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 // Removed static JSON import; now fetching from API
 import { useEffect, useRef, useState } from "react";
+import { usePermissions } from '@/lib/AdminProvider'
 // Removed Dialog imports (edit & confirmation modals) per requirement to keep only side details sheet
 import {
   Sheet,
@@ -49,6 +50,7 @@ export default function CottageDataTable() {
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   // Track selected cottage only (editing handled inside sheet or via direct disable)
   const [cottageTypes, setCottageTypes] = useState<CottageType[]>([]);
+  const cottageRef = useRef<CottageType[]>([])
   const [selectedCottage, setSelectedCottage] = useState<CottageType | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +58,10 @@ export default function CottageDataTable() {
   const [formData, setFormData] = useState<Partial<CottageType>>({});
   const [version, setVersion] = useState(0); // force table re-render when data changes
   const [amenityDraft, setAmenityDraft] = useState('');
+  const perms = usePermissions()
+  const permsRef = useRef(perms)
+  useEffect(()=>{ cottageRef.current = cottageTypes }, [cottageTypes])
+  useEffect(()=>{ permsRef.current = perms }, [perms])
 
   const addAmenity = () => {
     const val = amenityDraft.trim();
@@ -68,7 +74,15 @@ export default function CottageDataTable() {
   };
   // Form data not needed since edit modal removed – we show read-only info in sheet
 
+  const openForView = (cottage: CottageType) => {
+    setSelectedCottage(cottage);
+    setFormData(cottage);
+    setEditMode(false);
+    setIsDetailSheetOpen(true);
+  }
+
   const handleEdit = (cottage: CottageType) => {
+    if (!permsRef.current.canEdit) return
     setSelectedCottage(cottage);
     setFormData(cottage);
     setEditMode(true);
@@ -78,11 +92,13 @@ export default function CottageDataTable() {
   const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://localhost:5000";
 
   const handleDisable = async (cottage: CottageType) => {
+    if (!permsRef.current.canDisable) return
     try {
       const target = !cottage.isDisabled;
+      const token = localStorage.getItem('admin_token')
       const res = await fetch(`${API_BASE}/api/cottage-types/${cottage._id}/disable`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: JSON.stringify({ isDisabled: target })
       });
       if (!res.ok) throw new Error('Failed to update disable state');
@@ -100,10 +116,7 @@ export default function CottageDataTable() {
   };
 
   const handleRowClick = (cottage: CottageType) => {
-    setSelectedCottage(cottage);
-    setFormData(cottage);
-    setEditMode(false);
-    setIsDetailSheetOpen(true);
+    openForView(cottage)
   };
 
   // Removed confirm/cancel/update/input change logic (modals removed)
@@ -235,15 +248,17 @@ export default function CottageDataTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       const cottageId = target.getAttribute('data-id') || target.closest('button')?.getAttribute('data-id');
-      const cottage = cottageTypes.find(c => c._id === cottageId);
+      const cottage = cottageRef.current.find(c => c._id === cottageId);
       
       if (cottage) {
         // Stop propagation to prevent row click when button is clicked
         event.stopPropagation();
         
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+          if (!permsRef.current.canEdit) return
           handleEdit(cottage);
         } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
+          if (!permsRef.current.canDisable) return
           handleDisable(cottage);
         }
       }
@@ -260,7 +275,7 @@ export default function CottageDataTable() {
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
-    const cottage = cottageTypes[rowIndex];
+        const cottage = cottageRef.current[rowIndex];
         if (cottage) {
           handleRowClick(cottage);
         }
@@ -326,13 +341,14 @@ export default function CottageDataTable() {
       title: "Actions",
       orderable: false,
       searchable: false,
-  render: (_data: any, _type: any, row: CottageType) => {
+      render: (_data: any, _type: any, row: CottageType) => {
     const isDisabled = !!row.isDisabled;
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
+            ${perms.canEdit ? `
             <button 
               class="edit-btn" 
-      data-id="${row._id}" 
+              data-id="${row._id}" 
               title="Edit Cottage"
               style="
                 background: #3b82f6;
@@ -351,7 +367,8 @@ export default function CottageDataTable() {
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
               Edit
-            </button>
+            </button>` : ''}
+            ${perms.canDisable ? `
             <button 
               class="disable-btn" 
               data-id="${row._id}" 
@@ -373,7 +390,7 @@ export default function CottageDataTable() {
               onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
             >
               ${isDisabled ? 'Disabled' : 'Disable'}
-            </button>
+            </button>` : ''}
           </div>
         `;
       },
@@ -527,15 +544,21 @@ export default function CottageDataTable() {
               
               {/* Action Buttons */}
               <div className="flex gap-2 pt-4 border-t">
-                {!editMode && (
-                  <Button onClick={()=> { setEditMode(true); setFormData(selectedCottage); }} className="flex-1" disabled={selectedCottage.isDisabled}>Edit</Button>
-                )}
-                {editMode && (
+                {!editMode ? (
+                  <>
+                    <Button onClick={()=> { if (!perms.canEdit) return; setEditMode(true); setFormData(selectedCottage); }} className="flex-1" disabled={selectedCottage.isDisabled || !perms.canEdit} title={!perms.canEdit ? 'You do not have permission to edit' : undefined}>Edit</Button>
+                    <Button variant={selectedCottage.isDisabled? 'default':'destructive'} onClick={()=> { if (!perms.canDisable) return; handleDisable(selectedCottage) }} disabled={!perms.canDisable} title={!perms.canDisable ? 'You do not have permission to change status' : undefined}>
+                      {selectedCottage.isDisabled? 'Enable':'Disable'}
+                    </Button>
+                  </>
+                ) : (
                   <>
                     <Button variant="outline" onClick={()=> { setEditMode(false); setFormData(selectedCottage); }}>Cancel</Button>
                     <Button onClick={async ()=> {
+                      if (!perms.canEdit) return
                       try {
-                        const res = await fetch(`${API_BASE}/api/cottage-types/${selectedCottage._id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name: formData.name, description: formData.description, amenities: formData.amenities }) });
+                        const token = localStorage.getItem('admin_token')
+                        const res = await fetch(`${API_BASE}/api/cottage-types/${selectedCottage._id}`, { method:'PUT', headers:{'Content-Type':'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {})}, body: JSON.stringify({ name: formData.name, description: formData.description, amenities: formData.amenities }) });
                         if(!res.ok) throw new Error('Update failed');
                         const data = await res.json();
                         setCottageTypes(prev => prev.map(c => c._id === data.cottageType._id ? data.cottageType : c));
@@ -546,12 +569,9 @@ export default function CottageDataTable() {
                       } catch(e:any){
                         alert(e.message || 'Update failed');
                       }
-                    }}>Save</Button>
+                    }} disabled={!perms.canEdit} title={!perms.canEdit ? 'You do not have permission to save' : undefined}>Save</Button>
                   </>
                 )}
-                <Button variant={selectedCottage.isDisabled? 'default':'destructive'} onClick={()=> handleDisable(selectedCottage)}>
-                  {selectedCottage.isDisabled? 'Enable':'Disable'}
-                </Button>
               </div>
             </div>
           )}

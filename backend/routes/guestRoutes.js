@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import path from 'path'
 import { createGuest, listGuests, updateGuest } from '../controllers/guestController.js'
+import requirePermission from '../middlewares/requirePermission.js'
 
 const router = express.Router()
 
@@ -12,8 +13,10 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage })
 
-router.post('/', upload.single('profileImage'), createGuest)
+// creating guests requires canAddGuests
+router.post('/', requirePermission('canAddGuests'), upload.single('profileImage'), createGuest)
 router.get('/', listGuests)
-router.patch('/:id', upload.single('profileImage'), updateGuest)
+// updates require editing rights
+router.patch('/:id', requirePermission('canEdit'), upload.single('profileImage'), updateGuest)
 
 export default router

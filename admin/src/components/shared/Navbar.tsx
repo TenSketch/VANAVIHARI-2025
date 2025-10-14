@@ -1,9 +1,10 @@
 
 import { Menu, User, Home, LogOut} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import Breadcrumb from "./Breadcrumb";
 import NotificationDropdown from "./NotificationDropDown";
+import { useAdmin } from "@/lib/AdminProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,9 +49,16 @@ const breadcrumbMap: Record<string, string[]> = {
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAdmin();
   const currentPath = location.pathname;
 
   const breadcrumbs = breadcrumbMap[currentPath] || ["Dashboard", "Unknown Page"];
+
+  const handleSignOut = () => {
+    logout();
+    navigate('/auth/login');
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
@@ -106,7 +114,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
                 Home
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Sign Out
               </DropdownMenuItem>
