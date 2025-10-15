@@ -1,4 +1,10 @@
-import 'dotenv/config'
+import { config } from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+config({ path: `${__dirname}/../.env` })
 import bcrypt from 'bcrypt'
 import connectDB from '../config/mongodb.js'
 import Admin from '../models/adminModel.js'
@@ -59,10 +65,6 @@ async function createStaff() {
     console.log('Created staff user:', email)
   }
 }
-
-import { fileURLToPath } from 'url'
-
-const __filename = fileURLToPath(import.meta.url)
 
 if (process.argv[1] === __filename) {
   createStaff()
