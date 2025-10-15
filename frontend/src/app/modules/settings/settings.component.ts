@@ -414,6 +414,7 @@ export class SettingsComponent {
 
   closeModal(){
     this.isModalVisible = false
+    this.router.navigate(['/home']);
   }
 
   onCancel() {

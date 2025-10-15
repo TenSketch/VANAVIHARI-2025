@@ -359,38 +359,40 @@ export class BookingSummaryComponent {
   }
   getUserDetails() {
     this.showLoader = true;
-    const params = new HttpParams()
-      .set('email', this.authService.getAccountUsername() ?? '')
-      .set('token', this.authService.getAccessToken() ?? '');
+
+    const headers = {
+      token: this.authService.getAccessToken() ?? ''
+    };
+
     this.http
-      .get<any>(this.api_url + '?api_type=profile_details', { params })
+      .get<any>(`${this.api_url}/api/user/profile`, { headers })
       .subscribe({
         next: (response) => {
           this.showLoader = false;
+
           if (response.code == 3000 && response.result.status == 'success') {
+            const result = response.result;
+
             this.form.patchValue({
-              gname: response.result.name,
-              gphone: response.result.phone,
-              gemail: response.result.email,
-              gaddress: response.result.address1,
-              gcity: response.result.city,
-              gstate: response.result.state,
-              gpincode: response.result.pincode,
-              gcountry: response.result.country,
-              foodPreference: response.result.foodPreference,
-              gstnumber: response.result.gstnumber
-                ? response.result.gstnumber
-                : '',
-              companyname: response.result.companyname
-                ? response.result.companyname
-                : '',
+              gname: result.name || '',
+              gphone: result.phone || '',
+              gemail: result.email || '',
+              gaddress: result.address1 || '',
+              gcity: result.city || '',
+              gstate: result.state || '',
+              gpincode: result.pincode || '',
+              gcountry: result.country || ''
             });
-          } else if (response.code == 3000) {
           } else {
+            this.userService.clearUser();
+            this.router.navigate(['/sign-in']);
           }
         },
         error: (err) => {
           this.showLoader = false;
+          console.error('Profile fetch error:', err);
+          this.userService.clearUser();
+          this.router.navigate(['/sign-in']);
         },
       });
   }
