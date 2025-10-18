@@ -1,4 +1,5 @@
 import Room from '../models/roomModel.js'
+import Resort from '../models/resortModel.js'
 import mongoose from 'mongoose'
 import cloudinary from '../config/cloudinaryConfig.js'
 import fs from 'fs'
@@ -14,12 +15,51 @@ const createRoom = async (req, res) => {
       return val
     }
 
+    // Generate roomId if not provided
+    let roomId = v('roomId')
+    let roomNumber = v('roomNumber')
+    const resortId = v('resort')
+
+    if (!roomId && resortId) {
+      // Fetch resort to get prefix
+      const resort = await Resort.findById(resortId)
+      if (resort && resort.roomIdPrefix) {
+        const prefix = resort.roomIdPrefix
+        // Find the last room with this prefix
+        const lastRoom = await Room.findOne({ 
+          roomId: new RegExp(`^${prefix}\\d+$`) 
+        }).sort({ createdAt: -1 })
+        
+        let nextNumber = 1
+        if (lastRoom && lastRoom.roomId) {
+          const match = lastRoom.roomId.match(/\d+$/)
+          if (match) {
+            nextNumber = parseInt(match[0]) + 1
+          }
+        }
+        roomId = `${prefix}${nextNumber}`
+      }
+    }
+
+    // Use roomId as roomNumber if roomNumber not provided
+    if (!roomNumber && roomId) {
+      roomNumber = roomId
+    }
+
     const roomData = {
-      roomNumber: v('roomNumber'),
-      roomId: v('roomId'),
+      roomNumber: roomNumber,
+      roomId: roomId,
+      roomName: v('roomName'),
       status: v('status') || undefined,
       price: v('price') ? Number(v('price')) : undefined,
-      resort: v('resort') || undefined,
+      weekdayRate: v('weekdayRate') ? Number(v('weekdayRate')) : undefined,
+      weekendRate: v('weekendRate') ? Number(v('weekendRate')) : undefined,
+      guests: v('guests') ? Number(v('guests')) : (v('noOfGuests') ? Number(v('noOfGuests')) : undefined),
+      extraGuests: v('extraGuests') ? Number(v('extraGuests')) : undefined,
+      children: v('children') ? Number(v('children')) : (v('noOfChildren') ? Number(v('noOfChildren')) : undefined),
+      bedChargeWeekday: v('bedChargeWeekday') ? Number(v('bedChargeWeekday')) : (v('chargesPerBedWeekDays') ? Number(v('chargesPerBedWeekDays')) : undefined),
+      bedChargeWeekend: v('bedChargeWeekend') ? Number(v('bedChargeWeekend')) : (v('chargesPerBedWeekEnd') ? Number(v('chargesPerBedWeekEnd')) : undefined),
+      resort: resortId || undefined,
       cottageType: v('cottageType') || undefined,
       amenities: body.amenities ? (Array.isArray(body.amenities) ? body.amenities : [body.amenities]) : [],
       notes: v('notes'),
@@ -75,11 +115,11 @@ const updateRoom = async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Room not found' })
 
     // Map updatable scalar fields
-    const scalarUpdates = ['roomNumber','roomId','roomName','status','price','weekdayRate','weekendRate','guests','extraGuests','bedChargeWeekday','bedChargeWeekend','resort','cottageType','notes']
+    const scalarUpdates = ['roomNumber','roomId','roomName','status','price','weekdayRate','weekendRate','guests','extraGuests','children','bedChargeWeekday','bedChargeWeekend','resort','cottageType','notes']
     for (const f of scalarUpdates) {
       if (body[f] !== undefined && body[f] !== null && body[f] !== '') {
         // number coercion for numeric fields
-        if (['price','weekdayRate','weekendRate','guests','extraGuests','bedChargeWeekday','bedChargeWeekend'].includes(f)) {
+        if (['price','weekdayRate','weekendRate','guests','extraGuests','children','bedChargeWeekday','bedChargeWeekend'].includes(f)) {
           existing[f] = Number(body[f])
         } else {
           existing[f] = body[f]
@@ -118,4 +158,46 @@ const updateRoom = async (req, res) => {
   }
 }
 
-export { createRoom, listRooms, updateRoom }
+// Get next available room ID for a resort
+const getNextRoomId = async (req, res) => {
+  try {
+    const { resortId } = req.params
+    
+    if (!resortId) {
+      return res.status(400).json({ error: 'Resort ID is required' })
+    }
+
+    // Fetch resort to get prefix
+    const resort = await Resort.findById(resortId)
+    if (!resort) {
+      return res.status(404).json({ error: 'Resort not found' })
+    }
+
+    if (!resort.roomIdPrefix) {
+      return res.json({ nextRoomId: '' })
+    }
+
+    const prefix = resort.roomIdPrefix
+    // Find the last room with this prefix
+    const lastRoom = await Room.findOne({ 
+      roomId: new RegExp(`^${prefix}\\d+$`),
+      resort: resortId
+    }).sort({ createdAt: -1 })
+    
+    let nextNumber = 1
+    if (lastRoom && lastRoom.roomId) {
+      const match = lastRoom.roomId.match(/\d+$/)
+      if (match) {
+        nextNumber = parseInt(match[0]) + 1
+      }
+    }
+    
+    const nextRoomId = `${prefix}${nextNumber}`
+    res.json({ nextRoomId, prefix })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: error.message })
+  }
+}
+
+export { createRoom, listRooms, updateRoom, getNextRoomId }

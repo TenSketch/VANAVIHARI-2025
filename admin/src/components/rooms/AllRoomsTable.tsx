@@ -40,10 +40,12 @@ interface Room {
   roomId: string;
   roomName: string;
   roomImage: string;
+  images?: Array<{ url: string; public_id: string }>;
   weekdayRate: number;
   weekendRate: number;
   guests: number;
   extraGuests: number;
+  children?: number;
   bedChargeWeekday: number;
   bedChargeWeekend: number;
 }
@@ -68,12 +70,14 @@ export default function RoomsTable() {
   useEffect(() => { permsRef.current = perms }, [perms])
   const [editData, setEditData] = useState<Partial<Room>>({});
   const [saving, setSaving] = useState(false);
+  const [newImages, setNewImages] = useState<File[]>([]);
   const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
   
   const handleEdit = (room: Room) => {
     if (!permsRef.current.canEdit) return
     setSelectedRoom(room);
     setEditData({ ...room });
+    setNewImages([]);
     setSheetMode('edit')
     setIsDetailSheetOpen(true);
   };
@@ -88,6 +92,7 @@ export default function RoomsTable() {
     setSelectedRoom(room);
     setIsDetailSheetOpen(true);
     setEditData({ ...room });
+    setNewImages([]);
     setSheetMode('view')
   };
 
@@ -103,47 +108,101 @@ export default function RoomsTable() {
       return;
     }
     const idForApi = selectedRoom._id; // use real Mongo _id
-    const payload: any = {
-      roomName: editData.roomName ?? '',
-      roomId: editData.roomId ?? '',
-  weekdayRate: editData.weekdayRate ?? undefined,
-  weekendRate: editData.weekendRate ?? undefined,
-  guests: editData.guests ?? undefined,
-  extraGuests: editData.extraGuests ?? undefined,
-  bedChargeWeekday: editData.bedChargeWeekday ?? undefined,
-  bedChargeWeekend: editData.bedChargeWeekend ?? undefined,
-    };
+    
     setSaving(true);
     try {
-      const token = localStorage.getItem('admin_token')
-      const res = await fetch(`${apiBase}/api/rooms/${idForApi}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error((data && data.error) || res.statusText);
-      // Update local selectedRoom & editData
-      if (data && data.room) {
-        const srv = data.room;
-        // map server room back to UI shape (keep existing resort / cottageType display strings if server returns ids)
-        const mapped: Partial<Room> = {
-          _id: srv._id,
-          roomId: srv.roomId || srv.roomNumber || selectedRoom.roomId,
-          roomName: srv.roomName || selectedRoom.roomName,
-          weekdayRate: srv.weekdayRate ?? selectedRoom.weekdayRate,
-          weekendRate: srv.weekendRate ?? selectedRoom.weekendRate,
-          guests: srv.guests ?? selectedRoom.guests,
-          extraGuests: srv.extraGuests ?? selectedRoom.extraGuests,
-          bedChargeWeekday: srv.bedChargeWeekday ?? selectedRoom.bedChargeWeekday,
-          bedChargeWeekend: srv.bedChargeWeekend ?? selectedRoom.bedChargeWeekend,
+      const token = localStorage.getItem('admin_token');
+      
+      // Use FormData if there are new images
+      if (newImages.length > 0) {
+        const formData = new FormData();
+        newImages.forEach((file) => {
+          formData.append('images', file);
+        });
+        
+        // Append other fields
+        if (editData.roomName) formData.append('roomName', editData.roomName);
+        if (editData.roomId) formData.append('roomId', editData.roomId);
+        if (editData.weekdayRate !== undefined) formData.append('weekdayRate', String(editData.weekdayRate));
+        if (editData.weekendRate !== undefined) formData.append('weekendRate', String(editData.weekendRate));
+        if (editData.guests !== undefined) formData.append('guests', String(editData.guests));
+        if (editData.extraGuests !== undefined) formData.append('extraGuests', String(editData.extraGuests));
+        if (editData.children !== undefined) formData.append('children', String(editData.children));
+        if (editData.bedChargeWeekday !== undefined) formData.append('bedChargeWeekday', String(editData.bedChargeWeekday));
+        if (editData.bedChargeWeekend !== undefined) formData.append('bedChargeWeekend', String(editData.bedChargeWeekend));
+        
+        const res = await fetch(`${apiBase}/api/rooms/${idForApi}`, {
+          method: 'PUT',
+          headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: formData
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error((data && data.error) || res.statusText);
+        
+        if (data && data.room) {
+          const srv = data.room;
+          const mapped: Partial<Room> = {
+            _id: srv._id,
+            roomId: srv.roomId || srv.roomNumber || selectedRoom.roomId,
+            roomName: srv.roomName || selectedRoom.roomName,
+            weekdayRate: srv.weekdayRate ?? selectedRoom.weekdayRate,
+            weekendRate: srv.weekendRate ?? selectedRoom.weekendRate,
+            guests: srv.guests ?? selectedRoom.guests,
+            extraGuests: srv.extraGuests ?? selectedRoom.extraGuests,
+            children: srv.children ?? selectedRoom.children,
+            bedChargeWeekday: srv.bedChargeWeekday ?? selectedRoom.bedChargeWeekday,
+            bedChargeWeekend: srv.bedChargeWeekend ?? selectedRoom.bedChargeWeekend,
+            images: srv.images || selectedRoom.images,
+            roomImage: (srv.images && srv.images[0] && srv.images[0].url) || selectedRoom.roomImage,
+          };
+          setSelectedRoom(prev => prev ? { ...prev, ...mapped } : prev);
+          setEditData(prev => ({ ...prev, ...mapped }));
+          setRoomsData(prev => prev.map(r => (r._id === srv._id ? { ...r, ...mapped } as Room : r)));
+        }
+      } else {
+        // No new images, use JSON
+        const payload: any = {
+          roomName: editData.roomName ?? '',
+          roomId: editData.roomId ?? '',
+          weekdayRate: editData.weekdayRate ?? undefined,
+          weekendRate: editData.weekendRate ?? undefined,
+          guests: editData.guests ?? undefined,
+          extraGuests: editData.extraGuests ?? undefined,
+          children: editData.children ?? undefined,
+          bedChargeWeekday: editData.bedChargeWeekday ?? undefined,
+          bedChargeWeekend: editData.bedChargeWeekend ?? undefined,
         };
-        setSelectedRoom(prev => prev ? { ...prev, ...mapped } : prev);
-        setEditData(prev => ({ ...prev, ...mapped }));
-        // update DataTable data array
-        setRoomsData(prev => prev.map(r => (r._id === srv._id ? { ...r, ...mapped } as Room : r)));
+        
+        const res = await fetch(`${apiBase}/api/rooms/${idForApi}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error((data && data.error) || res.statusText);
+        
+        if (data && data.room) {
+          const srv = data.room;
+          const mapped: Partial<Room> = {
+            _id: srv._id,
+            roomId: srv.roomId || srv.roomNumber || selectedRoom.roomId,
+            roomName: srv.roomName || selectedRoom.roomName,
+            weekdayRate: srv.weekdayRate ?? selectedRoom.weekdayRate,
+            weekendRate: srv.weekendRate ?? selectedRoom.weekendRate,
+            guests: srv.guests ?? selectedRoom.guests,
+            extraGuests: srv.extraGuests ?? selectedRoom.extraGuests,
+            children: srv.children ?? selectedRoom.children,
+            bedChargeWeekday: srv.bedChargeWeekday ?? selectedRoom.bedChargeWeekday,
+            bedChargeWeekend: srv.bedChargeWeekend ?? selectedRoom.bedChargeWeekend,
+          };
+          setSelectedRoom(prev => prev ? { ...prev, ...mapped } : prev);
+          setEditData(prev => ({ ...prev, ...mapped }));
+          setRoomsData(prev => prev.map(r => (r._id === srv._id ? { ...r, ...mapped } as Room : r)));
+        }
       }
-      alert('Saved');
+      
+      alert('Saved successfully!');
+      setNewImages([]);
       setSheetMode('view')
     } catch (e: any) {
       console.error(e);
@@ -170,10 +229,12 @@ export default function RoomsTable() {
             roomId: r.roomId || r.roomNumber || '',
             roomName: r.roomName || r.roomNumber || r.roomId || `Room ${idx + 1}`,
             roomImage: (r.images && r.images[0] && r.images[0].url) || '/img/placeholder.jpg',
+            images: r.images || [],
             weekdayRate: r.weekdayRate || r.price || 0,
             weekendRate: r.weekendRate || r.price || 0,
             guests: r.guests || r.noOfGuests || 0,
             extraGuests: r.extraGuests || 0,
+            children: r.children || r.noOfChildren || 0,
             bedChargeWeekday: r.bedChargeWeekday || r.chargesPerBedWeekDays || 0,
             bedChargeWeekend: r.bedChargeWeekend || r.chargesPerBedWeekEnd || 0,
           }));
@@ -338,6 +399,11 @@ export default function RoomsTable() {
     },
     { data: "guests", title: "Guests" },
     { data: "extraGuests", title: "Extra Guests" },
+    { 
+      data: "children", 
+      title: "Children",
+      render: (data: number) => data || 0,
+    },
     {
       data: "bedChargeWeekday",
       title: "Bed Charge (WD)",
@@ -501,15 +567,54 @@ export default function RoomsTable() {
                   </div>
                   
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">Room Image</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <img 
-                        src={selectedRoom.roomImage} 
-                        alt={selectedRoom.roomName}
-                        className="w-full h-48 object-cover rounded-md"
-                      />
+                    <Label className="text-sm font-medium text-gray-700">Room Images</Label>
+                    <div className="mt-1 space-y-2">
+                      {/* Display existing images */}
+                      {selectedRoom.images && selectedRoom.images.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-2">
+                          {selectedRoom.images.map((img, idx) => (
+                            <img 
+                              key={idx}
+                              src={img.url} 
+                              alt={`${selectedRoom.roomName} ${idx + 1}`}
+                              className="w-full h-32 object-cover rounded-md border"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <img 
+                          src={selectedRoom.roomImage} 
+                          alt={selectedRoom.roomName}
+                          className="w-full h-48 object-cover rounded-md border"
+                        />
+                      )}
+                      
+                      {/* Upload new images in edit mode */}
+                      {sheetMode === 'edit' && (
+                        <div className="mt-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(e) => {
+                              const files = e.target.files;
+                              if (files) {
+                                setNewImages(Array.from(files));
+                              }
+                            }}
+                            className="w-full p-2 text-sm border rounded-md"
+                          />
+                          {newImages.length > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                              {newImages.length} new image(s) selected
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            Select new images to add (will be appended to existing images)
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Image editing not yet supported.</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -552,6 +657,19 @@ export default function RoomsTable() {
                         className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
                         value={editData.extraGuests ?? ''}
                         onChange={(e) => handleFieldChange('extraGuests', Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">Children</Label>
+                      <input
+                        type="number"
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.children ?? ''}
+                        onChange={(e) => handleFieldChange('children', Number(e.target.value))}
+                        placeholder="0"
                       />
                     </div>
                   </div>

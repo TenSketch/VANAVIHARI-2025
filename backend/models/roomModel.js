@@ -10,6 +10,7 @@ const roomSchema = new mongoose.Schema({
   weekendRate: { type: Number },
   guests: { type: Number },
   extraGuests: { type: Number },
+  children: { type: Number },
   bedChargeWeekday: { type: Number },
   bedChargeWeekend: { type: Number },
   resort: { type: mongoose.Schema.Types.ObjectId, ref: 'Resort' },

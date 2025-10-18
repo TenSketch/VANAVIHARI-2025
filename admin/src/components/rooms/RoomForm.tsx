@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,26 +10,16 @@ interface RoomFormData {
   cottageTypeId: string;
   roomId: string;
   roomName: string;
-  roomImage: File | null;
+  roomImages: File[];
   orderNumber: string;
   weekDaysRate: string;
   weekEndRate: string;
   noOfGuests: string;
   extraGuests: string;
+  noOfChildren: string;
   chargesPerBedWeekDays: string;
   chargesPerBedWeekEnd: string;
 }
-
-// dummy dropdown data
-const resorts = [
-  { id: "resort1", name: "Jungle Star" },
-  { id: "resort2", name: "Vanavihari" },
-];
-//dummy cottage types
-const cottageTypes = [
-  { id: "cottage1", name: "Deluxe Cottage" },
-  { id: "cottage2", name: "Premium Villa" },
-];
 
 const AddRoomForm = () => {
   const [formData, setFormData] = useState<RoomFormData>({
@@ -37,15 +27,110 @@ const AddRoomForm = () => {
     cottageTypeId: "",
     roomId: "",
     roomName: "",
-    roomImage: null,
+    roomImages: [],
     orderNumber: "",
     weekDaysRate: "",
     weekEndRate: "",
     noOfGuests: "",
     extraGuests: "",
+    noOfChildren: "",
     chargesPerBedWeekDays: "",
     chargesPerBedWeekEnd: "",
   });
+
+  // State for dynamic data
+  const [resorts, setResorts] = useState<Array<{ _id: string; resortName: string }>>([]);
+  const [cottageTypes, setCottageTypes] = useState<Array<{ _id: string; name: string }>>([]);
+  const [resortsLoading, setResortsLoading] = useState(false);
+  const [cottageTypesLoading, setCottageTypesLoading] = useState(false);
+  const [isLoadingRoomId, setIsLoadingRoomId] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch resorts and cottage types on mount
+  useEffect(() => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+    // Fetch resorts
+    const loadResorts = async () => {
+      setResortsLoading(true);
+      try {
+        const token = localStorage.getItem('admin_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const res = await fetch(`${apiBase}/api/resorts`, { headers });
+        if (!res.ok) throw new Error('Failed to fetch resorts');
+        const data = await res.json();
+        const list = (data && data.resorts) || [];
+        setResorts(list.map((r: any) => ({ _id: r._id || r.id, resortName: r.resortName || r.name })));
+      } catch (e) {
+        console.warn('Could not load resorts', e);
+      } finally {
+        setResortsLoading(false);
+      }
+    };
+
+    // Fetch cottage types
+    const loadCottageTypes = async () => {
+      setCottageTypesLoading(true);
+      try {
+        const token = localStorage.getItem('admin_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const res = await fetch(`${apiBase}/api/cottage-types`, { headers });
+        if (!res.ok) throw new Error('Failed to fetch cottage types');
+        const data = await res.json();
+        const list = (data && data.cottageTypes) || [];
+        setCottageTypes(list.map((ct: any) => ({ _id: ct._id, name: ct.name })));
+      } catch (e) {
+        console.warn('Could not load cottage types', e);
+      } finally {
+        setCottageTypesLoading(false);
+      }
+    };
+
+    loadResorts();
+    loadCottageTypes();
+  }, []);
+
+  // Fetch next room ID when resort is selected
+  useEffect(() => {
+    const fetchNextRoomId = async () => {
+      if (!formData.resortId) {
+        setFormData(prev => ({ ...prev, roomId: '' }));
+        return;
+      }
+
+      setIsLoadingRoomId(true);
+      try {
+        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const token = localStorage.getItem('admin_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`${apiBase}/api/rooms/next-room-id/${formData.resortId}`, { headers });
+        if (!res.ok) throw new Error('Failed to fetch next room ID');
+        const data = await res.json();
+        
+        if (data.nextRoomId) {
+          setFormData(prev => ({ ...prev, roomId: data.nextRoomId }));
+        }
+      } catch (e) {
+        console.warn('Could not fetch next room ID', e);
+      } finally {
+        setIsLoadingRoomId(false);
+      }
+    };
+
+    fetchNextRoomId();
+  }, [formData.resortId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -55,18 +140,29 @@ const AddRoomForm = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setFormData((prev) => ({ ...prev, roomImage: file }));
+    const files = e.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      setFormData((prev) => ({ ...prev, roomImages: fileArray }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
     // build multipart/form-data and submit to backend
     const form = new FormData()
 
     // images field (backend expects 'images' array)
-    if (formData.roomImage instanceof File) {
-      form.append('images', formData.roomImage)
+    if (formData.roomImages && formData.roomImages.length > 0) {
+      formData.roomImages.forEach((file) => {
+        form.append('images', file)
+      })
     }
 
     // map frontend names to backend expected names
@@ -82,6 +178,7 @@ const AddRoomForm = () => {
     if (formData.weekEndRate) form.append('weekEndRate', String(formData.weekEndRate))
     if (formData.noOfGuests) form.append('noOfGuests', String(formData.noOfGuests))
     if (formData.extraGuests) form.append('extraGuests', String(formData.extraGuests))
+    if (formData.noOfChildren) form.append('noOfChildren', String(formData.noOfChildren))
     if (formData.chargesPerBedWeekDays) form.append('chargesPerBedWeekDays', String(formData.chargesPerBedWeekDays))
     if (formData.chargesPerBedWeekEnd) form.append('chargesPerBedWeekEnd', String(formData.chargesPerBedWeekEnd))
 
@@ -90,10 +187,18 @@ const AddRoomForm = () => {
       form.append('roomNumber', String(formData.roomId))
     }
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+    
+    // Get token for authentication
+    const token = localStorage.getItem('admin_token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
 
     fetch(apiBase + '/api/rooms/add', {
       method: 'POST',
+      headers: headers,
       body: form,
     })
       .then(async (res) => {
@@ -113,12 +218,15 @@ const AddRoomForm = () => {
         return parsed
       })
       .then(() => {
-        alert('Room created')
+        alert('Room created successfully!')
         handleReset()
       })
       .catch((err) => {
         console.error(err)
         alert('Error: ' + err.message)
+      })
+      .finally(() => {
+        setIsSubmitting(false)
       })
   };
 
@@ -128,12 +236,13 @@ const AddRoomForm = () => {
       cottageTypeId: "",
       roomId: "",
       roomName: "",
-      roomImage: null,
+      roomImages: [],
       orderNumber: "",
       weekDaysRate: "",
       weekEndRate: "",
       noOfGuests: "",
       extraGuests: "",
+      noOfChildren: "",
       chargesPerBedWeekDays: "",
       chargesPerBedWeekEnd: "",
     });
@@ -160,12 +269,13 @@ const AddRoomForm = () => {
                 value={formData.resortId}
                 onChange={handleChange}
                 required
+                disabled={resortsLoading}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               >
-                <option value="">-- Select Resort --</option>
+                <option value="">{resortsLoading ? 'Loading...' : '-- Select Resort --'}</option>
                 {resorts.map((resort) => (
-                  <option key={resort.id} value={resort.id}>
-                    {resort.name}
+                  <option key={resort._id} value={resort._id}>
+                    {resort.resortName}
                   </option>
                 ))}
               </select>
@@ -178,27 +288,33 @@ const AddRoomForm = () => {
                 value={formData.cottageTypeId}
                 onChange={handleChange}
                 required
+                disabled={cottageTypesLoading}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               >
-                <option value="">-- Select Cottage Type --</option>
+                <option value="">{cottageTypesLoading ? 'Loading...' : '-- Select Cottage Type --'}</option>
                 {cottageTypes.map((cottage) => (
-                  <option key={cottage.id} value={cottage.id}>
+                  <option key={cottage._id} value={cottage._id}>
                     {cottage.name}
                   </option>
                 ))}
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="roomId" className="text-sm font-medium text-slate-700">Room ID *</Label>
+              <Label htmlFor="roomId" className="text-sm font-medium text-slate-700">
+                Room ID * 
+                {isLoadingRoomId && <span className="text-xs text-slate-500 ml-2">(Generating...)</span>}
+              </Label>
               <Input
                 id="roomId"
                 name="roomId"
                 value={formData.roomId}
                 onChange={handleChange}
                 required
-                placeholder="e.g., R101"
+                placeholder="e.g., VM1"
+                disabled={isLoadingRoomId}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
+              <p className="text-xs text-slate-500">Auto-generated based on resort. You can edit if needed.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="roomName" className="text-sm font-medium text-slate-700">Room Name *</Label>
@@ -216,19 +332,23 @@ const AddRoomForm = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="roomImage" className="text-sm font-medium text-slate-700">Room Image</Label>
+              <Label htmlFor="roomImages" className="text-sm font-medium text-slate-700">
+                Room Images {formData.roomImages.length > 0 && `(${formData.roomImages.length} selected)`}
+              </Label>
               <div className="relative">
                 <Upload className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
-                  id="roomImage"
-                  name="roomImage"
+                  id="roomImages"
+                  name="roomImages"
                   type="file"
                   accept="image/*"
+                  multiple
                   onChange={handleImageChange}
                   className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
-                  placeholder="Upload room image"
+                  placeholder="Upload multiple room images"
                 />
               </div>
+              <p className="text-xs text-slate-500">You can select multiple images</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="orderNumber" className="text-sm font-medium text-slate-700">Order Number *</Label>
@@ -317,21 +437,35 @@ const AddRoomForm = () => {
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="noOfChildren" className="text-sm font-medium text-slate-700">No. of Children</Label>
+              <Input
+                id="noOfChildren"
+                name="noOfChildren"
+                type="number"
+                value={formData.noOfChildren}
+                onChange={handleChange}
+                placeholder="0"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-6 border-t border-slate-200">
             <Button 
               type="submit" 
-              className="px-8 py-3 bg-slate-800 text-white hover:bg-slate-700 rounded-lg font-medium transition-colors"
+              disabled={isSubmitting}
+              className="px-8 py-3 bg-slate-800 text-white hover:bg-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
             <Button 
               type="button" 
               variant="outline" 
               onClick={handleReset}
-              className="px-8 py-3 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors"
+              disabled={isSubmitting}
+              className="px-8 py-3 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Reset
             </Button>

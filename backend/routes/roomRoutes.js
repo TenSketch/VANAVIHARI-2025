@@ -1,6 +1,6 @@
 import express from 'express'
 import multer from 'multer'
-import { createRoom, listRooms, updateRoom } from '../controllers/roomController.js'
+import { createRoom, listRooms, updateRoom, getNextRoomId } from '../controllers/roomController.js'
 import requirePermission from '../middlewares/requirePermission.js'
 
 const router = express.Router()
@@ -13,6 +13,7 @@ const upload = multer({ storage })
 
 router.post('/add', requirePermission('canEdit'), upload.array('images'), createRoom)
 router.get('/', listRooms)
+router.get('/next-room-id/:resortId', getNextRoomId)
 router.put('/:id', requirePermission('canEdit'), upload.array('images'), updateRoom)
 
 export default router
