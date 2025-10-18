@@ -25,6 +25,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 DataTable.use(DT);
 
@@ -37,7 +43,7 @@ interface CottageType {
   bathrooms?: number;
   basePrice?: number;
   amenities: string[];
-  resort?: { _id: string; name: string } | string | null;
+  resort?: { _id: string; name: string; resortName?: string } | string | null;
   isDisabled?: boolean;
   images?: { url: string; public_id: string }[];
   createdAt?: string;
@@ -58,6 +64,7 @@ export default function CottageDataTable() {
   const [formData, setFormData] = useState<Partial<CottageType>>({});
   const [version, setVersion] = useState(0); // force table re-render when data changes
   const [amenityDraft, setAmenityDraft] = useState('');
+  const [isAmenitiesOpen, setIsAmenitiesOpen] = useState(false);
   const perms = usePermissions()
   const permsRef = useRef(perms)
   useEffect(()=>{ cottageRef.current = cottageTypes }, [cottageTypes])
@@ -78,6 +85,7 @@ export default function CottageDataTable() {
     setSelectedCottage(cottage);
     setFormData(cottage);
     setEditMode(false);
+    setIsAmenitiesOpen(false);
     setIsDetailSheetOpen(true);
   }
 
@@ -86,6 +94,7 @@ export default function CottageDataTable() {
     setSelectedCottage(cottage);
     setFormData(cottage);
     setEditMode(true);
+    setIsAmenitiesOpen(true);
     setIsDetailSheetOpen(true);
   };
 
@@ -305,7 +314,7 @@ export default function CottageDataTable() {
     {
       data: "resort",
       title: "Resort",
-      render: (data: any) => typeof data === 'string' ? data : (data?.name || ''),
+      render: (data: any) => typeof data === 'string' ? data : (data?.resortName || data?.name || ''),
     },
     {
       data: "description",
@@ -476,7 +485,11 @@ export default function CottageDataTable() {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Resort</Label>
                   <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[48px]">
-                    <span className="text-sm text-gray-900">{typeof selectedCottage.resort === 'string' ? selectedCottage.resort : (selectedCottage.resort?.name || '')}</span>
+                    <span className="text-sm text-gray-900">
+                      {typeof selectedCottage.resort === 'string' 
+                        ? selectedCottage.resort 
+                        : (selectedCottage.resort?.resortName || selectedCottage.resort?.name || '')}
+                    </span>
                   </div>
                 </div>
                 
@@ -490,46 +503,58 @@ export default function CottageDataTable() {
                 </div>
                 
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">Room Amenities</Label>
-                  {editMode ? (
-                    <div className="mt-1 flex flex-col gap-2">
-                      <div className="flex flex-wrap gap-2">
-                        {(formData.amenities || []).map((amenity, idx) => (
-                          <Badge key={amenity+idx} variant="secondary" className="px-2 py-1 text-xs flex items-center gap-1">
-                            <span>{amenity}</span>
-                            <button
-                              type="button"
-                              className="text-red-500 hover:text-red-700 leading-none"
-                              onClick={() => removeAmenity(amenity)}
-                              aria-label={`Remove ${amenity}`}
-                            >×</button>
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input
-                          value={amenityDraft}
-                          onChange={e => setAmenityDraft(e.target.value)}
-                          onKeyDown={e => {
-                            if ((e.key === 'Enter' || e.key === ',') && amenityDraft.trim()) {
-                              e.preventDefault();
-                              addAmenity();
-                            }
-                          }}
-                          placeholder="Type amenity & press Enter"
-                        />
-                        <Button type="button" onClick={addAmenity} disabled={!amenityDraft.trim()}>Add</Button>
-                      </div>
+                  <Collapsible open={isAmenitiesOpen} onOpenChange={setIsAmenitiesOpen}>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-gray-700">Room Amenities</Label>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-9 p-0">
+                          {isAmenitiesOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          <span className="sr-only">Toggle amenities</span>
+                        </Button>
+                      </CollapsibleTrigger>
                     </div>
-                  ) : (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {selectedCottage.amenities.map((amenity, index) => (
-                        <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
+                    <CollapsibleContent className="mt-2">
+                      {editMode ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            {(formData.amenities || []).map((amenity, idx) => (
+                              <Badge key={amenity+idx} variant="secondary" className="px-2 py-1 text-xs flex items-center gap-1">
+                                <span>{amenity}</span>
+                                <button
+                                  type="button"
+                                  className="text-red-500 hover:text-red-700 leading-none"
+                                  onClick={() => removeAmenity(amenity)}
+                                  aria-label={`Remove ${amenity}`}
+                                >×</button>
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="flex gap-2">
+                            <Input
+                              value={amenityDraft}
+                              onChange={e => setAmenityDraft(e.target.value)}
+                              onKeyDown={e => {
+                                if ((e.key === 'Enter' || e.key === ',') && amenityDraft.trim()) {
+                                  e.preventDefault();
+                                  addAmenity();
+                                }
+                              }}
+                              placeholder="Type amenity & press Enter"
+                            />
+                            <Button type="button" onClick={addAmenity} disabled={!amenityDraft.trim()}>Add</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCottage.amenities.map((amenity, index) => (
+                            <Badge key={index} variant="secondary" className="px-2 py-1 text-xs">
+                              {amenity}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
                 
                 <div>

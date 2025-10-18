@@ -9,7 +9,7 @@ import { Upload } from "lucide-react";
 
 interface ResortFormData {
   resortName: string;
-  // slug: string;
+  slug: string;
   contactPersonName: string;
   contactNumber: string;
   email: string;
@@ -31,7 +31,7 @@ interface ResortFormData {
 const ResortFormComp = () => {
   const [formData, setFormData] = useState<ResortFormData>({
     resortName: "",
-    // slug: "",
+    slug: "",
     contactPersonName: "",
     contactNumber: "",
     email: "",
@@ -76,12 +76,35 @@ const ResortFormComp = () => {
     "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
   ];
 
+  // Helper function to generate slug from text
+  const generateSlug = (text: string) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')           // Replace spaces with -
+      .replace(/[^\w-]+/g, '')        // Remove all non-word chars
+      .replace(/--+/g, '-')           // Replace multiple - with single -
+      .replace(/^-+/, '')             // Trim - from start of text
+      .replace(/-+$/, '')             // Trim - from end of text
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Auto-generate slug when resort name changes
+    if (name === 'resortName') {
+      setFormData(prev => ({
+        ...prev,
+        resortName: value,
+        slug: generateSlug(value)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: string) => {
@@ -124,9 +147,18 @@ const ResortFormComp = () => {
     form.append('country', formData.country)
 
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  
+  // Get token from localStorage
+  const token = localStorage.getItem('admin_token')
+  
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   fetch(apiBase + '/api/resorts/add', {
       method: 'POST',
+      headers,
       body: form,
     })
       .then(async (res) => {
@@ -135,7 +167,7 @@ const ResortFormComp = () => {
         try {
           const text = await res.text()
           parsed = text ? JSON.parse(text) : null
-        } catch (e) {
+        } catch (_e) {
           parsed = null
         }
 
@@ -159,7 +191,7 @@ const ResortFormComp = () => {
   const handleReset = () => {
     setFormData({
       resortName: "",
-      // slug: "",
+      slug: "",
       contactPersonName: "",
       contactNumber: "",
       email: "",
@@ -212,7 +244,7 @@ const ResortFormComp = () => {
             </div>
 
             {/* Slug */}
-            {/* <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="slug" className="text-sm font-medium text-slate-700">
                 Slug *
               </Label>
@@ -220,13 +252,13 @@ const ResortFormComp = () => {
                 id="slug"
                 name="slug"
                 type="text"
-                placeholder="Enter URL slug"
+                placeholder="URL slug (auto-generated)"
                 value={formData.slug}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
                 required
               />
-            </div> */}
+            </div>
 
             {/* Contact Person Name */}
             <div className="space-y-2">

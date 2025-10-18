@@ -19,6 +19,7 @@ import { useState } from "react";
 interface ResortDetailData {
   _id: string;
   resortName?: string;
+  slug?: string;
   contactPersonName?: string;
   contactNumber?: string;
   email?: string;
@@ -58,6 +59,7 @@ const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortD
     return {
       _id: r._id,
       resortName: r.resortName || '',
+      slug: r.slug || '',
       contactPersonName: r.contactPersonName || '',
       contactNumber: r.contactNumber || '',
       email: r.email || '',
@@ -80,6 +82,7 @@ const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortD
   function unflatten(fd: any): Partial<ResortDetailData> {
     return {
       resortName: fd.resortName,
+      slug: fd.slug,
       contactPersonName: fd.contactPersonName,
       contactNumber: fd.contactNumber,
       email: fd.email,
@@ -105,9 +108,15 @@ const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortD
     setError(null);
     try {
       const payload = unflatten(formData);
+      const token = localStorage.getItem('admin_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const res = await fetch(`${apiBase}/api/resorts/${formData._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`Save failed: ${res.status}`);
@@ -125,6 +134,7 @@ const ResortDetailPanel = ({ resort, isOpen, onClose, onResortUpdated }: ResortD
 
   const basicInfoData = [
     { field: "Resort Name", value: resort.resortName || '' },
+    { field: "Slug", value: resort.slug || '' },
     { field: "Contact Person Name", value: resort.contactPersonName || '' },
     { field: "Contact Number", value: resort.contactNumber || '' },
     { field: "Email", value: resort.email || '' },

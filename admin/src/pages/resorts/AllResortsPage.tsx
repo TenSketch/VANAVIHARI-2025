@@ -6,6 +6,7 @@ import ResortDetailPanel from "@/components/resorts/ResortDetailPanel"
 interface ResortData {
   _id: string
   resortName: string
+  slug: string
   contactPersonName?: string
   contactNumber?: string
   email?: string

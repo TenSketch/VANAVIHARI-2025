@@ -2,6 +2,7 @@ import mongoose from 'mongoose'
 
 const resortSchema = new mongoose.Schema({
   resortName: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
   contactPersonName: String,
   contactNumber: String,
   email: String,
