@@ -71,7 +71,7 @@ const AllResortsPage = () => {
           return {
             id: r._id,
             name: r.resortName,
-            imageUrl: r.logo?.url || '/images/Vanavihari-reception.jpg', // purely a visual placeholder, not hard-coded resort data
+            imageUrl: r.logo?.url || '', // Use Cloudinary URL, no hardcoded fallback
             address,
             phone: r.contactNumber || '',
             email: r.email || '',
