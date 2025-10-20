@@ -1,5 +1,6 @@
 import Room from '../models/roomModel.js'
 import Resort from '../models/resortModel.js'
+import Reservation from '../models/reservationModel.js'
 import mongoose from 'mongoose'
 import cloudinary from '../config/cloudinaryConfig.js'
 import fs from 'fs'
@@ -92,12 +93,138 @@ const createRoom = async (req, res) => {
 
 const listRooms = async (req, res) => {
   try {
-    const rooms = await Room.find().sort({ createdAt: -1 }).populate('resort').populate('cottageType')
+    const { resortSlug } = req.query
+    
+    let query = {}
+    
+    // If resortSlug is provided, filter by resort
+    if (resortSlug) {
+      const resort = await Resort.findOne({ slug: resortSlug })
+      if (!resort) {
+        return res.status(404).json({ error: 'Resort not found' })
+      }
+      query.resort = resort._id
+    }
+    
+    const rooms = await Room.find(query).sort({ createdAt: -1 }).populate('resort').populate('cottageType')
     res.json({ rooms })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
+
+// List available rooms based on resort, checkin and checkout dates
+const listAvailableRooms = async (req, res) => {
+  try {
+    const { resortSlug, checkin, checkout } = req.query
+    
+    if (!resortSlug) {
+      return res.status(400).json({ error: 'Resort slug is required' })
+    }
+    
+    // Find the resort
+    const resort = await Resort.findOne({ slug: resortSlug })
+    if (!resort) {
+      return res.status(404).json({ error: 'Resort not found' })
+    }
+    
+    // Get all rooms for this resort
+    const allRooms = await Room.find({ resort: resort._id })
+      .sort({ createdAt: -1 })
+      .populate('resort')
+      .populate('cottageType')
+    
+    // If no dates provided, return all rooms but mark them as not bookable
+    if (!checkin || !checkout) {
+      const roomsWithAvailability = allRooms.map(room => ({
+        ...room.toObject(),
+        isAvailable: false,
+        canBook: false,
+        message: 'Please select check-in and check-out dates'
+      }))
+      return res.json({ rooms: roomsWithAvailability, allRooms: true })
+    }
+    
+    // Parse dates
+    const checkInDate = new Date(checkin)
+    const checkOutDate = new Date(checkout)
+    
+    // Validate dates
+    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' })
+    }
+    
+    if (checkInDate >= checkOutDate) {
+      return res.status(400).json({ error: 'Check-out date must be after check-in date' })
+    }
+    
+    // Find all reservations that overlap with the requested dates
+    // A reservation overlaps if:
+    // 1. It starts before our checkout and ends after our checkin
+    // 2. Status is 'reserved' or 'pre-reserved' (not cancelled)
+    const overlappingReservations = await Reservation.find({
+      resort: resort.resortName, // Use resort name as stored in reservation
+      status: { $in: ['reserved', 'pre-reserved', 'confirmed'] },
+      $or: [
+        {
+          // Reservation starts during our stay
+          checkIn: { $gte: checkInDate, $lt: checkOutDate }
+        },
+        {
+          // Reservation ends during our stay
+          checkOut: { $gt: checkInDate, $lte: checkOutDate }
+        },
+        {
+          // Reservation completely covers our stay
+          checkIn: { $lte: checkInDate },
+          checkOut: { $gte: checkOutDate }
+        }
+      ]
+    })
+    
+    // Get list of reserved room IDs
+    const reservedRoomIds = new Set(
+      overlappingReservations.map(reservation => reservation.room).filter(Boolean)
+    )
+    
+    // Filter available rooms
+    const availableRooms = allRooms.filter(room => {
+      const roomId = room._id.toString()
+      const roomIdAlt = room.roomId
+      const roomName = room.roomName
+      
+      // Check if room is reserved by ID, roomId, or roomName
+      const isReserved = overlappingReservations.some(reservation => 
+        reservation.room === roomId || 
+        reservation.room === roomIdAlt ||
+        reservation.room === roomName
+      )
+      
+      return !isReserved && room.status === 'available'
+    })
+    
+    // Map rooms with availability info
+    const roomsWithAvailability = availableRooms.map(room => ({
+      ...room.toObject(),
+      isAvailable: true,
+      canBook: true
+    }))
+    
+    res.json({ 
+      rooms: roomsWithAvailability,
+      totalRooms: allRooms.length,
+      availableRooms: roomsWithAvailability.length,
+      reservedRooms: allRooms.length - roomsWithAvailability.length,
+      checkin: checkInDate,
+      checkout: checkOutDate
+    })
+  } catch (error) {
+    console.error('Error listing available rooms:', error)
+    res.status(500).json({ error: error.message })
+  }
+}
+
+
 
 // Update a room (basic fields + optional new images)
 const updateRoom = async (req, res) => {
@@ -200,4 +327,4 @@ const getNextRoomId = async (req, res) => {
   }
 }
 
-export { createRoom, listRooms, updateRoom, getNextRoomId }
+export { createRoom, listRooms, listAvailableRooms, updateRoom, getNextRoomId }

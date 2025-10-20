@@ -120,6 +120,18 @@ const createResort = async (req, res) => {
 
 const listResorts = async (req, res) => {
   try {
+    const { slug } = req.query
+    
+    // If slug is provided, return single resort
+    if (slug) {
+      const resort = await Resort.findOne({ slug })
+      if (!resort) {
+        return res.status(404).json({ error: 'Resort not found' })
+      }
+      return res.json({ resort })
+    }
+    
+    // Otherwise return all resorts
     const resorts = await Resort.find().sort({ createdAt: -1 })
     res.json({ resorts })
   } catch (error) {

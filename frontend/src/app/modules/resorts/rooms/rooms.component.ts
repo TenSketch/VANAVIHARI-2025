@@ -68,8 +68,12 @@ interface RoomData {
   Select_Resort: string;
   Room_Name: string;
   is_button_disabled: boolean;
-  isExtraGuestChecked: boolean; // or whatever the type of isExtraGuestChecked is
-  // Add more properties as needed
+  isExtraGuestChecked: boolean;
+  extra_guest: boolean;
+  images?: { url: string; public_id: string }[];
+  isAvailable?: boolean;
+  canBook?: boolean;
+  message?: string;
 }
 
 @Component({
@@ -176,6 +180,7 @@ export class RoomsComponent implements OnInit {
   vanavihariOrder: any[] = [];
   junglestarOrder: any[] = [];
   showMessage = false;
+  resortData: any = null; // Store resort data including extraGuestCharges
 
   cottageTypes: { [key: string]: boolean } = {
     'Bison Cottages': false,
@@ -372,6 +377,13 @@ export class RoomsComponent implements OnInit {
   isModalVisible: boolean = false;
 
   getRoomImages(roomname: any): string[] {
+    // First, try to find the room in roomData and use API images
+    const room = this.roomData?.find((r: any) => r.Room_Name === roomname);
+    if (room && room.images && room.images.length > 0) {
+      return room.images.map((img: any) => img.url);
+    }
+
+    // Fallback to hardcoded images from gallery service
     const lowercaseRoomName = roomname.toLowerCase();
 
     switch (lowercaseRoomName) {
@@ -408,8 +420,6 @@ export class RoomsComponent implements OnInit {
         return this.galleryService.sambar();
       case 'sokuleru':
         return this.galleryService.sokuleru();
-      case 'bear':
-        return this.galleryService.bear();
       case 'tapathi':
         return this.galleryService.tapathi();
       case 'tribal':
@@ -530,6 +540,15 @@ export class RoomsComponent implements OnInit {
     return formattedDate;
   }
 
+  formatDateForAPI(date: Date): string {
+    if (!date) return '';
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   filterByResort(selectResort: string): any[] {
     return this.roomData.filter(
       (room: { Select_Resort: string }) => room.Select_Resort == selectResort
@@ -583,130 +602,129 @@ export class RoomsComponent implements OnInit {
 
   fetchRoomList() {
     this.loadingRooms = true;
-    let tempResort = this.selectedResort;
-    if (this.selectedResort == 'Jungle Star, Valamuru') {
-      tempResort = 'jungle-star';
-    }
-    if (this.selectedResort == 'Vanavihari, Maredumilli') {
-      tempResort = 'vanavihari';
-    }
-
-    let perm = '';
-    perm += `&resort=${tempResort}`;
-
-    // Concatenate checkin date parameter
-    perm += `&checkin=${this.convertDateFormat(this.checkinDate?.toString())}`;
-
-    // Concatenate checkout date pa rameter
-    perm += `&checkout=${this.convertDateFormat(
-      this.checkoutDate?.toString()
-    )}`;
-
     this.showLoader = true;
-
-    if (this.checkinDate) {
-      this.datesSelected = true;
-
-      this.http
-        .get<any>(this.api_url + '?api_type=room_list' + perm)
-        .subscribe({
-          next: (response) => {
-            this.showLoader = false;
-            const roomDataResponse = response.result.data;
-
-            this.roomData = Object.keys(roomDataResponse).map((key) => {
-              const roomId = key;
-              const roomObj = roomDataResponse[key];
-              return {
-                Room_Id: roomObj.room_id,
-                Charges_per_Bed_Week_Days: roomObj.week_day_bed_charge,
-                Cottage_Type: roomObj.cottage_type,
-                Max_Allowed_Guest: roomObj.max_guest,
-                Week_Days_Rate: roomObj.week_day_rate,
-                Charges_per_Bed_Week_End: roomObj.week_end_bed_charge,
-                Week_End_Rate: roomObj.week_end_rate,
-                Room_Name: roomObj.name,
-                Select_Resort: roomObj.resort,
-                Max_Allowed_Adult: roomObj.max_adult,
-                Room_Image: '', // Add default value for Room_Image
-                ID: roomId, // Add default value for ID
-                is_button_disabled: false, // Add default value for is_button_disabled
-                isExtraGuestChecked: false,
-              };
-            });
-            this.roomData = this.filterRoomData(this.roomData);
-
-            this.loadingRooms = false;
-
-            this.filteredRoomData = this.filterByResort(this.selectedResort);
-
-            const roomIndexMap = new Map<string, number>();
-            if (this.selectedResort == 'Jungle Star, Valamuru') {
-              this.junglestarOrder.forEach((roomName, index) => {
-                roomIndexMap.set(roomName, index);
-              });
-            } else {
-              this.vanavihariOrder.forEach((roomName, index) => {
-                roomIndexMap.set(roomName, index);
-              });
-            }
-
-            this.filteredRoomData = this.filteredRoomData.sort(
-              (a: any, b: any) => {
-                const indexA = roomIndexMap.get(a.Room_Name);
-                const indexB = roomIndexMap.get(b.Room_Name);
-
-                // If both Room_Names are in junglestarOrder, compare their indices
-                if (indexA !== undefined && indexB !== undefined) {
-                  return indexA - indexB;
-                }
-
-                // If one of the Room_Names is not in junglestarOrder, prioritize the one that is
-                if (indexA !== undefined) {
-                  return -1; // Place a before b
-                }
-                if (indexB !== undefined) {
-                  return 1; // Place b before a
-                }
-
-                // If neither Room_Name is in junglestarOrder, maintain the current order
-                return 0;
-              }
-            );
-
-            this.previousFilteredRoomData = [...this.filteredRoomData]; // Initial previous state
-
-            if (this.roomData.length == 0) {
-              this.isRoomDataEmpty = true;
-            } else {
-              this.isRoomDataEmpty = false;
-            }
-          },
-          error: (err) => {
-            this.showLoader = false;
-            this.loadingRooms = false;
-
-            // this.http.get<any[]>('./assets/json/rooms.json').subscribe((data) => {
-            //   this.roomData = data;
-            //   this.filteredRoomData = this.filterByResort(this.selectedResort);
-            // });
-          },
-        });
-    } else {
-      this.datesSelected = false;
-      this.showLoader = false;
-      this.loadingRooms = false;
-
-      this.http.get<any[]>('./assets/json/rooms.json').subscribe((data) => {
-        this.roomData = data;
-        if (this.roomData.length == 0) {
-          this.isRoomDataEmpty = true;
-        } else {
-          this.isRoomDataEmpty = false;
-        }
-        this.filteredRoomData = this.filterByResort(this.selectedResort);
-      });
+    
+    let resortSlug = '';
+    if (this.selectedResort == 'Jungle Star, Valamuru') {
+      resortSlug = 'jungle-star';
+    } else if (this.selectedResort == 'Vanavihari, Maredumilli') {
+      resortSlug = 'vanavihari';
     }
+
+    // Fetch resort data first to get extraGuestCharges
+    this.http
+      .get<any>(`${this.api_url}/api/resorts?slug=${resortSlug}`)
+      .subscribe({
+        next: (resortResponse) => {
+          this.resortData = resortResponse.resort;
+          
+          // Build the rooms API URL with availability check
+          let roomsUrl = `${this.api_url}/api/rooms/available?resortSlug=${resortSlug}`;
+          
+          // Add dates to URL if they exist
+          if (this.checkinDate && this.checkoutDate) {
+            const checkinStr = this.formatDateForAPI(this.checkinDate);
+            const checkoutStr = this.formatDateForAPI(this.checkoutDate);
+            roomsUrl += `&checkin=${checkinStr}&checkout=${checkoutStr}`;
+            this.datesSelected = true;
+          } else {
+            this.datesSelected = false;
+          }
+          
+          // Now fetch available rooms from the REST API
+          this.http
+            .get<any>(roomsUrl)
+            .subscribe({
+              next: (response) => {
+                this.showLoader = false;
+                this.loadingRooms = false;
+
+                // Transform the API response to match the frontend interface
+                this.roomData = response.rooms.map((room: any) => {
+                  return {
+                    Room_Id: room._id,
+                    Charges_per_Bed_Week_Days: room.bedChargeWeekday || room.price || 0,
+                    Cottage_Type: room.cottageType?.name || room.cottageType || '',
+                    Max_Allowed_Guest: room.guests || 2,
+                    Week_Days_Rate: room.weekdayRate || room.price || 0,
+                    Charges_per_Bed_Week_End: room.bedChargeWeekend || room.price || 0,
+                    Week_End_Rate: room.weekendRate || room.price || 0,
+                    Room_Name: room.roomName,
+                    Select_Resort: room.resort?.resortName || this.selectedResort,
+                    Max_Allowed_Adult: room.guests || 2,
+                    Room_Image: room.images && room.images.length > 0 ? room.images[0].url : '',
+                    ID: room._id,
+                    is_button_disabled: room.canBook === false, // Disable if canBook is false
+                    isExtraGuestChecked: false,
+                    extra_guest: false,
+                    images: room.images || [], // Store images array for gallery
+                    isAvailable: room.isAvailable !== undefined ? room.isAvailable : true,
+                    canBook: room.canBook !== undefined ? room.canBook : true,
+                    message: room.message || '',
+                  };
+                });
+
+                this.filteredRoomData = this.roomData;
+
+                // Sort rooms based on predefined order
+                const roomIndexMap = new Map<string, number>();
+                if (this.selectedResort == 'Jungle Star, Valamuru') {
+                  this.junglestarOrder.forEach((roomName, index) => {
+                    roomIndexMap.set(roomName, index);
+                  });
+                } else {
+                  this.vanavihariOrder.forEach((roomName, index) => {
+                    roomIndexMap.set(roomName, index);
+                  });
+                }
+
+                this.filteredRoomData = this.filteredRoomData.sort(
+                  (a: any, b: any) => {
+                    const indexA = roomIndexMap.get(a.Room_Name);
+                    const indexB = roomIndexMap.get(b.Room_Name);
+
+                    // If both Room_Names are in the order array, compare their indices
+                    if (indexA !== undefined && indexB !== undefined) {
+                      return indexA - indexB;
+                    }
+
+                    // If one of the Room_Names is not in the order array, prioritize the one that is
+                    if (indexA !== undefined) {
+                      return -1; // Place a before b
+                    }
+                    if (indexB !== undefined) {
+                      return 1; // Place b before a
+                    }
+
+                    // If neither Room_Name is in the order array, maintain the current order
+                    return 0;
+                  }
+                );
+
+                this.previousFilteredRoomData = [...this.filteredRoomData];
+
+                if (this.roomData.length == 0) {
+                  this.isRoomDataEmpty = true;
+                } else {
+                  this.isRoomDataEmpty = false;
+                }
+              },
+              error: (err) => {
+                console.error('Error fetching rooms:', err);
+                this.showLoader = false;
+                this.loadingRooms = false;
+                this.isRoomDataEmpty = true;
+                this.showErrorAlert('Failed to load rooms. Please try again.');
+              },
+            });
+        },
+        error: (err) => {
+          console.error('Error fetching resort:', err);
+          this.showLoader = false;
+          this.loadingRooms = false;
+          this.showErrorAlert('Failed to load resort data. Please try again.');
+        },
+      });
   }
 
   filterRoomData(roomData: any[]): any[] {
@@ -1033,12 +1051,11 @@ export class RoomsComponent implements OnInit {
     let extraGuests = this.authService.getExtraGuests(this.extraGuestsType);
     let totalExtraGuests = extraGuests?.length;
     this.extraGuestNumber = extraGuests?.length;
-    let resortName = this.authService.getSearchData('resort');
-    if (resortName == 'Vanavihari, Maredumilli') {
-      totalExtraGuestCharges = totalExtraGuests * 500;
-    } else {
-      totalExtraGuestCharges = totalExtraGuests * 1500;
-    }
+    
+    // Use extraGuestCharges from resortData (fetched from API)
+    const extraGuestCharge = this.resortData?.extraGuestCharges || 0;
+    totalExtraGuestCharges = totalExtraGuests * extraGuestCharge;
+    
     return totalExtraGuestCharges;
   }
   settings = {

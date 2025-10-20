@@ -72,8 +72,8 @@
             <li>
               <strong>Amenities: </strong> <i class="fa-solid fa-snowflake"></i> AC, <i class="fa-solid fa-hot-tub-person"></i> geyser, <i class="fa-solid fa-toilet"></i> western toilet.
             </li>
-            <li *ngIf="selectedResort == 'Jungle Star, Valamuru'">
-              <strong>Food: </strong><i class="fa-solid fa-utensils"></i> Room rates include three meals per day.
+            <li *ngIf="resortData?.foodProviding === 'yes'">
+              <strong>Food: </strong><i class="fa-solid fa-utensils"></i> {{ resortData?.foodDetails || 'Room rates include meals' }}
             </li>
           </ul>
         </div>
@@ -207,8 +207,7 @@
                     </mat-checkbox>
 
                     <div *ngIf="findRoomById(roomId).extra_guest" class="pt-3">
-                      <strong *ngIf="selectedResort == 'Jungle Star, Valamuru'">INR 1500</strong>
-                      <strong *ngIf="selectedResort == 'Vanavihari, Maredumilli'">INR 500</strong>
+                      <strong>{{ resortData?.extraGuestCharges | currency : 'INR ' : 'symbol' : '1.0-0' }}</strong>
                     </div>
                   </div>
                 </div>
@@ -375,15 +374,12 @@
                       </div>
                       <div class="col-auto">
                         <h6 class="p-0 m-0">
-                          <strong *ngIf="selectedResort == 'Vanavihari, Maredumilli'">INR {{ 500 }}
-                          </strong>
-                          <strong *ngIf="selectedResort == 'Jungle Star, Valamuru'">INR {{ 1500 }}
-                          </strong>
+                          <strong>{{ resortData?.extraGuestCharges | currency : 'INR ' : 'symbol' : '1.0-0' }}</strong>
                         </h6>
                         <p class="text-primary-dark"><i class="fa fa-user" aria-hidden="true"></i> One extra guest</p>
                       </div>
                       <div class="col-12">
-                        <p class="text-primary-dark" *ngIf="selectedResort == 'Jungle Star, Valamuru'"><i class="fa-solid fa-utensils"></i> Room price includes
+                        <p class="text-primary-dark" *ngIf="resortData?.foodProviding === 'yes'"><i class="fa-solid fa-utensils"></i> Room price includes
                           food</p>
                       </div>
                       <!-- <div><strong>{{ room.week_day_bed_charge | currency: 'INR ': true: '1.2-2' }}</strong></div>
@@ -392,9 +388,14 @@
                     </div>
                     <div class="col my-2 pe-0">
                       <button mat-raised-button color="primary" class="float-end float-md-start"
-                        [disabled]="isRoomAdded(room.Room_Id)" (click)="addRoom(room)">
+                        [disabled]="isRoomAdded(room.Room_Id) || !room.canBook" 
+                        (click)="addRoom(room)"
+                        [matTooltip]="!room.canBook ? room.message || 'Please select dates to book' : ''">
                         Add room
                       </button>
+                      <small *ngIf="!room.canBook && room.message" class="text-warning d-block mt-1">
+                        {{ room.message }}
+                      </small>
                     </div>
                   </div>
                 </div>
