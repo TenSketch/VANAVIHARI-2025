@@ -58,3 +58,26 @@ export const updateReservation = async (req, res) => {
     res.status(500).json({ success: false, error: err.message })
   }
 }
+
+export const getNextSerial = async (req, res) => {
+  try {
+    // Get today's date range
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    // Count reservations created today
+    const count = await Reservation.countDocuments({
+      createdAt: { $gte: today, $lt: tomorrow }
+    })
+
+    // Next serial is count + 1
+    const serial = count + 1
+
+    res.json({ success: true, serial })
+  } catch (err) {
+    console.error('getNextSerial error', err)
+    res.status(500).json({ success: false, error: err.message })
+  }
+}
