@@ -37,100 +37,114 @@
   align-items: start;
 }
 
-/* Left side: Quick info cards (vertically stacked) */
-.quick-info {
-  display: flex;
-  flex-direction: column;
+/* Left side: 2x2 Grid with inline controls */
+.quick-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
 }
-/* Hide stray checkbox inputs that may be injected or styled into fee cards
-   We keep checkboxes in the .addons section visible. */
-.quick-info input[type="checkbox"] {
-  display: none !important;
-}
-.quick-info .card {
-  background: linear-gradient(135deg, #fff 0%, hsl(90, 100%, 95%) 100%); /* light green gradient */
+
+.grid-card {
+  background: linear-gradient(135deg, #fff 0%, hsl(90, 100%, 95%) 100%);
   border: 1px solid hsl(90, 50%, 85%);
   border-radius: 10px;
-  padding: 0.5rem 0.45rem; /* reduced padding */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  padding: 1rem; /* increased padding */
+  min-height: 84px; /* slightly larger cards */
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.18s ease;
   position: relative;
   overflow: hidden;
-  min-height: 48px; /* reduced height */
-}
-
-.quick-info .card.parking-split {
-  display: flex;
-  flex-direction: row; /* force left / right columns */
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.6rem;
-}
-.quick-info .parking-col {
-  flex: 1 1 50%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  gap: 0.6rem;
 }
-.quick-info .parking-col .icon i { font-size: 1.8rem; }
-.quick-info .parking-col .label { font-size: 0.8rem; text-transform: uppercase; }
-.quick-info .parking-col .value { font-size: 1.05rem; }
-.quick-info .card::before {
+
+.grid-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, hsl(90, 100%, 30%) 0%, hsl(90, 100%, 40%) 100%); /* green gradient matching resort */
+  background: linear-gradient(90deg, hsl(90, 100%, 30%) 0%, hsl(90, 100%, 40%) 100%);
 }
-.quick-info .card:hover {
+
+.grid-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: hsl(90, 100%, 30%); /* resort primary green */
+  border-color: hsl(90, 100%, 30%);
 }
-.quick-info .icon { 
-  font-size: 1.6rem; /* smaller icons */
-  margin-bottom: 0.2rem;
-  display: block;
+
+.grid-card .card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.grid-card .icon {
+  font-size: 2.1rem; /* larger icon */
   line-height: 1;
+  flex-shrink: 0;
 }
-.quick-info .icon i {
-  font-size: 1.6rem; /* smaller FA icons */
-  color: hsl(90, 100%, 20%); /* dark green matching resort */
+
+.grid-card .icon i {
+  font-size: 2.1rem; /* larger icon */
+  color: hsl(90, 100%, 20%);
   vertical-align: middle;
 }
-.quick-info .label { 
-  color: #495057; 
-  font-size: 0.82rem; /* smaller label */
+
+.grid-card .info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.grid-card .label {
+  color: #495057;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  margin-bottom: 0.08rem;
-  text-align: center;
+  line-height: 1;
 }
-.quick-info .value { 
-  font-weight: 700; 
-  font-size: 1.0rem; /* reduced value size */
-  color: hsl(90, 100%, 20%); /* dark green matching resort */
+
+.grid-card .value {
+  font-weight: 700;
+  font-size: 1.1rem; /* slightly larger value */
+  color: hsl(90, 100%, 20%);
   line-height: 1.1;
-  text-align: center;
 }
-.quick-info .unit { 
-  color: #6c757d; 
-  font-weight: 400; 
-  font-size: 0.75rem; /* smaller unit */
-  display: block;
-  margin-top: 0.08rem;
+
+.grid-card .ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.grid-card .ctrl button {
+  width: 40px; /* slightly larger */
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #ced4da;
+  background: #f8f9fa;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.grid-card .ctrl button:hover {
+  background: hsl(90, 100%, 95%);
+  border-color: hsl(90, 100%, 30%);
+}
+
+.grid-card .ctrl span {
+  min-width: 2ch;
+  text-align: center;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #212529;
 }
 
 /* Right side: Booking inputs (vertically stacked) */
@@ -175,14 +189,14 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  .quick-info .card.parking-split {
-    flex-direction: row; /* keep horizontal on mobile */
+  .quick-info-grid {
+    grid-template-columns: 1fr;
   }
-  .quick-info .card {
-    padding: 0.7rem 0.5rem;
+  .grid-card {
+    padding: 0.7rem;
   }
-  .quick-info .icon {
-    font-size: 2.25rem;
+  .grid-card .icon {
+    font-size: 2rem;
   }
   .gallery img { height: 120px; width: 180px; }
 }

@@ -15,6 +15,8 @@ export interface TouristBookingSelection {
     children: number;
     vehicles: number;
     cameras: number;
+    twoWheelers?: number;
+    fourWheelers?: number;
   };
   addOns: string[]; // ids of selected addons
 }
@@ -51,6 +53,8 @@ export class TouristSpotSelectionComponent {
   children = 0;
   vehicles = 0;
   cameras = 0;
+  twoWheelers = 0;
+  fourWheelers = 0;
   selectedAddOnIds = new Set<string>();
 
   private toNumber(val: unknown): number | undefined {
@@ -90,13 +94,25 @@ export class TouristSpotSelectionComponent {
   }
   get estimatedTotal(): number | undefined {
     const e = this.unitEntry, p = this.unitParking, c = this.unitCamera;
-    if (e === undefined && p === undefined && c === undefined && this.addOnsTotal === 0) return undefined;
-    const base = (e || 0) * this.peopleCount + (p || 0) * (this.vehicles || 0) + (c || 0) * (this.cameras || 0);
+    const p2 = this.parkingTwoWheeler, p4 = this.parkingFourWheeler;
+    
+    if (e === undefined && p === undefined && c === undefined && p2 === undefined && p4 === undefined && this.addOnsTotal === 0) return undefined;
+    
+    let parkingTotal = 0;
+    if (p2 !== undefined && p4 !== undefined) {
+      // Use split parking
+      parkingTotal = (p2 || 0) * (this.twoWheelers || 0) + (p4 || 0) * (this.fourWheelers || 0);
+    } else {
+      // Use generic parking
+      parkingTotal = (p || 0) * (this.vehicles || 0);
+    }
+    
+    const base = (e || 0) * this.peopleCount + parkingTotal + (c || 0) * (this.cameras || 0);
     return base + this.addOnsTotal;
   }
 
-  inc(field: 'adults'|'children'|'vehicles'|'cameras') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
-  dec(field: 'adults'|'children'|'vehicles'|'cameras') {
+  inc(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
+  dec(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') {
     const next = Math.max(0, ((this as any)[field] || 0) - 1);
     if (field === 'adults') {
       (this as any)[field] = Math.max(1, next); // keep at least 1 adult
@@ -124,6 +140,8 @@ export class TouristSpotSelectionComponent {
         children: this.children || 0,
         vehicles: this.vehicles || 0,
         cameras: this.cameras || 0,
+        twoWheelers: this.twoWheelers || 0,
+        fourWheelers: this.fourWheelers || 0,
       },
       addOns: Array.from(this.selectedAddOnIds),
     };

@@ -14,74 +14,90 @@
 
   <!-- Two-column layout: Fee info on left, Booking inputs on right -->
   <div class="info-and-booking">
-    <!-- Left side: Quick info cards (vertically stacked) -->
-    <div class="quick-info">
-      <div *ngIf="(parkingTwoWheeler !== undefined) && (parkingFourWheeler !== undefined)" class="card parking-split">
-        <div class="parking-col">
-          <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
-          <div class="label">2-wheeler</div>
-          <div class="value">₹{{ parkingTwoWheeler }} <span class="unit">/ bike</span></div>
+    <!-- Left side: 2x2 Grid with inline controls -->
+    <div class="quick-info-grid">
+      <!-- Top Left: 2-Wheeler -->
+      <div class="grid-card" *ngIf="parkingTwoWheeler !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-motorcycle"></i></div>
+          <div class="info">
+            <div class="label">2-Wheeler</div>
+            <div class="value">₹{{ parkingTwoWheeler }}</div>
+          </div>
         </div>
-        <div class="parking-col">
-          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
-          <div class="label">4-wheeler</div>
-          <div class="value">₹{{ parkingFourWheeler }} <span class="unit">/ car</span></div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('twoWheelers')">−</button>
+          <span>{{ twoWheelers }}</span>
+          <button type="button" (click)="inc('twoWheelers')">＋</button>
         </div>
       </div>
-      <div class="card" *ngIf="(parkingTwoWheeler === undefined || parkingFourWheeler === undefined) && unitParking !== undefined">
-        <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
-        <div class="label">Parking</div>
-        <div class="value">₹{{ unitParking }} <span class="unit">/ vehicle</span></div>
-      </div>
-      <div class="card" *ngIf="unitEntry !== undefined">
-        <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
-        <div class="label">Entry</div>
-        <div class="value">₹{{ unitEntry }} <span class="unit">/ person</span></div>
-      </div>
-      <div class="card" *ngIf="unitCamera !== undefined">
-        <div class="icon"><i class="fa-solid fa-camera"></i></div>
-        <div class="label">Camera</div>
-        <div class="value">₹{{ unitCamera }} <span class="unit">/ camera</span></div>
-      </div>
-    </div>
 
-    <!-- Right side: Booking inputs (vertically stacked) -->
-    <div class="booking-inputs">
-      <div class="stepper">
-        <div class="lbl">Guests</div>
+      <!-- Top Right: 4-Wheeler -->
+      <div class="grid-card" *ngIf="parkingFourWheeler !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
+          <div class="info">
+            <div class="label">4-Wheeler</div>
+            <div class="value">₹{{ parkingFourWheeler }}</div>
+          </div>
+        </div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('fourWheelers')">−</button>
+          <span>{{ fourWheelers }}</span>
+          <button type="button" (click)="inc('fourWheelers')">＋</button>
+        </div>
+      </div>
+
+      <!-- Bottom Left: Entry -->
+      <div class="grid-card" *ngIf="unitEntry !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
+          <div class="info">
+            <div class="label">Entry</div>
+            <div class="value">₹{{ unitEntry }}</div>
+          </div>
+        </div>
         <div class="ctrl">
           <button type="button" (click)="dec('adults')">−</button>
           <span>{{ adults }}</span>
           <button type="button" (click)="inc('adults')">＋</button>
         </div>
       </div>
-      <!-- Children stepper commented out per request to hide children in tourist booking
-      <div class="stepper">
-        <div class="lbl">Children</div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('children')">−</button>
-          <span>{{ children }}</span>
-          <button type="button" (click)="inc('children')">＋</button>
+
+      <!-- Bottom Right: Camera -->
+      <div class="grid-card" *ngIf="unitCamera !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-camera"></i></div>
+          <div class="info">
+            <div class="label">Camera</div>
+            <div class="value">₹{{ unitCamera }}</div>
+          </div>
         </div>
-      </div>
-      -->
-      <div class="stepper">
-        <div class="lbl">Vehicles</div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('vehicles')">−</button>
-          <span>{{ vehicles }}</span>
-          <button type="button" (click)="inc('vehicles')">＋</button>
-        </div>
-      </div>
-      <div class="stepper">
-        <div class="lbl">Cameras</div>
         <div class="ctrl">
           <button type="button" (click)="dec('cameras')">−</button>
           <span>{{ cameras }}</span>
           <button type="button" (click)="inc('cameras')">＋</button>
         </div>
       </div>
+
+      <!-- Fallback: Generic parking if split not available -->
+      <div class="grid-card" *ngIf="(parkingTwoWheeler === undefined || parkingFourWheeler === undefined) && unitParking !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
+          <div class="info">
+            <div class="label">Parking</div>
+            <div class="value">₹{{ unitParking }}</div>
+          </div>
+        </div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('vehicles')">−</button>
+          <span>{{ vehicles }}</span>
+          <button type="button" (click)="inc('vehicles')">＋</button>
+        </div>
+      </div>
     </div>
+
+    <!-- Right side: booking inputs removed; controls are now inline in the 2x2 grid -->
   </div>
 
   <!-- Add-ons removed: optional services are not displayed in the booking cards -->

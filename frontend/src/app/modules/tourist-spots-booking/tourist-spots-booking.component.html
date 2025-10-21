@@ -30,7 +30,7 @@
     <div class="container-fluid my-5">
       <div class="row g-4">
   <!-- Left Side - Filters (narrow) -->
-  <div class="col-lg-2 order-lg-1 order-2">
+  <div class="col-lg-2 order-lg-1 order-2" *ngIf="false">
           <div class="filters-card sticky-top" style="top: 100px;">
             <div class="card shadow">
               <div class="card-header bg-secondary text-white" (click)="toggleFilters()" style="cursor: pointer;">
@@ -94,7 +94,7 @@
         </div>
 
   <!-- Middle - Tourist Spot Selection (wider) -->
-  <div class="col-lg-7 order-lg-2 order-3">
+  <div class="col-lg-7 order-lg-3 order-3">
           <div class="tourist-spots-list">
             <!-- No Results Message -->
             <div *ngIf="filteredCategories.length === 0 || !hasAnySpots()" class="alert alert-info">
@@ -136,7 +136,7 @@
         </div>
 
   <!-- Right Side - Booking Summary (25%) -->
-  <div class="col-lg-3 order-lg-3 order-1">
+  <div class="col-lg-3 order-lg-1 order-1">
           <div class="booking-summary-card sticky-top" style="top: 100px;">
             <div class="card shadow">
               <div class="card-header bg-primary text-white" (click)="toggleBookingSummary()" style="cursor: pointer;">
