@@ -13,11 +13,15 @@ export interface BookedTouristSpot {
     children: number;
     vehicles: number;
     cameras: number;
+    twoWheelers?: number;
+    fourWheelers?: number;
   };
   unitPrices: {
     entry: number;
     parking: number;
     camera: number;
+    parkingTwoWheeler?: number;
+    parkingFourWheeler?: number;
   };
   breakdown: {
     entry: number;
@@ -179,10 +183,21 @@ export class TouristSpotsBookingComponent {
     
     const peopleCount = selection.counts.adults + selection.counts.children;
     
+    // Calculate parking based on split or generic
+    let parkingTotal = 0;
+    if (spotPrices.parkingTwoWheeler !== undefined && spotPrices.parkingFourWheeler !== undefined) {
+      // Use split parking calculation
+      parkingTotal = (spotPrices.parkingTwoWheeler * (selection.counts.twoWheelers || 0)) + 
+                     (spotPrices.parkingFourWheeler * (selection.counts.fourWheelers || 0));
+    } else {
+      // Use generic parking calculation
+      parkingTotal = spotPrices.parking * selection.counts.vehicles;
+    }
+    
     // Calculate breakdown
     const breakdown = {
       entry: spotPrices.entry * peopleCount,
-      parking: spotPrices.parking * selection.counts.vehicles,
+      parking: parkingTotal,
       camera: spotPrices.camera * selection.counts.cameras,
       addOns: this.calculateAddOnsTotal(selection.addOns, spotId)
     };
@@ -232,11 +247,17 @@ export class TouristSpotsBookingComponent {
     this.router.navigate(['/tourist-spots-checkout']);
   }
 
-  private getSpotPrices(spotId: string): { entry: number; parking: number; camera: number } {
+  private getSpotPrices(spotId: string): { entry: number; parking: number; camera: number; parkingTwoWheeler?: number; parkingFourWheeler?: number } {
     const cfg = this.spotMap[spotId];
     if (!cfg) return { entry: 0, parking: 0, camera: 0 };
-    const { entryPerPerson, parkingPerVehicle, cameraPerCamera } = cfg.fees;
-    return { entry: entryPerPerson, parking: parkingPerVehicle, camera: cameraPerCamera };
+    const { entryPerPerson, parkingPerVehicle, cameraPerCamera, parkingTwoWheeler, parkingFourWheeler } = cfg.fees;
+    return { 
+      entry: entryPerPerson, 
+      parking: parkingPerVehicle, 
+      camera: cameraPerCamera,
+      parkingTwoWheeler,
+      parkingFourWheeler
+    };
   }
 
   private calculateAddOnsTotal(selectedAddOnIds: string[], spotId: string): number {
