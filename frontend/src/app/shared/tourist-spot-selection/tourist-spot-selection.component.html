@@ -1,20 +1,28 @@
-<div class="tourist-spot">
+<!-- Full-width section wrapper using Bootstrap -->
+<div class="container tourist-spot-section">
+  <!-- <div class="container"> -->
+    <div class="tourist-spot">
   <!-- Header -->
   <header class="header">
     <h3 class="title">{{ name }}<span class="sep">,</span> <span class="loc">{{ location }}</span></h3>
     <div class="sub" *ngIf="type">{{ type }}</div>
   </header>
 
-  <!-- Gallery: horizontal scroll -->
-  <div class="gallery" *ngIf="images?.length">
-    <div class="rail">
-      <img *ngFor="let img of images" [src]="img" [alt]="name" />
+  <!-- Two-column layout: Gallery on left, Info cards on right -->
+  <div class="gallery-and-info">
+    <!-- Left side: Gallery with vertical stack -->
+    <div class="gallery" *ngIf="images?.length">
+      <div class="rail">
+        <img 
+          *ngFor="let img of images; let i = index" 
+          [src]="img" 
+          [alt]="name" 
+          (click)="openLightbox(i)"
+          style="cursor: pointer;" />
+      </div>
     </div>
-  </div>
 
-  <!-- Two-column layout: Fee info on left, Booking inputs on right -->
-  <div class="info-and-booking">
-    <!-- Left side: 2x2 Grid with inline controls -->
+    <!-- Right side: 2x2 Grid with inline controls -->
     <div class="quick-info-grid">
       <!-- Top Left: 2-Wheeler -->
       <div class="grid-card" *ngIf="parkingTwoWheeler !== undefined">
@@ -96,18 +104,15 @@
         </div>
       </div>
     </div>
-
-    <!-- Right side: booking inputs removed; controls are now inline in the 2x2 grid -->
   </div>
 
   <!-- Add-ons removed: optional services are not displayed in the booking cards -->
 
-  <!-- Actions -->
-  <div class="actions">
-    <div class="estimate" *ngIf="estimatedTotal !== undefined">
-      Est. Total: <strong>₹{{ estimatedTotal }}</strong>
-    </div>
-    <button class="btn add" [disabled]="peopleCount === 0" (click)="onAddToBooking()">Add to Booking</button>
+  <!-- Actions (right aligned) -->
+  <div class="actions actions-right">
+    <button class="btn add" [disabled]="adults < 1" (click)="onAddToBooking()">Add to Booking</button>
     <a [routerLink]="detailsLink" [fragment]="detailsFragment" class="btn details">View Details →</a>
   </div>
+    </div>
+  <!-- </div> -->
 </div>

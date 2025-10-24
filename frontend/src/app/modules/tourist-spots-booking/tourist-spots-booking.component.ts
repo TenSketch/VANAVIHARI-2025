@@ -1,5 +1,6 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { TouristBookingSelection } from '../../shared/tourist-spot-selection/tourist-spot-selection.component';
 import { TOURIST_SPOT_CATEGORIES, TouristSpotCategory, TouristSpotConfig } from './tourist-spots.data';
 
@@ -58,6 +59,8 @@ export class TouristSpotsBookingComponent {
   // Accordion state
   isBookingSummaryExpanded: boolean = true;
   isFiltersExpanded: boolean = true;
+  panelOpenState: boolean = false;
+  isMobile: boolean = false;
 
   // Filter options
   categoryFilters: CategoryFilter[] = [
@@ -88,7 +91,10 @@ export class TouristSpotsBookingComponent {
   private slideIntervalMs: number = 3000; // 3s per slide (user requested)
   private slideTimer: any = null;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private breakpointObserver: BreakpointObserver
+  ) {
     // Build lookup map
     this.categories.forEach(cat => cat.spots.forEach(s => this.spotMap[s.id] = s));
     // Load persisted state if present
@@ -106,6 +112,13 @@ export class TouristSpotsBookingComponent {
     // Initialize hero images from first images found in categories (fallback safe list)
     this.initHeroImages();
     this.startAutoplay();
+
+    // Detect mobile breakpoint
+    this.breakpointObserver
+      .observe([Breakpoints.HandsetPortrait, Breakpoints.HandsetLandscape])
+      .subscribe((result) => {
+        this.isMobile = result.matches;
+      });
   }
 
   ngAfterViewInit(): void {

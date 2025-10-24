@@ -18,6 +18,10 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import {MatButtonModule} from '@angular/material/button';
 
+// Import ng-gallery modules
+import { GalleryModule } from 'ng-gallery';
+import { LightboxModule } from 'ng-gallery/lightbox';
+
 @NgModule({
   declarations: [
     ConfirmationModalComponent,
@@ -36,7 +40,9 @@ import {MatButtonModule} from '@angular/material/button';
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    MatButtonModule
+    MatButtonModule,
+    GalleryModule,
+    LightboxModule
   ],
   exports: [GalleryComponent, SearchResortComponent, TouristSpotSelectionComponent],
 })

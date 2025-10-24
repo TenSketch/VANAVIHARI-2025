@@ -1,4 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Lightbox } from 'ng-gallery/lightbox';
+import { Gallery, GalleryItem, ImageItem, ImageSize } from 'ng-gallery';
 
 export interface TouristAddOn {
   id: string;
@@ -49,13 +51,22 @@ export class TouristSpotSelectionComponent {
   @Output() addToBooking = new EventEmitter<TouristBookingSelection>();
 
   // Form state
-  adults = 1;
+  // Start adults at 0 per request; Add-to-booking will remain guarded until at least 1 adult
+  adults = 0;
   children = 0;
   vehicles = 0;
   cameras = 0;
   twoWheelers = 0;
   fourWheelers = 0;
   selectedAddOnIds = new Set<string>();
+
+  // Lightbox items
+  items: GalleryItem[] = [];
+
+  constructor(
+    public lightbox: Lightbox,
+    public gallery: Gallery
+  ) {}
 
   private toNumber(val: unknown): number | undefined {
     if (typeof val === 'number' && !isNaN(val)) return val;
@@ -114,11 +125,8 @@ export class TouristSpotSelectionComponent {
   inc(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
   dec(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') {
     const next = Math.max(0, ((this as any)[field] || 0) - 1);
-    if (field === 'adults') {
-      (this as any)[field] = Math.max(1, next); // keep at least 1 adult
-    } else {
-      (this as any)[field] = next;
-    }
+    // allow adults to go to zero; the template will disable add-to-booking until adults >= 1
+    (this as any)[field] = next;
   }
 
   toggleAddOn(id: string, checked: boolean) {
@@ -146,5 +154,27 @@ export class TouristSpotSelectionComponent {
       addOns: Array.from(this.selectedAddOnIds),
     };
     this.addToBooking.emit(payload);
+  }
+
+  setGalleryData(index: number) {
+    this.items = this.images.map(
+      (item) => new ImageItem({ src: item, thumb: item })
+    );
+
+    const lightboxRef = this.gallery.ref('tourist-spot-lightbox');
+
+    const lightboxConfig = {
+      closeIcon: `<img src="assets/images/icons/close.png">`,
+      imageSize: ImageSize.Contain,
+      thumbnails: null,
+    };
+
+    lightboxRef.setConfig(lightboxConfig);
+    lightboxRef.load(this.items);
+    this.lightbox.open(index, 'tourist-spot-lightbox');
+  }
+
+  openLightbox(index: number) {
+    this.setGalleryData(index);
   }
 }

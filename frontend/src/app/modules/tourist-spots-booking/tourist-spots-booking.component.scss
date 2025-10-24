@@ -419,3 +419,30 @@
     top: 100px !important;
   }
 }
+
+// Booking summary bar styles (matching resort pages)
+.booking-summary-bar {
+  background: hsl(90, 100%, 90%);
+  padding: 20px;
+  z-index: unset;
+
+  &--title {
+    position: relative;
+
+    &::after {
+      position: absolute;
+      content: "\f0f3";
+      font-family: "Font Awesome 6 Free";
+      font-size: 18px;
+      color: hsl(90,100%,30%);
+      top: 50%;
+      transform: translateY(-50%);
+      right: -22%;
+    }
+  }
+}
+
+.accordion-body {
+  height: 50dvh;
+  overflow-y: scroll;
+}
