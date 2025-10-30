@@ -1,62 +1,32 @@
+/* Booking summary removed for this view */
+
+/* Booking summary styles (copied from tourist spots booking for consistency) */
 .booking-summary-bar {
-  background: linear-gradient(180deg, #d9ffb3 0%, #d9ffb3 100%); /* exact header green */
-  border: 1px solid rgba(0,0,0,0.06);
-  padding: 16px;
+  background: hsl(90, 100%, 90%);
+  padding: 20px;
+  z-index: 1020;
   position: sticky;
-  top: 90px; /* leave space for navbar */
-  z-index: 30;
-  box-shadow: 0 2px 6px rgba(11,90,43,0.04);
-}
+  top: var(--booking-summary-top, 100px); /* stick to bottom of nav bar; CSS variable set via script */
 
-@media (max-width: 991px) {
-  /* On smaller screens, remove sticky to avoid overlaying content */
-  .booking-summary-bar {
-    position: static;
-    top: auto;
-    box-shadow: none;
-    padding: 12px;
-  }
-}
+  &--title {
+    position: relative;
 
-.summary-top {
-  .summary-amount {
-    color: #5b2f00; /* deep brown like attachment */
-    font-weight: 800;
-    font-size: 1.25rem;
-  }
-
-  .summary-guests {
-    display: flex;
-    align-items: center;
-    color: #19692a;
-    font-weight: 600;
-    font-size: 0.95rem;
-  }
-}
-
-.booking-summary-bar.empty {
-  /* when empty, keep same green but visually lighter content */
-  .empty-state {
-    width: 100%;
-    .plus-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      background: rgba(0,0,0,0.03);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: #19692a;
-      font-weight: 700;
-    }
-
-    .empty-title {
-      color: #19692a;
-      font-weight: 600;
-      font-size: 1rem;
+    &::after {
+      position: absolute;
+      content: "\f0f3";
+      font-family: "Font Awesome 6 Free";
+      font-size: 18px;
+      color: hsl(90,100%,30%);
+      top: 50%;
+      transform: translateY(-50%);
+      right: -22%;
     }
   }
+}
+
+.accordion-body {
+  height: 50dvh;
+  overflow-y: scroll;
 }
 
 .page-banner {
@@ -200,73 +170,49 @@
   background-color: #f0f0f0;
 }
 
-/* Amenities list styling - compact oval bubble style */
-.amenities-wrapper {
-  margin-top: 0.35rem;
+.tent-amenities {
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 10px;
 
   h6 {
-    font-size: 0.88rem;
+    font-size: 0.95rem;
     color: #0b5a2b;
     font-weight: 700;
-    margin-bottom: 0.3rem;
   }
 
   .amenities-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 6px; /* tighter gaps */
-  align-items: center;
-  direction: ltr; /* ensure left-to-right rendering */
-  flex-direction: row; /* explicitly lay items horizontally */
-  justify-content: flex-start;
-
-    li {
-      display: inline-flex;
-      align-items: center;
-      flex: 0 1 auto;
-      padding: 3px 8px; /* reduced padding */
-      background: linear-gradient(135deg, #f7fcf8 0%, #fbfffb 100%);
-      border: 1px solid #e1f3e6;
-      border-radius: 14px;
-      color: #19692a;
-      font-size: 0.75rem; /* smaller font */
-      font-weight: 500;
-      line-height: 1.1;
-      box-shadow: 0 1px 1px rgba(11, 90, 43, 0.04);
-      transition: all 0.12s ease;
-
-      &::before {
-        content: '\2713';
-        display: inline-block;
-        margin-right: 5px;
-        color: #0b5a2b;
-        font-weight: 700;
-        font-size: 0.7rem;
-      }
-
-      &:hover {
-        background: linear-gradient(135deg, #e9f6ec 0%, #f7fcf8 100%);
-        box-shadow: 0 2px 4px rgba(11, 90, 43, 0.08);
-        transform: translateY(-1px);
-      }
-    }
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-top: 8px;
   }
 
-  /* compact variant for the booking summary column */
-  &.compact {
-    .amenities-list {
-      gap: 4px 5px;
-      
-      li {
-        font-size: 0.72rem;
-        padding: 3px 7px;
-      }
+  .amenity-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #1b3f2b;
+    font-size: 0.9rem;
+
+    i {
+      color: #0b5a2b;
+      font-size: 0.85rem;
     }
+
+    .amenity-logo {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      object-fit: contain;
+    }
+
+    .amenity-text { line-height: 1; }
   }
 }
+
+/* ensure amenities block takes full width of its column */
+.tent-amenities { width: 100%; box-sizing: border-box; }
 
 /* Tent details block: small rows with labels */
 .tent-details {
@@ -284,4 +230,21 @@
   @media (max-width: 576px) {
     .detail-row { font-size: 0.82rem; }
   }
+}
+
+.amenities-line {
+  color: #1b3f2b;
+  font-size: 0.92rem;
+  margin: 0;
+  white-space: normal;
+  /* amenities removed */
+}
+
+.tent-price {
+  font-size: 1rem;
+}
+
+.tent-guests {
+  font-size: 0.85rem;
+  color: #6c757d; /* muted */
 }

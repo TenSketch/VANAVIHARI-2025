@@ -124,6 +124,12 @@
   line-height: 1;
 }
 
+.grid-card .label .required {
+  color: #dc3545; /* red star for required */
+  margin-left: 0.25rem;
+  font-weight: 700;
+}
+
 .grid-card .value {
   font-weight: 700;
   font-size: 1.1rem; /* slightly larger value */

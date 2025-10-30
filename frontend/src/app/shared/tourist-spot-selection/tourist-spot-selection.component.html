@@ -24,6 +24,21 @@
 
     <!-- Right side: 2x2 Grid with inline controls -->
     <div class="quick-info-grid">
+      <!-- Top Left: Entry (moved to be first and marked required) -->
+      <div class="grid-card" *ngIf="unitEntry !== undefined">
+        <div class="card-header">
+          <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
+          <div class="info">
+            <div class="label">Entry <span class="required">*</span></div>
+            <div class="value">₹{{ unitEntry }}</div>
+          </div>
+        </div>
+        <div class="ctrl">
+          <button type="button" (click)="dec('adults')">−</button>
+          <span>{{ adults }}</span>
+          <button type="button" (click)="inc('adults')">＋</button>
+        </div>
+      </div>
       <!-- Top Left: 2-Wheeler -->
       <div class="grid-card" *ngIf="parkingTwoWheeler !== undefined">
         <div class="card-header">
@@ -56,21 +71,7 @@
         </div>
       </div>
 
-      <!-- Bottom Left: Entry -->
-      <div class="grid-card" *ngIf="unitEntry !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
-          <div class="info">
-            <div class="label">Entry</div>
-            <div class="value">₹{{ unitEntry }}</div>
-          </div>
-        </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('adults')">−</button>
-          <span>{{ adults }}</span>
-          <button type="button" (click)="inc('adults')">＋</button>
-        </div>
-      </div>
+      
 
       <!-- Bottom Right: Camera -->
       <div class="grid-card" *ngIf="unitCamera !== undefined">

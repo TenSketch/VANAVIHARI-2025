@@ -142,9 +142,9 @@
               >
                 <mat-expansion-panel-header>
                   <mat-panel-title>
-                    <div class="booking-summary-bar text-dark rounded-3">
-                      <h5 class="m-0 font-weight-bold">Booking Summary</h5>
-                    </div>
+                    <h5 class="m-0 font-weight-bold" [class.booking-summary-bar--title]="isSpotsAvailable()">
+                      Booking Summary
+                    </h5>
                   </mat-panel-title>
                 </mat-expansion-panel-header>
                 <div [ngClass]="{ 'accordion-body': bookedSpots.length > 0 }">

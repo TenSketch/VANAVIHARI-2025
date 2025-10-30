@@ -366,4 +366,8 @@ export class TouristSpotsBookingComponent {
   toggleFilters() {
     this.isFiltersExpanded = !this.isFiltersExpanded;
   }
+
+  isSpotsAvailable() {
+    return this.bookedSpots.length > 0;
+  }
 }

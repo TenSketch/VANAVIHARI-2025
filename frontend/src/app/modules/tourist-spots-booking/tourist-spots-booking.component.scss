@@ -102,6 +102,8 @@
 }
 
 .booking-summary-card {
+  position: sticky;
+  top: 100px;
   .card {
     border: none;
     border-radius: 15px;
@@ -371,14 +373,34 @@
     right: 1rem !important;
     left: 1rem !important;
     margin: 0 !important;
-    z-index: 1050; /* sit above main content */
+  z-index: 900; /* below overlays/lightboxes (e.g., Angular Material ~1000), above page content */
     max-height: calc(100vh - 96px); /* leave space for navbar + small gap */
     overflow: auto; /* allow internal scrolling of the summary card */
+  }
+
+  /* Mobile: the booking summary uses a Material accordion */
+  .col-md-4 mat-accordion {
+    position: fixed !important;
+    top: 80px !important; /* align with navbar */
+    right: 1rem !important;
+    left: 1rem !important;
+    margin: 0 !important;
+    z-index: 900; /* ensure lightboxes/modals sit above */
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+  }
+
+  /* Add spacing between booking summary and tourist spots content on mobile */
+  .tourist-spots-list {
+    margin-top: 100px !important;
   }
 
   /* Slightly smaller top offset on very small devices */
   @media (max-width: 575.98px) {
     .booking-summary-card {
+      top: 70px !important;
+    }
+    .col-md-4 mat-accordion {
       top: 70px !important;
     }
   }
@@ -425,6 +447,8 @@
   background: hsl(90, 100%, 90%);
   padding: 20px;
   z-index: unset;
+  position: sticky;
+  top: 100px; /* stick just below the navbar on desktop */
 
   &--title {
     position: relative;
@@ -446,3 +470,4 @@
   height: 50dvh;
   overflow-y: scroll;
 }
+  

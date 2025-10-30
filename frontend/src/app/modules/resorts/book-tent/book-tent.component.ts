@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, AfterViewInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TentService } from '../../../services/tent.service';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 interface Tent {
   id: string;
@@ -34,7 +35,8 @@ export class BookTentComponent implements OnInit {
   selectedResortInfo: ResortInfo | null = null;
   // mimic test-room flags
   isMobile: boolean = false;
-  showBookingSummary: boolean = false;
+  bookedTents: any[] = [];
+  private bookingStorageKey = 'booking_tents';
   // image viewer state
   isFullImageVisible = false;
   fullImageSrc: string | null = null;
@@ -44,7 +46,12 @@ export class BookTentComponent implements OnInit {
     // nothing for now, placeholders accessible via cardContainers
   }
 
-  constructor(private route: ActivatedRoute, private tentService: TentService) {}
+  constructor(
+    private route: ActivatedRoute,
+    private tentService: TentService,
+    private router: Router,
+    private breakpointObserver: BreakpointObserver
+  ) {}
 
   ngOnInit(): void {
     const path = this.route.snapshot.routeConfig?.path || '';
@@ -117,14 +124,109 @@ export class BookTentComponent implements OnInit {
       },
       error: (err) => console.error('Failed to load tents', err),
     });
-
-    // initialize booking summary from localStorage
+    // load persisted booking (if any)
     this.loadBookingSummary();
+
+    // detect mobile layout
+    this.breakpointObserver
+      .observe([Breakpoints.HandsetPortrait, Breakpoints.HandsetLandscape])
+      .subscribe((result) => {
+        this.isMobile = result.matches;
+      });
+
+    // compute booking summary top offset (so it sits below the fixed navbar)
+    this.updateBookingSummaryTop();
+    // recalc on resize to handle responsive navbar height
+    window.addEventListener('resize', this.updateBookingSummaryTop);
+  }
+
+  ngOnDestroy(): void {
+    // cleanup listener
+    try { window.removeEventListener('resize', this.updateBookingSummaryTop); } catch {}
+  }
+
+  /**
+   * Compute the fixed navbar height and expose it as a CSS variable
+   * so .booking-summary-bar can use it as `top` value and sit below the nav.
+   */
+  private updateBookingSummaryTop = (): void => {
+    try {
+      const nav = document.querySelector('nav.navbar.fixed-top') as HTMLElement | null;
+      const height = nav ? Math.ceil(nav.getBoundingClientRect().height) : 100;
+      // add a small extra gap (4px) so the summary doesn't touch the navbar
+      const offset = height + 4;
+      document.documentElement.style.setProperty('--booking-summary-top', `${offset}px`);
+    } catch (e) {
+      // fallback: set a default
+      document.documentElement.style.setProperty('--booking-summary-top', `100px`);
+    }
   }
 
   openFullImage(src: string) {
     this.fullImageSrc = src;
     this.isFullImageVisible = true;
+  }
+
+  // --- Booking summary helpers (adapted from tourist spots) ---
+  private persistBooking() {
+    localStorage.setItem(this.bookingStorageKey, JSON.stringify(this.bookedTents));
+  }
+
+  loadBookingSummary() {
+    const raw = localStorage.getItem(this.bookingStorageKey);
+    try {
+      this.bookedTents = raw ? JSON.parse(raw) : [];
+    } catch {
+      this.bookedTents = [];
+    }
+  }
+
+  addTentToBooking(tent: any) {
+    const existing = this.bookedTents.findIndex((b: any) => b.id === tent.id);
+    const booked = {
+      id: tent.id,
+      name: tent.name || 'Tent',
+      capacity: tent.capacity || 2,
+      price: Number(tent.price) || 0,
+      total: Number(tent.price) || 0
+    };
+    if (existing >= 0) {
+      this.bookedTents.splice(existing, 1, booked);
+    } else {
+      this.bookedTents = [...this.bookedTents, booked];
+    }
+    this.persistBooking();
+    this.showAddedToBookingFeedback(booked.name);
+  }
+
+  removeTent(index: number) {
+    this.bookedTents.splice(index, 1);
+    this.bookedTents = [...this.bookedTents];
+    this.persistBooking();
+  }
+
+  get grandTotal(): number {
+    return this.bookedTents.reduce((sum, t) => sum + (Number(t.total) || Number(t.price) || 0), 0);
+  }
+
+  proceedToCheckout() {
+    if (this.bookedTents.length === 0) return;
+    localStorage.setItem('tentsBooking', JSON.stringify({ tents: this.bookedTents, total: this.grandTotal, timestamp: new Date().toISOString() }));
+    // navigate to a checkout page if exists; fallback to console.log
+    try {
+      this.router.navigate(['/booking-summary']);
+    } catch (e) {
+      console.log('Proceeding to checkout', this.bookedTents, this.grandTotal);
+    }
+  }
+
+  private showAddedToBookingFeedback(name: string) {
+    const feedback = document.createElement('div');
+    feedback.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-5';
+    feedback.style.zIndex = '9999';
+    feedback.innerHTML = `<i class="fa-solid fa-check-circle me-2"></i>${name} added to booking!`;
+    document.body.appendChild(feedback);
+    setTimeout(() => feedback.remove(), 2000);
   }
 
   closeFullImage() {
@@ -150,64 +252,24 @@ export class BookTentComponent implements OnInit {
     }
   }
 
-  addTentToBooking(tent: any) {
-    const key = 'booking_tents';
-    const raw = localStorage.getItem(key);
-    const list = raw ? JSON.parse(raw) : [];
-    // remove cost and extra guest fields - not present in our JSON
-    const toAdd = { id: tent.id, name: tent.name, capacity: tent.capacity, price: tent.price };
-    // prevent duplicates
-    if (!list.find((i: any) => i.id === toAdd.id)) {
-      list.push(toAdd);
-      localStorage.setItem(key, JSON.stringify(list));
-      this.loadBookingSummary();
-    } else {
-      // already present - silently ignore
-    }
-  }
-
-  loadBookingSummary() {
-    const key = 'booking_tents';
-    const raw = localStorage.getItem(key);
-    this.bookingTents = raw ? JSON.parse(raw) : [];
-    this.showBookingSummary = this.bookingTents.length > 0;
-  }
-
-  removeTentFromBooking(tentId: string) {
-    const key = 'booking_tents';
-    const raw = localStorage.getItem(key);
-    const list = raw ? JSON.parse(raw) : [];
-    const filtered = list.filter((i: any) => i.id !== tentId);
-    localStorage.setItem(key, JSON.stringify(filtered));
-    this.loadBookingSummary();
-  }
-
-  bookingTents: any[] = [];
-
-  // Pricing helpers for booking summary
-  getTentCharges(): number {
-    return (this.bookingTents || []).reduce((sum, t) => sum + (Number(t.price) || 0), 0);
-  }
-
-  calculateTotalGst(): number {
-    return this.getTentCharges() * 0.12; // 12% GST
-  }
-
-  calculatePayablePrice(): number {
-    return this.getTentCharges() + this.calculateTotalGst();
-  }
-
-  goToBooking() {
-    // Placeholder: navigate to booking/checkout flow or open booking modal
-    console.log('Proceeding to booking with', this.bookingTents);
-  }
-
-  // Total guests across selected tents
-  totalGuestsCount(): number {
-    if (!this.bookingTents || this.bookingTents.length === 0) return 0;
-    return this.bookingTents.reduce((sum: number, t: any) => {
-      const c = Number(t.capacity) || 0;
-      return sum + c;
-    }, 0);
+  // Booking summary logic removed (booking state handled elsewhere now)
+  
+  /**
+   * Build a list of amenity items for display with icons.
+   * The count for some items is based on the tent's capacity.
+   */
+  getAmenityItems(tent: Tent): { icon?: string; img?: string; text: string }[] {
+    const cap = Number(tent.capacity) || 2;
+    return [
+      { icon: 'fas fa-bed', text: `${cap} Beds` },
+      { icon: 'fas fa-head-side-cough', text: `${cap} Pillows` },
+      { icon: 'fas fa-bed', text: `${cap} Bed sheets` },
+      // use a small SVG asset for comforters (fallback to icon if image not available)
+      { img: '/assets/icons/comforter.svg', icon: 'fas fa-blanket', text: `${cap} Comforters` },
+      { icon: 'fas fa-lightbulb', text: 'Hanging light' },
+      { icon: 'fas fa-bath', text: `${cap} Towels` },
+      { icon: 'fas fa-chair', text: `${cap} Chairs` },
+      { icon: 'fas fa-table', text: 'Center table' },
+    ];
   }
 }
