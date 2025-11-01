@@ -9,7 +9,6 @@ import roomRouter from './routes/roomRoutes.js'
 import amenityRouter from './routes/amenityRoutes.js'
 import reservationRouter from './routes/reservationRoutes.js'
 import logRouter from './routes/logRoutes.js'
-import guestRouter from './routes/guestRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 import tentSpotRouter from './routes/tentSpotRoutes.js'
 import tentRouter from './routes/tentRoutes.js'
@@ -42,7 +41,6 @@ app.use('/api/rooms', roomRouter)
 app.use('/api/amenities', amenityRouter)
 app.use('/api/reservations', reservationRouter)
 app.use('/api/logs', logRouter)
-app.use('/api/guests', guestRouter)
 app.use('/api/tent-spots', tentSpotRouter)
 app.use('/api/tent-types', tentRouter)
 

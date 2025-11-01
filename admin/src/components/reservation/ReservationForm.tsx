@@ -16,6 +16,7 @@ interface Resort {
   _id: string;
   resortName: string;
   slug: string;
+  extraGuestCharges?: number;
 }
 
 interface CottageType {
@@ -68,11 +69,13 @@ export default function AddReservationForm() {
     postalCode: "",
     country: "",
     roomPrice: "₹0",
+    extraBedCharges: "₹0",
   });
 
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [cottageTypes, setCottageTypes] = useState<CottageType[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [selectedResortData, setSelectedResortData] = useState<Resort | null>(null);
   const [loading, setLoading] = useState({
     resorts: false,
     cottageTypes: false,
@@ -160,6 +163,73 @@ export default function AddReservationForm() {
       numberOfRooms: String(formData.rooms.length) 
     }));
   }, [formData.rooms]);
+
+  // Fetch selected resort data when resort changes
+  useEffect(() => {
+    if (!formData.resort) {
+      setSelectedResortData(null);
+      return;
+    }
+
+    const fetchResortData = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/api/resorts/${formData.resort}`);
+        const data = await res.json();
+        if (data.resort) {
+          setSelectedResortData(data.resort);
+        }
+      } catch (err) {
+        console.error("Error fetching resort data:", err);
+      }
+    };
+    fetchResortData();
+  }, [formData.resort, apiUrl]);
+
+  // Calculate pricing whenever relevant fields change
+  useEffect(() => {
+    if (formData.rooms.length === 0) {
+      setFormData(prev => ({
+        ...prev,
+        roomPrice: "₹0",
+        totalPayable: "₹0",
+      }));
+      return;
+    }
+
+    const selectedRooms = rooms.filter((room) =>
+      formData.rooms.includes(room._id)
+    );
+
+    // Calculate number of days
+    let days = 1;
+    if (formData.checkIn && formData.checkOut) {
+      const checkInDate = new Date(formData.checkIn);
+      const checkOutDate = new Date(formData.checkOut);
+      const diffTime = checkOutDate.getTime() - checkInDate.getTime();
+      days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+
+    // Calculate room price (sum of all selected rooms × number of days)
+    const roomPricePerDay = selectedRooms.reduce((sum, room) => {
+      return sum + (room.price || room.weekdayRate || 0);
+    }, 0);
+    const roomPrice = roomPricePerDay * days;
+
+    // Calculate extra bed charges
+    const extraGuests = parseInt(formData.extraGuests) || 0;
+    const extraGuestCharges = selectedResortData?.extraGuestCharges || 0;
+    const extraBedCharges = extraGuests * extraGuestCharges * days;
+
+    // Calculate grand total
+    const grandTotal = roomPrice + extraBedCharges;
+
+    setFormData(prev => ({
+      ...prev,
+      roomPrice: `₹${roomPrice}`,
+      extraBedCharges: `₹${extraBedCharges}`,
+      totalPayable: `₹${grandTotal}`,
+    }));
+  }, [formData.rooms, formData.extraGuests, formData.checkIn, formData.checkOut, rooms, selectedResortData]);
 
   // Fetch all resorts on mount
   useEffect(() => {
@@ -342,9 +412,11 @@ export default function AddReservationForm() {
       postalCode: "",
       country: "",
       roomPrice: "₹0",
+      extraBedCharges: "₹0",
     });
     setCottageTypes([]);
     setRooms([]);
+    setSelectedResortData(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -404,7 +476,11 @@ export default function AddReservationForm() {
           postalCode: "",
           country: "",
           roomPrice: "₹0",
+          extraBedCharges: "₹0",
         });
+        setCottageTypes([]);
+        setRooms([]);
+        setSelectedResortData(null);
       } catch (err) {
         console.error(err);
         const errorMessage = err instanceof Error ? err.message : String(err);
@@ -854,6 +930,29 @@ export default function AddReservationForm() {
                   {formData.roomPrice}
                 </p>
               </div>
+              {(() => {
+                const extraGuests = parseInt(formData.extraGuests) || 0;
+                const extraGuestCharges = selectedResortData?.extraGuestCharges || 0;
+                let days = 1;
+                if (formData.checkIn && formData.checkOut) {
+                  const checkInDate = new Date(formData.checkIn);
+                  const checkOutDate = new Date(formData.checkOut);
+                  const diffTime = checkOutDate.getTime() - checkInDate.getTime();
+                  days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                }
+                const extraBedCharges = extraGuests * extraGuestCharges * days;
+
+                return extraGuests > 0 && extraGuestCharges > 0 ? (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Extra Bed Charges ({extraGuests} Guest{extraGuests > 1 ? 's' : ''} × ₹{extraGuestCharges} × {days} Day{days > 1 ? 's' : ''})
+                    </Label>
+                    <p className="text-sm text-slate-800 mt-1 px-4 py-3 border border-slate-300 rounded-lg bg-slate-50">
+                      ₹{extraBedCharges}
+                    </p>
+                  </div>
+                ) : null;
+              })()}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">
                   Grand Total

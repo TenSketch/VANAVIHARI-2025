@@ -139,6 +139,19 @@ const listResorts = async (req, res) => {
   }
 }
 
+const getResortById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const resort = await Resort.findById(id)
+    if (!resort) {
+      return res.status(404).json({ error: 'Resort not found' })
+    }
+    res.json({ resort })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
 // update existing resort (JSON or multipart). If logo file uploaded, replace logo.
 const updateResort = async (req, res) => {
   try {
@@ -217,4 +230,4 @@ const updateResort = async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 }
-export { createResort, listResorts, updateResort }
+export { createResort, listResorts, getResortById, updateResort }

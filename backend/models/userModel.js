@@ -14,7 +14,10 @@ const userSchema = new mongoose.Schema({
     state: { type: String },
     pincode: { type: String },
     country: { type: String },
-    profileCompleted: { type: Boolean, default: false }
+    profileCompleted: { type: Boolean, default: false },
+    // Registration tracking
+    registrationDate: { type: Date, default: Date.now },
+    registerThrough: { type: String, default: 'frontend' } // 'frontend' or 'admin'
 }, { minimize: false })
 
 const userModel = mongoose.models.user || mongoose.model('user', userSchema)

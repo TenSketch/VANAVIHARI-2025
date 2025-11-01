@@ -37,13 +37,20 @@ DataTable.use(DT);
 
 interface Guest {
   id: string;
-  fullName: string;
+  name: string;
   phone: string;
   email: string;
-  address: string;
+  dob: string;
+  nationality: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
   registrationDate: string;
-  emailVerificationToken: string;
-  accessToken: string;
+  registerThrough: string;
+  profileCompleted: boolean;
 }
 
 // local guest list loaded from backend
@@ -52,36 +59,51 @@ const initialGuests: Guest[] = [];
 const exportToExcel = (guestsParam: Guest[]) => {
   const headers = [
     "S.No",
-    "Guest ID",
-    "Full Name",
+    "User ID",
+    "Name",
     "Phone",
     "Email",
+    "DOB",
+    "Nationality",
     "Address",
+    "City",
+    "State",
+    "Pincode",
+    "Country",
     "Reg. Date",
-    "Email Token",
-    "Access Token",
+    "Register Through",
+    "Profile Status",
   ];
 
   const csvContent = [
     headers.join(","),
-  ...guestsParam.map((row, idx) => [
-      idx + 1,
-      `"${row.id}"`,
-      `"${row.fullName}"`,
-      `"${row.phone}"`,
-      `"${row.email}"`,
-      `"${row.address.replace(/"/g, '""')}"`,
-      `"${row.registrationDate}"`,
-      `"${row.emailVerificationToken}"`,
-      `"${row.accessToken}"`
-    ].join(","))
+  ...guestsParam.map((row, idx) => {
+      const fullAddress = [row.address1, row.address2].filter(Boolean).join(", ");
+      return [
+        idx + 1,
+        `"${row.id}"`,
+        `"${row.name}"`,
+        `"${row.phone}"`,
+        `"${row.email}"`,
+        `"${row.dob}"`,
+        `"${row.nationality}"`,
+        `"${fullAddress.replace(/"/g, '""')}"`,
+        `"${row.city}"`,
+        `"${row.state}"`,
+        `"${row.pincode}"`,
+        `"${row.country}"`,
+        `"${row.registrationDate}"`,
+        `"${row.registerThrough}"`,
+        `"${row.profileCompleted ? 'Complete' : 'Incomplete'}"`
+      ].join(",");
+    })
   ].join("\n");
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", "Guest_Records.csv");
+  link.setAttribute("download", "User_Records.csv");
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -93,12 +115,11 @@ export default function GuestTable() {
   const permsRef = useRef(perms)
   // sheetMode toggles between viewing details and editing inside the sheet
   const [sheetMode, setSheetMode] = useState<'view' | 'edit'>('view');
-  const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
-  const [disablingGuest, setDisablingGuest] = useState<Guest | null>(null);
+  const [deletingGuest, setDeletingGuest] = useState<Guest | null>(null);
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
-  const [disabledGuests, setDisabledGuests] = useState<Set<string>>(new Set());
   const [formData, setFormData] = useState<Partial<Guest>>({});
   const [guestsState, setGuestsState] = useState<Guest[]>(initialGuests);
   const [loading, setLoading] = useState(false);
@@ -123,9 +144,9 @@ export default function GuestTable() {
     setIsDetailSheetOpen(true);
   };
 
-  const handleDisable = (guest: Guest) => {
-    setDisablingGuest(guest);
-    setIsConfirmDisableOpen(true);
+  const handleDelete = (guest: Guest) => {
+    setDeletingGuest(guest);
+    setIsConfirmDeleteOpen(true);
   };
 
   const handleRowClick = (guest: Guest) => {
@@ -136,43 +157,46 @@ export default function GuestTable() {
     setIsDetailSheetOpen(true);
   };
 
-  const confirmDisable = async () => {
-    if (disablingGuest) {
+  const confirmDelete = async () => {
+    if (deletingGuest) {
       try {
         const token = localStorage.getItem('admin_token')
         const headers: any = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
-        const response = await fetch(`/api/guests/${disablingGuest.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ disabled: true })
+        const response = await fetch(`/api/user/${deletingGuest.id}`, {
+          method: 'DELETE',
+          headers
         });
 
         if (response.ok) {
           const result = await response.json();
-          if (result.success) {
-            console.log('Guest disabled:', disablingGuest.id);
-            setDisabledGuests(prev => new Set([...prev, disablingGuest.id]));
-            setIsConfirmDisableOpen(false);
-            setDisablingGuest(null);
+          if (result.success || result.code === 3000) {
+            console.log('User deleted:', deletingGuest.id);
+            // Remove user from local state
+            setGuestsState(prev => prev.filter(g => g.id !== deletingGuest.id));
+            setIsConfirmDeleteOpen(false);
+            setDeletingGuest(null);
+            setIsDetailSheetOpen(false);
+            alert('User deleted successfully!');
           } else {
-            console.error('Disable failed:', result.error);
-            alert('Failed to disable guest: ' + (result.error || 'Unknown error'));
+            console.error('Delete failed:', result);
+            alert('Failed to delete user: ' + (result.result?.msg || result.error || 'Unknown error'));
           }
         } else {
-          console.error('Disable request failed:', response.status);
-          alert('Failed to disable guest. Please try again.');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Delete request failed:', response.status, errorData);
+          alert('Failed to delete user: ' + (errorData.result?.msg || errorData.error || 'Server error'));
         }
       } catch (err: any) {
-        console.error('Disable error:', err);
-        alert('Error disabling guest: ' + (err.message || 'Network error'));
+        console.error('Delete error:', err);
+        alert('Error deleting user: ' + (err.message || 'Network error'));
       }
     }
   };
 
-  const cancelDisable = () => {
-    setIsConfirmDisableOpen(false);
-    setDisablingGuest(null);
+  const cancelDelete = () => {
+    setIsConfirmDeleteOpen(false);
+    setDeletingGuest(null);
   };
 
   const handleUpdate = async () => {
@@ -185,38 +209,57 @@ export default function GuestTable() {
         const token = localStorage.getItem('admin_token')
         const headers: any = { 'Content-Type': 'application/json' }
         if (token) headers['Authorization'] = `Bearer ${token}`
-        const response = await fetch(`/api/guests/${editingGuest.id}`, {
-          method: 'PATCH',
+        
+        // Prepare update payload
+        const updatePayload: any = {};
+        if (formData.name) updatePayload.name = formData.name;
+        if (formData.phone) updatePayload.phone = formData.phone;
+        if (formData.email) updatePayload.email = formData.email;
+        if (formData.dob) updatePayload.dob = formData.dob;
+        if (formData.nationality) updatePayload.nationality = formData.nationality;
+        if (formData.address1 !== undefined) updatePayload.address1 = formData.address1;
+        if (formData.address2 !== undefined) updatePayload.address2 = formData.address2;
+        if (formData.city) updatePayload.city = formData.city;
+        if (formData.state) updatePayload.state = formData.state;
+        if (formData.pincode) updatePayload.pincode = formData.pincode;
+        if (formData.country) updatePayload.country = formData.country;
+        
+        const response = await fetch(`/api/user/${editingGuest.id}`, {
+          method: 'PUT',
           headers,
-          body: JSON.stringify(formData)
+          body: JSON.stringify(updatePayload)
         });
 
         if (response.ok) {
           const result = await response.json();
-          if (result.success) {
-            // Update local state with the updated guest
+          if (result.success || result.code === 3000) {
+            // Update local state with the updated user
+            const updatedGuest = { ...editingGuest, ...formData };
             setGuestsState(prev => prev.map(g => 
-              g.id === editingGuest.id ? { ...g, ...formData } : g
+              g.id === editingGuest.id ? updatedGuest : g
             ));
             
             // Update selected guest to reflect changes in view mode
-            setSelectedGuest({ ...editingGuest, ...formData } as Guest);
+            setSelectedGuest(updatedGuest);
             
             // Close edit mode and reset
             setEditingGuest(null);
             setFormData({});
             setSheetMode('view');
+            
+            alert('User updated successfully!');
           } else {
-            console.error('Update failed:', result.error);
-            alert('Failed to update guest: ' + (result.error || 'Unknown error'));
+            console.error('Update failed:', result);
+            alert('Failed to update user: ' + (result.result?.msg || result.error || 'Unknown error'));
           }
         } else {
-          console.error('Update request failed:', response.status);
-          alert('Failed to update guest. Please try again.');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Update request failed:', response.status, errorData);
+          alert('Failed to update user: ' + (errorData.result?.msg || errorData.error || 'Server error'));
         }
       } catch (err: any) {
         console.error('Update error:', err);
-        alert('Error updating guest: ' + (err.message || 'Network error'));
+        alert('Error updating user: ' + (err.message || 'Network error'));
       }
     }
   };
@@ -247,46 +290,48 @@ export default function GuestTable() {
         const token = localStorage.getItem('admin_token')
         const headers: any = {}
         if (token) headers['Authorization'] = `Bearer ${token}`
-        const res = await fetch('/api/guests', { headers });
+        const res = await fetch('/api/user/all', { headers });
         const json = await res.json();
-        if (json && json.success && Array.isArray(json.guests)) {
-          const mappedGuests = json.guests.map((g: any) => ({
+        if (json && json.success && Array.isArray(json.users)) {
+          const mappedGuests = json.users.map((g: any) => ({
             id: g._id || g.id,
-            fullName: g.fullName || g.name || '',
+            name: g.name || '',
             phone: g.phone || '',
             email: g.email || '',
-            address: g.address || '',
+            dob: g.dob ? new Date(g.dob).toISOString().slice(0,10) : '',
+            nationality: g.nationality || '',
+            address1: g.address1 || '',
+            address2: g.address2 || '',
+            city: g.city || '',
+            state: g.state || '',
+            pincode: g.pincode || '',
+            country: g.country || '',
             registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
-            emailVerificationToken: g.emailVerificationToken || '',
-            accessToken: g.accessToken || '',
+            registerThrough: g.registerThrough || 'frontend',
+            profileCompleted: g.profileCompleted || false,
           }));
           
           setGuestsState(mappedGuests);
-          
-          // Set disabled guests based on the disabled field from database
-          const disabledIds = json.guests
-            .filter((g: any) => g.disabled === true)
-            .map((g: any) => g._id || g.id);
-          setDisabledGuests(new Set(disabledIds));
         } else if (Array.isArray(json)) {
           const mappedGuests = json.map((g: any) => ({
             id: g._id || g.id,
-            fullName: g.fullName || g.name || '',
+            name: g.name || '',
             phone: g.phone || '',
             email: g.email || '',
-            address: g.address || '',
+            dob: g.dob ? new Date(g.dob).toISOString().slice(0,10) : '',
+            nationality: g.nationality || '',
+            address1: g.address1 || '',
+            address2: g.address2 || '',
+            city: g.city || '',
+            state: g.state || '',
+            pincode: g.pincode || '',
+            country: g.country || '',
             registrationDate: g.registrationDate ? new Date(g.registrationDate).toISOString().slice(0,10) : '',
-            emailVerificationToken: g.emailVerificationToken || '',
-            accessToken: g.accessToken || '',
+            registerThrough: g.registerThrough || 'frontend',
+            profileCompleted: g.profileCompleted || false,
           }));
           
           setGuestsState(mappedGuests);
-          
-          // Set disabled guests based on the disabled field from database
-          const disabledIds = json
-            .filter((g: any) => g.disabled === true)
-            .map((g: any) => g._id || g.id);
-          setDisabledGuests(new Set(disabledIds));
         } else {
           setError('Unexpected response from server')
         }
@@ -365,20 +410,13 @@ export default function GuestTable() {
         font-weight: 700 !important;
       }
       /* Disabled row styling */
-      table.dataTable tbody tr.disabled-row {
-        background-color: #f5f5f5 !important;
-        opacity: 0.6 !important;
-        text-decoration: line-through !important;
-      }
-      table.dataTable tbody tr.disabled-row:hover {
-        background-color: #eeeeee !important;
-      }
+
       /* Action button styling */
       .edit-btn:active {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
-      .disable-btn:active:not([disabled]) {
+      .delete-btn:active {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
@@ -387,11 +425,8 @@ export default function GuestTable() {
         cursor: pointer !important;
         transition: background-color 0.2s ease !important;
       }
-      table.dataTable tbody tr:hover:not(.disabled-row) {
+      table.dataTable tbody tr:hover {
         background-color: #f8fafc !important;
-      }
-      table.dataTable tbody tr:hover.disabled-row {
-        background-color: #eeeeee !important;
       }
     `;
     document.head.appendChild(style);
@@ -408,8 +443,8 @@ export default function GuestTable() {
         if ((target.classList.contains('edit-btn') || target.closest('.edit-btn')) && permsRef.current.canEdit) {
           // double-check permission before opening edit
           handleEdit(guest);
-        } else if ((target.classList.contains('disable-btn') || target.closest('.disable-btn')) && permsRef.current.canDisable) {
-          handleDisable(guest);
+        } else if ((target.classList.contains('delete-btn') || target.closest('.delete-btn')) && permsRef.current.canDisable) {
+          handleDelete(guest);
         } else {
           // user clicked a button they lack permission for - ignore
           return;
@@ -421,7 +456,7 @@ export default function GuestTable() {
       const target = event.target as HTMLElement;
       
       // Don't trigger row click if a button was clicked
-      if (target.closest('.edit-btn, .disable-btn')) {
+      if (target.closest('.edit-btn, .delete-btn')) {
         return;
       }
       
@@ -454,33 +489,47 @@ export default function GuestTable() {
       orderable: false,
       searchable: false
     },
-    { data: "fullName", title: "Full Name" },
-    { data: "id", title: "Guest ID" },
-    { data: "phone", title: "Phone" },
+    { data: "name", title: "Name" },
     { data: "email", title: "Email" },
+    { data: "phone", title: "Phone" },
     {
-      data: "address",
+      data: null,
       title: "Address",
-      render: (data: string) =>
-        `<div style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data}">${data}</div>`,
+      render: (_data: any, _type: any, row: Guest) => {
+        const fullAddress = [row.address1, row.address2, row.city, row.state, row.pincode, row.country]
+          .filter(Boolean)
+          .join(", ");
+        return `<div style="max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${fullAddress}">${fullAddress || 'N/A'}</div>`;
+      },
     },
-    { data: "registrationDate", title: "Reg. Date" },
-    { data: "emailVerificationToken", title: "Email Token" },
-    { data: "accessToken", title: "Access Token" },
+    { 
+      data: "registrationDate", 
+      title: "Reg. Date",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "registerThrough", 
+      title: "Source",
+      render: (data: string) => `<span class="px-2 py-1 text-xs rounded-full ${data === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">${data || 'frontend'}</span>`
+    },
+    { 
+      data: "profileCompleted", 
+      title: "Profile",
+      render: (data: boolean) => `<span class="px-2 py-1 text-xs rounded-full ${data ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${data ? 'Complete' : 'Incomplete'}</span>`
+    },
     {
       data: null,
       title: "Actions",
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Guest) => {
-        const isDisabled = disabledGuests.has(row.id);
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
             ${perms.canEdit ? `
             <button 
               class="edit-btn" 
               data-id="${row.id}" 
-              title="Edit Guest"
+              title="Edit User"
               style="
                 background: #3b82f6;
                 color: white;
@@ -492,7 +541,6 @@ export default function GuestTable() {
                 cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                ${isDisabled ? 'opacity: 0.5;' : ''}
               "
               onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
@@ -502,26 +550,25 @@ export default function GuestTable() {
             ` : ''}
             ${perms.canDisable ? `
             <button 
-              class="disable-btn" 
+              class="delete-btn" 
               data-id="${row.id}" 
-              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
+              title="Delete User"
               style="
-                background: ${isDisabled ? '#6b7280' : '#dc2626'};
+                background: #dc2626;
                 color: white;
                 border: none;
                 padding: 6px 12px;
                 border-radius: 6px;
                 font-size: 12px;
                 font-weight: 500;
-                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               "
-              ${isDisabled ? 'disabled' : ''}
-              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
-              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
+              onmouseover="this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
+              onmouseout="this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
-              ${isDisabled ? 'Disabled' : 'Disable'}
+              Delete
             </button>
             ` : ''}
           </div>
@@ -533,7 +580,7 @@ export default function GuestTable() {
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
       <div className="flex justify-between items-center mb-4 flex-shrink-0">
-        <h2 className="text-xl font-semibold text-slate-800">Guest Records</h2>
+        <h2 className="text-xl font-semibold text-slate-800">User Records</h2>
         <button
           onClick={() => perms.canViewDownload ? exportToExcel(guestsState) : null}
           className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200 ${perms.canViewDownload ? 'bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2' : 'bg-gray-200 text-gray-600 cursor-not-allowed'}`}
@@ -603,49 +650,40 @@ export default function GuestTable() {
               }
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
-            rowCallback: (row: any, data: any) => {
-              if (disabledGuests.has(data.id)) {
-                row.classList.add('disabled-row');
-              } else {
-                row.classList.remove('disabled-row');
-              }
-              return row;
-            },
           }}
         />
         )}
       </div>
 
-  {/* Edit Dialog removed — edit form now shown inside the Sheet when sheetMode === 'edit' */}
-      {/* Confirmation Dialog for Disable Action */}
-      <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
+  {/* Confirmation Dialog for Delete Action */}
+      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm Disable</DialogTitle>
+            <DialogTitle>Confirm Delete</DialogTitle>
             <DialogDescription>
-              Are you sure you want to disable this guest record? This action will hide the record from the database.
+              Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user from the database.
             </DialogDescription>
           </DialogHeader>
           
-          {disablingGuest && (
+          {deletingGuest && (
             <div className="py-4">
               <p className="text-sm text-gray-600">
-                <strong>Guest ID:</strong> {disablingGuest.id}
+                <strong>User ID:</strong> {deletingGuest.id}
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Name:</strong> {disablingGuest.fullName}
+                <strong>Name:</strong> {deletingGuest.name}
               </p>
               <p className="text-sm text-gray-600">
-                <strong>Email:</strong> {disablingGuest.email}
+                <strong>Email:</strong> {deletingGuest.email}
               </p>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={cancelDisable}>
+            <Button variant="outline" onClick={cancelDelete}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDisable}>
-              Yes, Disable
+            <Button variant="destructive" onClick={confirmDelete}>
+              Yes, Delete
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -655,9 +693,9 @@ export default function GuestTable() {
       <Sheet open={isDetailSheetOpen} onOpenChange={setIsDetailSheetOpen}>
         <SheetContent className="w-[400px] sm:max-w-[600px] sm:w-[700px] lg:w-[800px] flex flex-col">
           <SheetHeader className="flex-shrink-0">
-            <SheetTitle>Guest Details</SheetTitle>
+            <SheetTitle>User Details</SheetTitle>
             <SheetDescription>
-              Complete information about the selected guest
+              Complete information about the selected user
             </SheetDescription>
           </SheetHeader>
           
@@ -667,70 +705,92 @@ export default function GuestTable() {
               <div className="flex-1 overflow-y-auto px-6 py-4">
                 {sheetMode === 'view' ? (
                   <div className="space-y-4">
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Guest ID</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedGuest.id}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">User ID</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.id}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Name</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.name}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Full Name</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedGuest.fullName}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.phone}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Email Address</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.email}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Phone Number</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedGuest.phone}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Date of Birth</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.dob || 'N/A'}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Email Address</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedGuest.email}</span>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Nationality</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.nationality || 'N/A'}</span>
+                        </div>
                       </div>
                     </div>
 
                     <div>
                       <Label className="text-sm font-medium text-gray-700">Address</Label>
                       <div className="mt-1 p-3 bg-gray-50 rounded-md border min-h-[80px]">
-                        <span className="text-sm text-gray-900">{selectedGuest.address}</span>
+                        <div className="text-sm text-gray-900">
+                          {selectedGuest.address1 && <div>{selectedGuest.address1}</div>}
+                          {selectedGuest.address2 && <div>{selectedGuest.address2}</div>}
+                          {(selectedGuest.city || selectedGuest.state || selectedGuest.pincode) && (
+                            <div>{[selectedGuest.city, selectedGuest.state, selectedGuest.pincode].filter(Boolean).join(', ')}</div>
+                          )}
+                          {selectedGuest.country && <div>{selectedGuest.country}</div>}
+                          {!selectedGuest.address1 && !selectedGuest.city && <span className="text-gray-500">N/A</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedGuest.registrationDate || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Register Through</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <Badge variant={selectedGuest.registerThrough === 'admin' ? 'secondary' : 'default'}>
+                            {selectedGuest.registerThrough || 'frontend'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
 
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">Registration Date</Label>
+                      <Label className="text-sm font-medium text-gray-700">Profile Status</Label>
                       <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900">{selectedGuest.registrationDate}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Email Verification Token</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.emailVerificationToken}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Access Token</Label>
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="text-sm text-gray-900 font-mono break-all">{selectedGuest.accessToken}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label className="text-sm font-medium text-gray-700">Status</Label>
-                      <div className="mt-1">
-                        <Badge 
-                          variant={disabledGuests.has(selectedGuest.id) ? "destructive" : "default"}
-                          className="px-2 py-1"
-                        >
-                          {disabledGuests.has(selectedGuest.id) ? "Disabled" : "Active"}
+                        <Badge variant={selectedGuest.profileCompleted ? 'default' : 'outline'}>
+                          {selectedGuest.profileCompleted ? 'Complete' : 'Incomplete'}
                         </Badge>
                       </div>
                     </div>
@@ -740,11 +800,11 @@ export default function GuestTable() {
                   formData && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="fullName">Full Name</Label>
+                        <Label htmlFor="name">Name</Label>
                         <Input
-                          id="fullName"
-                          value={formData.fullName || ''}
-                          onChange={(e) => handleInputChange('fullName', e.target.value)}
+                          id="name"
+                          value={formData.name || ''}
+                          onChange={(e) => handleInputChange('name', e.target.value)}
                         />
                       </div>
                       <div className="grid gap-2">
@@ -764,31 +824,69 @@ export default function GuestTable() {
                           onChange={(e) => handleInputChange('email', e.target.value)}
                         />
                       </div>
-                      <div className="grid gap-2 md:col-span-2">
-                        <Label htmlFor="address">Address</Label>
-                        <Input
-                          id="address"
-                          value={formData.address || ''}
-                          onChange={(e) => handleInputChange('address', e.target.value)}
-                        />
-                      </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="registrationDate">Registration Date</Label>
+                        <Label htmlFor="dob">Date of Birth</Label>
                         <Input
-                          id="registrationDate"
+                          id="dob"
                           type="date"
-                          value={formData.registrationDate || ''}
-                          onChange={(e) => handleInputChange('registrationDate', e.target.value)}
+                          value={formData.dob || ''}
+                          onChange={(e) => handleInputChange('dob', e.target.value)}
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="id">Guest ID</Label>
+                        <Label htmlFor="nationality">Nationality</Label>
                         <Input
-                          id="id"
-                          value={formData.id || ''}
-                          onChange={(e) => handleInputChange('id', e.target.value)}
-                          disabled
-                          className="bg-gray-100"
+                          id="nationality"
+                          value={formData.nationality || ''}
+                          onChange={(e) => handleInputChange('nationality', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor="address1">Address Line 1</Label>
+                        <Input
+                          id="address1"
+                          value={formData.address1 || ''}
+                          onChange={(e) => handleInputChange('address1', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2 md:col-span-2">
+                        <Label htmlFor="address2">Address Line 2</Label>
+                        <Input
+                          id="address2"
+                          value={formData.address2 || ''}
+                          onChange={(e) => handleInputChange('address2', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          value={formData.city || ''}
+                          onChange={(e) => handleInputChange('city', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="state">State</Label>
+                        <Input
+                          id="state"
+                          value={formData.state || ''}
+                          onChange={(e) => handleInputChange('state', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="pincode">Pincode</Label>
+                        <Input
+                          id="pincode"
+                          value={formData.pincode || ''}
+                          onChange={(e) => handleInputChange('pincode', e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="country">Country</Label>
+                        <Input
+                          id="country"
+                          value={formData.country || ''}
+                          onChange={(e) => handleInputChange('country', e.target.value)}
                         />
                       </div>
                     </div>
@@ -809,22 +907,22 @@ export default function GuestTable() {
                         setFormData({ ...selectedGuest });
                       }}
                       className="flex-1"
-                      disabled={disabledGuests.has(selectedGuest.id) || !perms.canEdit}
+                      disabled={!perms.canEdit}
                       title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
                     >
-                      Edit Guest
+                      Edit User
                     </Button>
                     <Button 
                       variant="destructive" 
                       onClick={() => {
                         if (!perms.canDisable) return
                         setIsDetailSheetOpen(false);
-                        handleDisable(selectedGuest);
+                        handleDelete(selectedGuest);
                       }}
-                      disabled={disabledGuests.has(selectedGuest.id) || !perms.canDisable}
-                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to delete' : undefined}
                     >
-                      Disable
+                      Delete User
                     </Button>
                   </>
                 ) : (

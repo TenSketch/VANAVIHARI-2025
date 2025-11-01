@@ -154,7 +154,8 @@ export class SignUpComponent implements OnInit {
         full_name: this.form.value.full_name,
         email_id: this.form.value.email_id,
         mobile_number: this.form.value.mobile_number,
-        password: this.form.value.password
+        password: this.form.value.password,
+        registerThrough: 'frontend'
       };
 
       // Make POST request to backend

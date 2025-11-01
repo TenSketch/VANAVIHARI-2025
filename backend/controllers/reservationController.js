@@ -13,6 +13,7 @@ export const createReservation = async (req, res) => {
     if (payload.numberOfRooms) payload.numberOfRooms = Number(payload.numberOfRooms)
     if (payload.refundPercentage) payload.refundPercentage = Number(payload.refundPercentage)
     if (payload.roomPrice) payload.roomPrice = Number(String(payload.roomPrice).replace(/[₹,\s]/g, ''))
+    if (payload.extraBedCharges) payload.extraBedCharges = Number(String(payload.extraBedCharges).replace(/[₹,\s]/g, ''))
     if (payload.totalPayable) payload.totalPayable = Number(String(payload.totalPayable).replace(/[₹,\s]/g, ''))
 
     const reservation = new Reservation(payload)
