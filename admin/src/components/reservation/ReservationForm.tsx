@@ -60,7 +60,6 @@ export default function AddReservationForm() {
     existingGuest: "",
     fullName: "",
     phone: "",
-    altPhone: "",
     email: "",
     address1: "",
     address2: "",
@@ -75,11 +74,13 @@ export default function AddReservationForm() {
   const [resorts, setResorts] = useState<Resort[]>([]);
   const [cottageTypes, setCottageTypes] = useState<CottageType[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [selectedResortData, setSelectedResortData] = useState<Resort | null>(null);
   const [loading, setLoading] = useState({
     resorts: false,
     cottageTypes: false,
     rooms: false,
+    users: false,
   });
 
   const apiUrl =
@@ -250,6 +251,25 @@ export default function AddReservationForm() {
     fetchResorts();
   }, []);
 
+  // Fetch all users on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading((prev) => ({ ...prev, users: true }));
+      try {
+        const res = await fetch(`${apiUrl}/api/user/all`);
+        const data = await res.json();
+        if (data.success && data.users) {
+          setUsers(data.users);
+        }
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      } finally {
+        setLoading((prev) => ({ ...prev, users: false }));
+      }
+    };
+    fetchUsers();
+  }, [apiUrl]);
+
   // Fetch cottage types when resort changes
   useEffect(() => {
     if (!formData.resort) {
@@ -356,6 +376,27 @@ export default function AddReservationForm() {
     // Reset dependent fields when parent selection changes
     if (name === "resort") {
       setFormData({ ...formData, resort: value, cottageTypes: [], rooms: [] });
+    } else if (name === "existingGuest") {
+      // When a user is selected, populate all their details
+      const selectedUser = users.find(u => u._id === value);
+      if (selectedUser) {
+        // Use setTimeout to ensure country Select component updates properly
+        setTimeout(() => {
+          setFormData({
+            ...formData,
+            existingGuest: value,
+            fullName: selectedUser.name || '',
+            phone: selectedUser.phone || '',
+            email: selectedUser.email || '',
+            address1: selectedUser.address1 || '',
+            address2: selectedUser.address2 || '',
+            city: selectedUser.city || '',
+            state: selectedUser.state || '',
+            postalCode: selectedUser.pincode || '',
+            country: selectedUser.country || '',
+          });
+        }, 0);
+      }
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -403,7 +444,6 @@ export default function AddReservationForm() {
       existingGuest: "",
       fullName: "",
       phone: "",
-      altPhone: "",
       email: "",
       address1: "",
       address2: "",
@@ -467,7 +507,6 @@ export default function AddReservationForm() {
           existingGuest: "",
           fullName: "",
           phone: "",
-          altPhone: "",
           email: "",
           address1: "",
           address2: "",
@@ -783,19 +822,23 @@ export default function AddReservationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">
-                  Add Existing Guest
+                  Add Existing User
                 </Label>
                 <Select
+                  value={formData.existingGuest}
                   onValueChange={(value) =>
                     handleSelect("existingGuest", value)
                   }
                 >
                   <SelectTrigger className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50">
-                    <SelectValue placeholder="Select Guest" />
+                    <SelectValue placeholder={loading.users ? "Loading users..." : "Select User"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Guest1">Guest 1</SelectItem>
-                    <SelectItem value="Guest2">Guest 2</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user._id} value={user._id}>
+                        {user.name} ({user.email})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -817,17 +860,6 @@ export default function AddReservationForm() {
                 <Input
                   name="phone"
                   value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">
-                  Alternate Phone
-                </Label>
-                <Input
-                  name="altPhone"
-                  value={formData.altPhone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
                 />
@@ -903,6 +935,7 @@ export default function AddReservationForm() {
                   Country
                 </Label>
                 <Select
+                  value={formData.country}
                   onValueChange={(value) => handleSelect("country", value)}
                 >
                   <SelectTrigger className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50">
@@ -912,6 +945,10 @@ export default function AddReservationForm() {
                     <SelectItem value="India">India</SelectItem>
                     <SelectItem value="USA">USA</SelectItem>
                     <SelectItem value="UK">UK</SelectItem>
+                    <SelectItem value="United States">United States</SelectItem>
+                    <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    <SelectItem value="Australia">Australia</SelectItem>
+                    <SelectItem value="Canada">Canada</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
