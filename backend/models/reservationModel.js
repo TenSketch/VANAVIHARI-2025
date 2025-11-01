@@ -2,8 +2,8 @@ import mongoose from 'mongoose'
 
 const reservationSchema = new mongoose.Schema({
   resort: String,
-  cottageType: String,
-  room: String,
+  cottageTypes: [String], // Array of cottage type IDs
+  rooms: [String], // Array of room IDs
   checkIn: Date,
   checkOut: Date,
   guests: Number,
@@ -19,7 +19,6 @@ const reservationSchema = new mongoose.Schema({
   existingGuest: String,
   fullName: String,
   phone: String,
-  altPhone: String,
   email: String,
   address1: String,
   address2: String,
@@ -29,7 +28,6 @@ const reservationSchema = new mongoose.Schema({
   country: String,
   roomPrice: Number,
   extraBedCharges: Number,
-  disabled: { type: Boolean, default: false },
   rawSource: { type: mongoose.Schema.Types.Mixed },
 }, { timestamps: true })
 

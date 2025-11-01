@@ -36,7 +36,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 
 DataTable.use(DT);
 
@@ -45,23 +44,35 @@ interface Reservation {
   fullName: string;
   phone: string;
   email: string;
+  address1: string;
+  address2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
   checkIn: string;
   checkOut: string;
   guests: number;
   children: number;
   extraGuests: number;
-  rooms: number;
+  numberOfRooms: number;
   totalGuests: number;
   noOfDays: number;
-  noOfFoods: number;
   resort: string;
-  roomTypes: string[];
+  resortName: string;
+  cottageTypes: string[];
+  cottageTypeNames: string[];
+  rooms: string[];
+  roomNames: string[];
   bookingId: string;
   status: string;
   reservationDate: string;
   paymentStatus: string;
-  refundPercent: string;
-  disabled?: boolean;
+  refundPercentage: number;
+  roomPrice: number;
+  extraBedCharges: number;
+  totalPayable: number;
+  existingGuest: string;
 }
 
 
@@ -73,11 +84,10 @@ export default function ReservationTable() {
   const perms = usePermissions()
   const permsRef = useRef(perms)
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
+  const [sheetMode, setSheetMode] = useState<'view' | 'edit'>('view')
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [isConfirmDisableOpen, setIsConfirmDisableOpen] = useState(false)
   const [disablingReservation, setDisablingReservation] = useState<Reservation | null>(null)
-  const [disabledReservations, setDisabledReservations] = useState<Set<string>>(new Set());
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const reservationsRef = useRef<Reservation[]>([])
 
@@ -137,7 +147,7 @@ export default function ReservationTable() {
 
       const text = await res.text()
       let parsed: any = null
-      try { parsed = text ? JSON.parse(text) : null } catch(e) { parsed = text }
+      try { parsed = text ? JSON.parse(text) : null } catch (e) { parsed = text }
       if (!res.ok) {
         throw new Error(parsed?.error || parsed?.message || res.statusText)
       }
@@ -150,23 +160,35 @@ export default function ReservationTable() {
           fullName: server.fullName || updatedLocal.fullName,
           phone: server.phone || updatedLocal.phone,
           email: server.email || updatedLocal.email,
-          checkIn: server.checkIn ? new Date(server.checkIn).toISOString().slice(0,10) : updatedLocal.checkIn,
-          checkOut: server.checkOut ? new Date(server.checkOut).toISOString().slice(0,10) : updatedLocal.checkOut,
+          checkIn: server.checkIn ? new Date(server.checkIn).toISOString().slice(0, 10) : updatedLocal.checkIn,
+          checkOut: server.checkOut ? new Date(server.checkOut).toISOString().slice(0, 10) : updatedLocal.checkOut,
           guests: Number(server.guests) || updatedLocal.guests,
           children: Number(server.children) || updatedLocal.children,
           extraGuests: Number(server.extraGuests) || updatedLocal.extraGuests,
-          rooms: Number(server.numberOfRooms || server.rooms) || updatedLocal.rooms,
-          totalGuests: (Number(server.guests)||0)+(Number(server.extraGuests)||0)+(Number(server.children)||0),
-          noOfDays: (server.checkIn && server.checkOut) ? Math.max(1, Math.round((new Date(server.checkOut).getTime() - new Date(server.checkIn).getTime())/(1000*60*60*24))) : updatedLocal.noOfDays,
-          noOfFoods: Number(server.noOfFoods) || updatedLocal.noOfFoods,
+          totalGuests: (Number(server.guests) || 0) + (Number(server.extraGuests) || 0) + (Number(server.children) || 0),
+          noOfDays: (server.checkIn && server.checkOut) ? Math.max(1, Math.round((new Date(server.checkOut).getTime() - new Date(server.checkIn).getTime()) / (1000 * 60 * 60 * 24))) : updatedLocal.noOfDays,
           resort: server.resort || updatedLocal.resort,
-          roomTypes: server.roomTypes || (server.room ? [server.room] : updatedLocal.roomTypes),
+          resortName: updatedLocal.resortName,
+          cottageTypes: server.cottageTypes || updatedLocal.cottageTypes,
+          cottageTypeNames: updatedLocal.cottageTypeNames,
+          rooms: server.rooms || updatedLocal.rooms,
+          roomNames: updatedLocal.roomNames,
+          numberOfRooms: Number(server.numberOfRooms) || updatedLocal.numberOfRooms,
           bookingId: server.bookingId || updatedLocal.bookingId,
           status: server.status || updatedLocal.status,
-          reservationDate: server.reservationDate ? new Date(server.reservationDate).toISOString().slice(0,10) : updatedLocal.reservationDate,
+          reservationDate: server.reservationDate ? new Date(server.reservationDate).toISOString().slice(0, 10) : updatedLocal.reservationDate,
           paymentStatus: server.paymentStatus || updatedLocal.paymentStatus,
-          refundPercent: server.refundPercentage != null ? String(server.refundPercentage) : (server.refundPercent || updatedLocal.refundPercent),
-          disabled: Boolean(server.disabled || updatedLocal.disabled),
+          refundPercentage: server.refundPercentage != null ? Number(server.refundPercentage) : updatedLocal.refundPercentage,
+          roomPrice: Number(server.roomPrice) || updatedLocal.roomPrice,
+          extraBedCharges: Number(server.extraBedCharges) || updatedLocal.extraBedCharges,
+          totalPayable: Number(server.totalPayable) || updatedLocal.totalPayable,
+          address1: server.address1 || updatedLocal.address1,
+          address2: server.address2 || updatedLocal.address2,
+          city: server.city || updatedLocal.city,
+          state: server.state || updatedLocal.state,
+          postalCode: server.postalCode || updatedLocal.postalCode,
+          country: server.country || updatedLocal.country,
+          existingGuest: server.existingGuest || updatedLocal.existingGuest,
         }
 
         setReservations(prev => prev.map(r => r.id === mapped.id ? mapped : r))
@@ -187,15 +209,16 @@ export default function ReservationTable() {
   // Export to CSV (uses current reservations)
   const exportToExcel = () => {
     const headers = [
-      "Full Name", "Phone", "Email", "Check In", "Check Out", "Guests",
-      "Children", "Extra Guests", "Rooms", "Total Guests", "No. of Days",
-      "No. of Foods", "Resort", "Room Types", "Booking ID", "Status",
-      "Reservation Date", "Payment Status", "Refund %"
+      "Booking ID", "Full Name", "Phone", "Email", "Check In", "Check Out",
+      "Guests", "Children", "Extra Guests", "Total Guests", "No. of Days",
+      "Resort", "Rooms", "Number of Rooms", "Status", "Reservation Date",
+      "Payment Status", "Total Amount", "Refund %"
     ];
 
     const csvContent = [
       headers.join(","),
       ...reservationsRef.current.map(row => [
+        `"${row.bookingId}"`,
         `"${row.fullName}"`,
         `"${row.phone}"`,
         `"${row.email}"`,
@@ -204,17 +227,16 @@ export default function ReservationTable() {
         row.guests,
         row.children,
         row.extraGuests,
-        row.rooms,
         row.totalGuests,
         row.noOfDays,
-        row.noOfFoods,
-        `"${row.resort}"`,
-        `"${row.roomTypes.join(', ')}"`,
-        `"${row.bookingId}"`,
+        `"${row.resortName}"`,
+        `"${row.roomNames.join(', ')}"`,
+        row.numberOfRooms,
         `"${row.status}"`,
         `"${row.reservationDate}"`,
         `"${row.paymentStatus}"`,
-        `"${row.refundPercent}"`
+        row.totalPayable,
+        `"${row.refundPercentage}%"`
       ].join(","))
     ].join("\n");
 
@@ -229,22 +251,16 @@ export default function ReservationTable() {
   };
   // Removed edit & disable confirmation logic; actions now happen directly
 
-  // Toggle/disable a reservation (mirrors cottage-type pattern)
+  // Delete a reservation
   const disableReservation = async (reservation: Reservation | null) => {
     if (!permsRef.current.canDisable) return
     if (!reservation) return
-    const target = !Boolean(reservation.disabled)
 
     try {
       const isObjectId = /^[0-9a-fA-F]{24}$/.test(String(reservation.id))
       if (!isObjectId) {
-        // demo/local only
-        setReservations(prev => prev.map(r => r.id === reservation.id ? { ...r, disabled: target } : r))
-        setDisabledReservations(prev => {
-          const copy = new Set(prev)
-          if (target) copy.add(reservation.id); else copy.delete(reservation.id)
-          return copy
-        })
+        // demo/local only - remove from list
+        setReservations(prev => prev.filter(r => r.id !== reservation.id))
         alert('This is demo data; changes are local only.')
         return
       }
@@ -253,56 +269,27 @@ export default function ReservationTable() {
       const headers: any = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
       const res = await fetch(`${apiUrl}/api/reservations/${reservation.id}`, {
-        method: 'PATCH',
+        method: 'DELETE',
         headers,
-        body: JSON.stringify({ disabled: target }),
       })
 
       if (!res.ok) {
-        const data = await res.json().catch(()=>null)
+        const data = await res.json().catch(() => null)
         const msg = data?.error || data?.message || res.statusText
-        throw new Error(msg || 'Failed to update')
+        throw new Error(msg || 'Failed to delete')
       }
 
-      const data = await res.json()
-      const server = data?.reservation || data
-      if (server) {
-        const mapped: Reservation = {
-          id: String(server._id || server.id || reservation.id),
-          fullName: server.fullName || reservation.fullName,
-          phone: server.phone || reservation.phone,
-          email: server.email || reservation.email,
-          checkIn: server.checkIn ? new Date(server.checkIn).toISOString().slice(0,10) : reservation.checkIn,
-          checkOut: server.checkOut ? new Date(server.checkOut).toISOString().slice(0,10) : reservation.checkOut,
-          guests: Number(server.guests) || reservation.guests,
-          children: Number(server.children) || reservation.children,
-          extraGuests: Number(server.extraGuests) || reservation.extraGuests,
-          rooms: Number(server.numberOfRooms || server.rooms) || reservation.rooms,
-          totalGuests: (Number(server.guests)||0)+(Number(server.extraGuests)||0)+(Number(server.children)||0),
-          noOfDays: (server.checkIn && server.checkOut) ? Math.max(1, Math.round((new Date(server.checkOut).getTime() - new Date(server.checkIn).getTime())/(1000*60*60*24))) : reservation.noOfDays,
-          noOfFoods: Number(server.noOfFoods) || reservation.noOfFoods,
-          resort: server.resort || reservation.resort,
-          roomTypes: server.roomTypes || (server.room ? [server.room] : reservation.roomTypes),
-          bookingId: server.bookingId || reservation.bookingId,
-          status: server.status || reservation.status,
-          reservationDate: server.reservationDate ? new Date(server.reservationDate).toISOString().slice(0,10) : reservation.reservationDate,
-          paymentStatus: server.paymentStatus || reservation.paymentStatus,
-          refundPercent: server.refundPercentage != null ? String(server.refundPercentage) : (server.refundPercent || reservation.refundPercent),
-          disabled: Boolean(server.disabled),
-        }
+      // Remove from list on successful delete
+      setReservations(prev => prev.filter(r => r.id !== reservation.id))
 
-        setReservations(prev => prev.map(r => r.id === mapped.id ? mapped : r))
-        if (selectedReservation && selectedReservation.id === mapped.id) setSelectedReservation(mapped)
-        setDisabledReservations(prev => {
-          const copy = new Set(prev)
-          if (mapped.disabled) copy.add(mapped.id); else copy.delete(mapped.id)
-          return copy
-        })
+      // Close detail sheet if it's open for this reservation
+      if (selectedReservation && selectedReservation.id === reservation.id) {
+        setIsDetailSheetOpen(false)
+        setSelectedReservation(null)
       }
-    } catch (err:any) {
-      console.error('Toggle disabled error', err)
-      alert('Error updating reservation: ' + (err?.message || String(err)))
-      // no optimistic update was applied for server case; nothing to revert here
+    } catch (err: any) {
+      console.error('Delete error', err)
+      alert('Error deleting reservation: ' + (err?.message || String(err)))
     }
   }
 
@@ -330,57 +317,77 @@ export default function ReservationTable() {
     // fetch reservations and setup table event listeners/styles
     const fetchReservations = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/reservations`)
-        const contentType = res.headers.get('content-type') || ''
-        let data: any = null
-        if (contentType.includes('application/json')) data = await res.json()
-        else {
-          const text = await res.text()
-          try { data = text ? JSON.parse(text) : null } catch(e){ data = text }
-        }
+        // Fetch all data in parallel
+        const [resRes, resortsRes, cottagesRes, roomsRes] = await Promise.all([
+          fetch(`${apiUrl}/api/reservations`),
+          fetch(`${apiUrl}/api/resorts`),
+          fetch(`${apiUrl}/api/cottage-types`),
+          fetch(`${apiUrl}/api/rooms`)
+        ]);
 
-        if (!res.ok) throw new Error(data?.error || res.statusText)
+        const resData = await resRes.json();
+        const resortsData = await resortsRes.json();
+        const cottagesData = await cottagesRes.json();
+        const roomsData = await roomsRes.json();
 
-        const raw = data.reservations || data || []
+        if (!resRes.ok) throw new Error(resData?.error || resRes.statusText);
+
+        // Create lookup maps
+        const resortMap = new Map((resortsData.resorts || []).map((r: any) => [r._id, r.resortName]));
+        const cottageMap = new Map((cottagesData.cottageTypes || []).map((c: any) => [c._id, c.name]));
+        const roomMap = new Map((roomsData.rooms || []).map((r: any) => [r._id, r.roomName || r.roomId || r.roomNumber]));
+
+        const raw = resData.reservations || resData || [];
         const mapped: Reservation[] = raw.map((r: any) => {
-          const checkIn = r.checkIn ? new Date(r.checkIn).toISOString().slice(0,10) : ''
-          const checkOut = r.checkOut ? new Date(r.checkOut).toISOString().slice(0,10) : ''
-          const noOfDays = (r.checkIn && r.checkOut) ? Math.max(1, Math.round((new Date(r.checkOut).getTime() - new Date(r.checkIn).getTime())/(1000*60*60*24))) : 0
-          const totalGuests = (Number(r.guests) || 0) + (Number(r.extraGuests) || 0) + (Number(r.children) || 0)
+          const checkIn = r.checkIn ? new Date(r.checkIn).toISOString().slice(0, 10) : '';
+          const checkOut = r.checkOut ? new Date(r.checkOut).toISOString().slice(0, 10) : '';
+          const noOfDays = (r.checkIn && r.checkOut) ? Math.max(1, Math.round((new Date(r.checkOut).getTime() - new Date(r.checkIn).getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          const totalGuests = (Number(r.guests) || 0) + (Number(r.extraGuests) || 0) + (Number(r.children) || 0);
+
           return {
             id: String(r._id || r.id || ''),
-            fullName: r.fullName || r.existingGuest || '',
-            phone: r.phone || r.altPhone || '',
+            fullName: r.fullName || '',
+            phone: r.phone || '',
             email: r.email || '',
+            address1: r.address1 || '',
+            address2: r.address2 || '',
+            city: r.city || '',
+            state: r.state || '',
+            postalCode: r.postalCode || '',
+            country: r.country || '',
             checkIn,
             checkOut,
             guests: Number(r.guests) || 0,
             children: Number(r.children) || 0,
             extraGuests: Number(r.extraGuests) || 0,
-            rooms: Number(r.numberOfRooms || r.rooms) || 0,
+            numberOfRooms: Number(r.numberOfRooms) || 0,
             totalGuests,
             noOfDays,
-            noOfFoods: Number(r.noOfFoods) || 0,
             resort: r.resort || '',
-            roomTypes: r.roomTypes || (r.room ? [r.room] : []),
+            resortName: resortMap.get(r.resort) || r.resort || '',
+            cottageTypes: Array.isArray(r.cottageTypes) ? r.cottageTypes : [],
+            cottageTypeNames: Array.isArray(r.cottageTypes) ? r.cottageTypes.map((id: string) => cottageMap.get(id) || id) : [],
+            rooms: Array.isArray(r.rooms) ? r.rooms : [],
+            roomNames: Array.isArray(r.rooms) ? r.rooms.map((id: string) => roomMap.get(id) || id) : [],
             bookingId: r.bookingId || '',
             status: r.status || '',
-            reservationDate: r.reservationDate ? new Date(r.reservationDate).toISOString().slice(0,10) : '',
+            reservationDate: r.reservationDate ? new Date(r.reservationDate).toISOString().slice(0, 10) : '',
             paymentStatus: r.paymentStatus || '',
-            refundPercent: r.refundPercentage != null ? String(r.refundPercentage) : (r.refundPercent || ''),
-            disabled: Boolean(r.disabled),
-          }
-        })
+            refundPercentage: Number(r.refundPercentage) || 0,
+            roomPrice: Number(r.roomPrice) || 0,
+            extraBedCharges: Number(r.extraBedCharges) || 0,
+            totalPayable: Number(r.totalPayable) || 0,
+            existingGuest: r.existingGuest || '',
+          };
+        });
 
-        setReservations(mapped)
-        const disabledSet = new Set(mapped.filter(r=>r.disabled).map(r=>r.id))
-        setDisabledReservations(disabledSet)
+        setReservations(mapped);
       } catch (err) {
-        console.error('Failed to load reservations', err)
+        console.error('Failed to load reservations', err);
       }
-    }
+    };
 
-    fetchReservations()
+    fetchReservations();
     const style = document.createElement("style");
     style.innerHTML = `
       .dt-button-collection {
@@ -470,7 +477,7 @@ export default function ReservationTable() {
     const handleButtonClick = (event: Event) => {
       const target = event.target as HTMLElement;
       // support clicks on inner text/nodes by finding the closest button
-      const btn = target.closest('.edit-btn, .disable-btn') as HTMLElement | null;
+      const btn = target.closest('.edit-btn, .delete-btn') as HTMLElement | null;
       if (!btn) return;
 
       // Stop propagation to prevent row click when button is clicked
@@ -486,7 +493,7 @@ export default function ReservationTable() {
         setSelectedReservation(reservation);
         setSheetMode('edit')
         setIsDetailSheetOpen(true);
-      } else if (btn.classList.contains('disable-btn')) {
+      } else if (btn.classList.contains('delete-btn')) {
         if (!permsRef.current.canDisable) return
         setDisablingReservation(reservation)
         setIsConfirmDisableOpen(true)
@@ -495,12 +502,12 @@ export default function ReservationTable() {
 
     const handleTableRowClick = (event: Event) => {
       const target = event.target as HTMLElement;
-      
+
       // Don't trigger row click if a button was clicked
-      if (target.closest('.edit-btn, .disable-btn')) {
+      if (target.closest('.edit-btn, .delete-btn')) {
         return;
       }
-      
+
       const row = target.closest('tr');
       if (row && row.parentElement?.tagName === 'TBODY') {
         const rowIndex = Array.from(row.parentElement.children).indexOf(row);
@@ -532,36 +539,33 @@ export default function ReservationTable() {
       orderable: false,
       searchable: false
     },
-    { data: "fullName", title: "Full Name" },
+    { data: "bookingId", title: "Booking ID" },
+    { data: "fullName", title: "Guest Name" },
     { data: "phone", title: "Phone" },
     { data: "email", title: "Email" },
+    { data: "resortName", title: "Resort" },
+    {
+      data: "roomNames",
+      title: "Rooms",
+      render: (data: string[]) => data.join(", ") || 'N/A',
+    },
     { data: "checkIn", title: "Check In" },
     { data: "checkOut", title: "Check Out" },
-    { data: "guests", title: "Guests" },
-    { data: "children", title: "Children" },
-    { data: "extraGuests", title: "Extra Guests" },
-    { data: "rooms", title: "Rooms" },
+    { data: "noOfDays", title: "Days" },
     { data: "totalGuests", title: "Total Guests" },
-    { data: "noOfDays", title: "No. of Days" },
-    { data: "noOfFoods", title: "No. of Foods" },
-    { data: "resort", title: "Resort" },
     {
-      data: "roomTypes",
-      title: "Room Types",
-      render: (data: string[]) => data.join(", "),
+      data: "totalPayable",
+      title: "Total Amount",
+      render: (data: number) => `₹${data}`
     },
-    { data: "bookingId", title: "Booking ID" },
+    { data: "paymentStatus", title: "Payment" },
     { data: "status", title: "Status" },
-    { data: "reservationDate", title: "Reservation Date" },
-    { data: "paymentStatus", title: "Payment Status" },
-    { data: "refundPercent", title: "Refund %" },
     {
       data: null,
       title: "Actions",
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Reservation) => {
-        const isDisabled = disabledReservations.has(row.id);
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
             ${perms.canEdit ? `
@@ -580,7 +584,6 @@ export default function ReservationTable() {
                 cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                ${isDisabled ? 'opacity: 0.5;' : ''}
               "
               onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
@@ -590,26 +593,25 @@ export default function ReservationTable() {
             ` : ''}
             ${perms.canDisable ? `
             <button 
-              class="disable-btn" 
+              class="delete-btn" 
               data-id="${row.id}" 
-              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
+              title="Delete Reservation"
               style="
-                background: ${isDisabled ? '#6b7280' : '#dc2626'};
+                background: #dc2626;
                 color: white;
                 border: none;
                 padding: 6px 12px;
                 border-radius: 6px;
                 font-size: 12px;
                 font-weight: 500;
-                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
+                cursor: pointer;
                 transition: all 0.2s ease;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
               "
-              ${isDisabled ? 'disabled' : ''}
-              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
-              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
+              onmouseover="this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
+              onmouseout="this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
-              ${isDisabled ? 'Disabled' : 'Disable'}
+              Delete
             </button>
             ` : ''}
           </div>
@@ -660,19 +662,12 @@ export default function ReservationTable() {
               },
             ],
             columnControl: ["order", ["orderAsc", "orderDesc", "spacer", "search"]],
-            rowCallback: (row: any, data: any) => {
-              if (disabledReservations.has(data.id)) {
-                row.classList.add('disabled-row');
-              } else {
-                row.classList.remove('disabled-row');
-              }
-              return row;
-            },
+
           }}
         />
       </div>
 
-  {/* Removed edit & confirmation dialogs */}
+      {/* Removed edit & confirmation dialogs */}
 
       {/* Confirm Disable Dialog */}
       <Dialog open={isConfirmDisableOpen} onOpenChange={setIsConfirmDisableOpen}>
@@ -706,7 +701,7 @@ export default function ReservationTable() {
               Complete information about the selected reservation
             </SheetDescription>
           </SheetHeader>
-          
+
           {selectedReservation && (
             <>
               {/* Scrollable Content */}
@@ -719,29 +714,29 @@ export default function ReservationTable() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Full Name</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.fullName || ''} onChange={(e)=>handleEditChange('fullName', e.target.value)} />
+                          <Input className="mt-1" value={editForm?.fullName || ''} onChange={(e) => handleEditChange('fullName', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.fullName}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Phone</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.phone || ''} onChange={(e)=>handleEditChange('phone', e.target.value)} />
+                          <Input className="mt-1" value={editForm?.phone || ''} onChange={(e) => handleEditChange('phone', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.phone}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="md:col-span-2">
                         <Label className="text-sm font-medium text-gray-700">Email</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.email || ''} onChange={(e)=>handleEditChange('email', e.target.value)} />
+                          <Input className="mt-1" value={editForm?.email || ''} onChange={(e) => handleEditChange('email', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.email}</span>
@@ -750,7 +745,79 @@ export default function ReservationTable() {
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Address Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Address Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Address Line 1</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.address1 || ''} onChange={(e) => handleEditChange('address1', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.address1 || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Address Line 2</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.address2 || ''} onChange={(e) => handleEditChange('address2', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.address2 || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">City</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.city || ''} onChange={(e) => handleEditChange('city', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.city || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">State</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.state || ''} onChange={(e) => handleEditChange('state', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.state || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Postal Code</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.postalCode || ''} onChange={(e) => handleEditChange('postalCode', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.postalCode || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Country</Label>
+                        {sheetMode === 'edit' ? (
+                          <Input className="mt-1" value={editForm?.country || ''} onChange={(e) => handleEditChange('country', e.target.value)} />
+                        ) : (
+                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                            <span className="text-sm text-gray-900">{selectedReservation.country || 'N/A'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Booking Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Booking Information</h3>
@@ -761,56 +828,66 @@ export default function ReservationTable() {
                           <span className="text-sm text-gray-900 font-mono">{selectedReservation.bookingId}</span>
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Reservation Date</Label>
                         <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                           <span className="text-sm text-gray-900">{selectedReservation.reservationDate}</span>
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Check In</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" type="date" value={editForm?.checkIn || ''} onChange={(e)=>handleEditChange('checkIn', e.target.value)} />
+                          <Input className="mt-1" type="date" value={editForm?.checkIn || ''} onChange={(e) => handleEditChange('checkIn', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.checkIn}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Check Out</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" type="date" value={editForm?.checkOut || ''} onChange={(e)=>handleEditChange('checkOut', e.target.value)} />
+                          <Input className="mt-1" type="date" value={editForm?.checkOut || ''} onChange={(e) => handleEditChange('checkOut', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.checkOut}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">No. of Days</Label>
                         <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                           <span className="text-sm text-gray-900">{selectedReservation.noOfDays}</span>
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Resort</Label>
-                        {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.resort || ''} onChange={(e)=>handleEditChange('resort', e.target.value)} />
-                        ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.resort}</span>
-                          </div>
-                        )}
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.resortName}</span>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Cottage Types</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.cottageTypeNames.join(', ') || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Rooms</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.roomNames.join(', ') || 'N/A'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Guest Details */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Guest Details</h3>
@@ -818,84 +895,89 @@ export default function ReservationTable() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Guests</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.guests ?? 0)} onChange={(e)=>handleEditChange('guests', parseInt(e.target.value)||0)} />
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.guests ?? 0)} onChange={(e) => handleEditChange('guests', parseInt(e.target.value) || 0)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
                             <span className="text-sm text-gray-900">{selectedReservation.guests}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Children</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.children ?? 0)} onChange={(e)=>handleEditChange('children', parseInt(e.target.value)||0)} />
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.children ?? 0)} onChange={(e) => handleEditChange('children', parseInt(e.target.value) || 0)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
                             <span className="text-sm text-gray-900">{selectedReservation.children}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Extra Guests</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e)=>handleEditChange('extraGuests', parseInt(e.target.value)||0)} />
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e) => handleEditChange('extraGuests', parseInt(e.target.value) || 0)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
                             <span className="text-sm text-gray-900">{selectedReservation.extraGuests}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Total Guests</Label>
                         <div className="mt-1 p-3 bg-blue-50 rounded-md border border-blue-200 text-center">
-                          <span className="text-lg font-bold text-blue-900">{(Number(editForm?.guests||0)+Number(editForm?.children||0)+Number(editForm?.extraGuests||0))}</span>
+                          <span className="text-lg font-bold text-blue-900">{(Number(editForm?.guests || 0) + Number(editForm?.children || 0) + Number(editForm?.extraGuests || 0))}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Room & Food Information */}
+
+                  {/* Room Information */}
                   <div className="border-b pb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Room & Food Information</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Room Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Rooms</Label>
+                        <Label className="text-sm font-medium text-gray-700">Number of Rooms</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.rooms ?? 0)} onChange={(e)=>handleEditChange('rooms', parseInt(e.target.value)||0)} />
+                          <Input className="mt-1 text-center" type="number" value={String(editForm?.numberOfRooms ?? 0)} onChange={(e) => handleEditChange('numberOfRooms', parseInt(e.target.value) || 0)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.rooms}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">No. of Foods</Label>
-                        {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.noOfFoods ?? 0)} onChange={(e)=>handleEditChange('noOfFoods', parseInt(e.target.value)||0)} />
-                        ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.noOfFoods}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="md:col-span-2">
-                        <Label className="text-sm font-medium text-gray-700">Room Types (comma separated)</Label>
-                        {sheetMode === 'edit' ? (
-                          <Input className="mt-2" value={(editForm?.roomTypes || []).join(', ')} onChange={(e)=>handleEditChange('roomTypes', e.target.value.split(',').map((s:string)=>s.trim()).filter(Boolean))} />
-                        ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.roomTypes.join(', ')}</span>
+                            <span className="text-sm text-gray-900">{selectedReservation.numberOfRooms}</span>
                           </div>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* Pricing Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Pricing Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Room Price</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">₹{selectedReservation.roomPrice.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Extra Bed Charges</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">₹{selectedReservation.extraBedCharges.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Total Payable</Label>
+                        <div className="mt-1 p-3 bg-green-50 rounded-md border border-green-200">
+                          <span className="text-lg font-bold text-green-900">₹{selectedReservation.totalPayable.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Status Information */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Status Information</h3>
@@ -903,80 +985,81 @@ export default function ReservationTable() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Reservation Status</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.status || ''} onChange={(e)=>handleEditChange('status', e.target.value)} />
+                          <Input className="mt-1" value={editForm?.status || ''} onChange={(e) => handleEditChange('status', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.status}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Payment Status</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.paymentStatus || ''} onChange={(e)=>handleEditChange('paymentStatus', e.target.value)} />
+                          <Input className="mt-1" value={editForm?.paymentStatus || ''} onChange={(e) => handleEditChange('paymentStatus', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                             <span className="text-sm text-gray-900">{selectedReservation.paymentStatus}</span>
                           </div>
                         )}
                       </div>
-                      
+
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Refund Percentage</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.refundPercent || ''} onChange={(e)=>handleEditChange('refundPercent', e.target.value)} />
+                          <Input className="mt-1" type="number" value={String(editForm?.refundPercentage ?? 0)} onChange={(e) => handleEditChange('refundPercentage', parseFloat(e.target.value) || 0)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.refundPercent}</span>
+                            <span className="text-sm text-gray-900">{selectedReservation.refundPercentage}%</span>
                           </div>
                         )}
                       </div>
-                      
+                    </div>
+                  </div>
+
+                  {/* Additional Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium text-gray-700">Record Status</Label>
-                        <div className="mt-1">
-                          <Badge 
-                            variant={disabledReservations.has(selectedReservation.id) ? "destructive" : "default"}
-                            className="px-2 py-1"
-                          >
-                            {disabledReservations.has(selectedReservation.id) ? "Disabled" : "Active"}
-                          </Badge>
+                        <Label className="text-sm font-medium text-gray-700">Existing Guest ID</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.existingGuest || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              
+
               {/* Fixed Action Buttons */}
               <div className="flex-shrink-0 flex gap-2 p-6 pt-4 border-t bg-white">
                 {sheetMode === 'view' ? (
                   <>
-                    <Button 
+                    <Button
                       onClick={() => {
                         if (!perms.canEdit) return
                         setSheetMode('edit')
                         setEditForm({ ...(selectedReservation as Reservation) })
                       }}
                       className="flex-1"
-                      disabled={disabledReservations.has(selectedReservation.id) || !perms.canEdit}
+                      disabled={!perms.canEdit}
                       title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
                     >
                       Edit Reservation
                     </Button>
-                    <Button 
-                      variant="destructive" 
+                    <Button
+                      variant="destructive"
                       onClick={() => {
                         if (!perms.canDisable) return
                         setIsDetailSheetOpen(false)
                         setDisablingReservation(selectedReservation)
                         setIsConfirmDisableOpen(true)
                       }}
-                      disabled={disabledReservations.has(selectedReservation.id) || !perms.canDisable}
-                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to delete' : undefined}
                     >
-                      Disable
+                      Delete
                     </Button>
                   </>
                 ) : (
@@ -984,7 +1067,7 @@ export default function ReservationTable() {
                     <Button variant="outline" onClick={() => { setSheetMode('view') }}>
                       Cancel
                     </Button>
-                    <Button 
+                    <Button
                       onClick={saveChanges}
                       disabled={isSaving || !perms.canEdit}
                       title={!perms.canEdit ? 'You do not have permission to update' : undefined}

@@ -54,7 +54,7 @@ export default function AddReservationForm() {
     bookingId: "",
     reservationDate: format(new Date(), "yyyy-MM-dd"),
     numberOfRooms: "",
-    totalPayable: "₹0",
+    totalPayable: 0,
     paymentStatus: "Paid",
     refundPercentage: "",
     existingGuest: "",
@@ -67,8 +67,8 @@ export default function AddReservationForm() {
     state: "",
     postalCode: "",
     country: "",
-    roomPrice: "₹0",
-    extraBedCharges: "₹0",
+    roomPrice: 0,
+    extraBedCharges: 0,
   });
 
   const [resorts, setResorts] = useState<Resort[]>([]);
@@ -191,8 +191,8 @@ export default function AddReservationForm() {
     if (formData.rooms.length === 0) {
       setFormData(prev => ({
         ...prev,
-        roomPrice: "₹0",
-        totalPayable: "₹0",
+        roomPrice: 0,
+        totalPayable: 0,
       }));
       return;
     }
@@ -226,9 +226,9 @@ export default function AddReservationForm() {
 
     setFormData(prev => ({
       ...prev,
-      roomPrice: `₹${roomPrice}`,
-      extraBedCharges: `₹${extraBedCharges}`,
-      totalPayable: `₹${grandTotal}`,
+      roomPrice: roomPrice,
+      extraBedCharges: extraBedCharges,
+      totalPayable: grandTotal,
     }));
   }, [formData.rooms, formData.extraGuests, formData.checkIn, formData.checkOut, rooms, selectedResortData]);
 
@@ -438,7 +438,7 @@ export default function AddReservationForm() {
       bookingId: "",
       reservationDate: format(new Date(), "yyyy-MM-dd"),
       numberOfRooms: "",
-      totalPayable: "₹0",
+      totalPayable: 0,
       paymentStatus: "Paid",
       refundPercentage: "",
       existingGuest: "",
@@ -451,8 +451,8 @@ export default function AddReservationForm() {
       state: "",
       postalCode: "",
       country: "",
-      roomPrice: "₹0",
-      extraBedCharges: "₹0",
+      roomPrice: 0,
+      extraBedCharges: 0,
     });
     setCottageTypes([]);
     setRooms([]);
@@ -467,9 +467,17 @@ export default function AddReservationForm() {
         const apiUrl =
           (import.meta.env && import.meta.env.VITE_API_URL) ||
           "http://localhost:5000";
+        
+        // Get admin token from localStorage
+        const token = localStorage.getItem('admin_token');
+        const headers: any = { "Content-Type": "application/json" };
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const res = await fetch(`${apiUrl}/api/reservations`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(formData),
         });
         const contentType = res.headers.get("content-type") || "";
@@ -501,7 +509,7 @@ export default function AddReservationForm() {
           bookingId: "",
           reservationDate: format(new Date(), "yyyy-MM-dd"),
           numberOfRooms: "",
-          totalPayable: "₹0",
+          totalPayable: 0,
           paymentStatus: "Paid",
           refundPercentage: "",
           existingGuest: "",
@@ -514,8 +522,8 @@ export default function AddReservationForm() {
           state: "",
           postalCode: "",
           country: "",
-          roomPrice: "₹0",
-          extraBedCharges: "₹0",
+          roomPrice: 0,
+          extraBedCharges: 0,
         });
         setCottageTypes([]);
         setRooms([]);
@@ -964,38 +972,25 @@ export default function AddReservationForm() {
                   Room Price
                 </Label>
                 <p className="text-sm text-slate-800 mt-1 px-4 py-3 border border-slate-300 rounded-lg bg-slate-50">
-                  {formData.roomPrice}
+                  ₹{formData.roomPrice}
                 </p>
               </div>
-              {(() => {
-                const extraGuests = parseInt(formData.extraGuests) || 0;
-                const extraGuestCharges = selectedResortData?.extraGuestCharges || 0;
-                let days = 1;
-                if (formData.checkIn && formData.checkOut) {
-                  const checkInDate = new Date(formData.checkIn);
-                  const checkOutDate = new Date(formData.checkOut);
-                  const diffTime = checkOutDate.getTime() - checkInDate.getTime();
-                  days = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-                }
-                const extraBedCharges = extraGuests * extraGuestCharges * days;
-
-                return extraGuests > 0 && extraGuestCharges > 0 ? (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">
-                      Extra Bed Charges ({extraGuests} Guest{extraGuests > 1 ? 's' : ''} × ₹{extraGuestCharges} × {days} Day{days > 1 ? 's' : ''})
-                    </Label>
-                    <p className="text-sm text-slate-800 mt-1 px-4 py-3 border border-slate-300 rounded-lg bg-slate-50">
-                      ₹{extraBedCharges}
-                    </p>
-                  </div>
-                ) : null;
-              })()}
+              {formData.extraBedCharges > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Extra Bed Charges
+                  </Label>
+                  <p className="text-sm text-slate-800 mt-1 px-4 py-3 border border-slate-300 rounded-lg bg-slate-50">
+                    ₹{formData.extraBedCharges}
+                  </p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">
                   Grand Total
                 </Label>
                 <p className="text-sm text-slate-800 mt-1 px-4 py-3 border border-slate-300 rounded-lg bg-slate-50">
-                  {formData.totalPayable}
+                  ₹{formData.totalPayable}
                 </p>
               </div>
             </div>
