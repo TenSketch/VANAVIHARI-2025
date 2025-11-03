@@ -1,0 +1,50 @@
+[
+  {
+    "id": "1",
+    "_id": "ts_amruthadhara",
+    "name": "Amruthadhara Falls",
+    "category": "Nature",
+    "entryFees": 0,
+    "parking2W": 0,
+    "parking4W": 0,
+    "cameraFees": 0,
+    "description": "Amruthadhara Falls is a seasonal waterfall in East Godavari district, popular during monsoon. The falls cascade over rocky cliffs and are surrounded by lush greenery.",
+    "address": "SH 41, Andhra Pradesh 533295",
+    "images": ["assets/img/amruthadhara.jpg"],
+    "mapEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3802.235179664225!2d81.60770107912109!3d17.639016940210375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a3725d190325c67%3A0x48ed1479e1ced87b!2sAMRUTHADHARA%20WATER%20FALL!5e0!3m2!1sen!2sin!4v1712058804622!5m2!1sen!2sin"
+  },
+
+  {
+    "id": "2",
+    "_id": "ts_rampa",
+    "name": "Rampa Falls",
+    "category": "Nature",
+    "entryFees": 0,
+    "parking2W": 0,
+    "parking4W": 0,
+    "cameraFees": 0,
+    "description": "Rampa Falls (Neelakanteswara) sits near Rampachodavaram and is set within semi-evergreen forests. It's a scenic spot amid high forests and perennial waterfalls.",
+    "address": "Rampachodavaram area, East Godavari",
+    "images": ["assets/img/Rampa-falls.jpg"],
+    "mapEmbed": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3805.837475644368!2d81.78332757501201!3d17.467491283433425!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a3715dbbbe40db1%3A0x5bce9a9cbde90678!2sRampa%20Water%20Falls!5e0!3m2!1sen!2sin!4v1712058658299!5m2!1sen!2sin"
+  },
+
+  {
+    "id": "3",
+    "_id": "ts_gudisa",
+    "name": "Gudisa View Point",
+    "category": "Viewpoint",
+    "entryFees": 0,
+    "parking2W": 100,
+    "parking4W": 300,
+    "cameraFees": 5000,
+    "description": "Gudisa View Point offers panoramic views of the Eastern Ghats with grassland forests, trekking, and birdwatching. Overnight stays are restricted to preserve the ecosystem.",
+    "address": "Gudisa hill range, Maredumilli / Rampachodavaram division",
+    "images": [
+      "assets/img/TOURIST-PLACES/gudisa-hills-1.jpg",
+      "assets/img/TOURIST-PLACES/gudisa-hills-2.jpg",
+      "assets/img/TOURIST-PLACES/gudisa-hills-3.jpg"
+    ],
+    "mapEmbed": "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d7598.71286350315!2d81.693937!3d17.774938!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a3731c48301f107%3A0x1ee53ed9481524bf!2sGudisa%20View%20point!5e0!3m2!1sen!2sin!4v1754838945890!5m2!1sen!2sin"
+  }
+]

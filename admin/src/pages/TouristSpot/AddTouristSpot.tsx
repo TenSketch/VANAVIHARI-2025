@@ -1,7 +1,215 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 const AddTouristSpot = () => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+        const [form, setForm] = useState({
+            name: '',
+            category: '',
+            entryFees: '',
+            parking2W: '',
+            parking4W: '',
+            cameraFees: '',
+            description: '',
+            address: '',
+            mapEmbed: '',
+        });
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+        const [added, setAdded] = useState<any[]>([]);
+        const [newImages, setNewImages] = useState<File[]>([]);
+
+    const handleAdd = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        setIsSaving(true);
+        setError(null);
+        setSuccess(null);
+
+            try {
+                // If there are images, send multipart/form-data
+                if (newImages.length > 0) {
+                    const formData = new FormData();
+                    newImages.forEach((f) => formData.append('images', f));
+                    formData.append('name', form.name.trim());
+                    formData.append('category', form.category.trim());
+                    if (form.entryFees !== '') formData.append('entryFees', String(Number(form.entryFees)));
+                    if (form.parking2W !== '') formData.append('parking2W', String(Number(form.parking2W)));
+                    if (form.parking4W !== '') formData.append('parking4W', String(Number(form.parking4W)));
+                    if (form.cameraFees !== '') formData.append('cameraFees', String(Number(form.cameraFees)));
+                    if (form.description) formData.append('description', form.description);
+                    if (form.address) formData.append('address', form.address);
+                    if (form.mapEmbed) formData.append('mapEmbed', form.mapEmbed);
+
+                    const res = await fetch(`${apiBase}/api/touristspots/add`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => null);
+                        throw new Error((errData && errData.error) || res.statusText || 'Failed to add');
+                    }
+                    const data = await res.json().catch(() => null);
+                    const saved = data?.touristSpot || data?.spot || data || {};
+                    // Map images from response if present, otherwise show uploaded file names
+                    if (!saved.images) saved.images = newImages.map((f) => f.name);
+                    setAdded(prev => [saved, ...prev]);
+                } else {
+                    const payload: any = {
+                        name: form.name.trim(),
+                        category: form.category.trim(),
+                    };
+                    if (form.entryFees !== '') payload.entryFees = Number(form.entryFees);
+                    if (form.parking2W !== '') payload.parking2W = Number(form.parking2W);
+                    if (form.parking4W !== '') payload.parking4W = Number(form.parking4W);
+                    if (form.cameraFees !== '') payload.cameraFees = Number(form.cameraFees);
+                    if (form.description) payload.description = form.description;
+                    if (form.address) payload.address = form.address;
+                    if (form.mapEmbed) payload.mapEmbed = form.mapEmbed;
+
+                    const res = await fetch(`${apiBase}/api/touristspots/add`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => null);
+                        throw new Error((errData && errData.error) || res.statusText || 'Failed to add');
+                    }
+                    const data = await res.json().catch(() => null);
+                    const saved = data?.touristSpot || data?.spot || data || payload;
+                    setAdded(prev => [saved, ...prev]);
+                }
+
+                setSuccess('Tourist spot added successfully');
+                setForm({ name: '', category: '', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', description: '', address: '', mapEmbed: '' });
+                setNewImages([]);
+            } catch (err: any) {
+                console.error('Add tourist spot error', err);
+                setError(err.message || 'Failed to add tourist spot');
+            } finally {
+                setIsSaving(false);
+            }
+    };
+
+    const handleReset = () => {
+        setForm({ name: '', category: '', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', description: '', address: '', mapEmbed: '' });
+        setNewImages([]);
+        setError(null);
+        setSuccess(null);
+    };
+
     return (
-        <div>AddTouristSpot</div>
+        <div className="min-h-screen p-8">
+            <div className="w-full max-w-3xl">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-semibold text-slate-800 mb-2">Add Tourist Spot</h1>
+                    <p className="text-slate-600">Create a new tourist spot with fees and parking details.</p>
+
+                    {success && (
+                        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800">{success}</div>
+                    )}
+                    {error && (
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-800">{error}</div>
+                    )}
+                </div>
+
+                <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+                    <div className="p-4 bg-transparent">
+                        <div className="space-y-4">
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Tourist Spot Name</Label>
+                                                <Input value={form.name} onChange={(e) => setForm(s => ({ ...s, name: e.target.value }))} className="w-full" />
+                                            </div>
+
+                            <div>
+                                <Label className="text-sm font-medium text-gray-700">Category</Label>
+                                <Input value={form.category} onChange={(e) => setForm(s => ({ ...s, category: e.target.value }))} className="w-full" />
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">Entry Fees</Label>
+                                    <Input type="number" value={form.entryFees} onChange={(e) => setForm(s => ({ ...s, entryFees: e.target.value }))} className="w-full" />
+                                </div>
+
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">2 Wheeler Parking</Label>
+                                    <Input type="number" value={form.parking2W} onChange={(e) => setForm(s => ({ ...s, parking2W: e.target.value }))} className="w-full" />
+                                </div>
+
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">4 Wheelers Parking</Label>
+                                    <Input type="number" value={form.parking4W} onChange={(e) => setForm(s => ({ ...s, parking4W: e.target.value }))} className="w-full" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <Label className="text-sm font-medium text-gray-700">Camera Fees</Label>
+                                <Input type="number" value={form.cameraFees} onChange={(e) => setForm(s => ({ ...s, cameraFees: e.target.value }))} className="w-full" />
+                            </div>
+              
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Description</Label>
+                                                <textarea value={form.description} onChange={(e) => setForm(s => ({ ...s, description: e.target.value }))} rows={4} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Address</Label>
+                                                <Input value={form.address} onChange={(e) => setForm(s => ({ ...s, address: e.target.value }))} className="w-full" />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Map Embed URL</Label>
+                                                <Input placeholder="https://www.google.com/maps/embed?..." value={form.mapEmbed} onChange={(e) => setForm(s => ({ ...s, mapEmbed: e.target.value }))} className="w-full" />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-sm font-medium text-gray-700">Images</Label>
+                                                <input type="file" accept="image/*" multiple onChange={(e) => {
+                                                    const files = e.target.files;
+                                                    if (files) setNewImages(Array.from(files));
+                                                }} className="w-full mt-1" />
+                                                {newImages.length > 0 && (
+                                                    <p className="text-xs text-gray-600 mt-1">{newImages.length} file(s) selected: {newImages.map(f => f.name).join(', ')}</p>
+                                                )}
+                                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-2">
+                        <Button type="button" onClick={handleAdd} disabled={isSaving} className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg">
+                            {isSaving ? 'Saving...' : 'Add Tourist Spot'}
+                        </Button>
+                        <Button type="button" onClick={handleReset} variant="ghost" disabled={isSaving} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg">
+                            Reset
+                        </Button>
+                    </div>
+
+                    {added.length > 0 && (
+                        <div className="mt-6">
+                            <h2 className="text-xl font-semibold mb-3">Recently Added</h2>
+                            <div className="space-y-3">
+                                {added.map((a, i) => (
+                                    <div key={i} className="p-3 border rounded bg-white">
+                                        <div className="font-medium">{a.name || a.title || '—'}</div>
+                                        <div className="text-sm text-slate-600">Category: {a.category || '—'}</div>
+                                        <div className="text-sm">Entry: ₹{(a.entryFees ?? 0).toLocaleString()}</div>
+                                        <div className="text-sm">2W Park: ₹{(a.parking2W ?? 0).toLocaleString()} • 4W Park: ₹{(a.parking4W ?? 0).toLocaleString()}</div>
+                                        <div className="text-sm">Camera: {a.cameraFees ? `₹${a.cameraFees}` : '—'}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </form>
+            </div>
+        </div>
     );
-}
+};
 
 export default AddTouristSpot;
