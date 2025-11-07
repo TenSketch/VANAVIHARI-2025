@@ -133,17 +133,17 @@ const AddTouristSpot = () => {
 
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700">Entry Fees</Label>
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Entry Fees</Label>
                                     <Input type="number" value={form.entryFees} onChange={(e) => setForm(s => ({ ...s, entryFees: e.target.value }))} className="w-full" />
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700">2 Wheeler Parking</Label>
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">2W Parking</Label>
                                     <Input type="number" value={form.parking2W} onChange={(e) => setForm(s => ({ ...s, parking2W: e.target.value }))} className="w-full" />
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700">4 Wheelers Parking</Label>
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">4W Parking</Label>
                                     <Input type="number" value={form.parking4W} onChange={(e) => setForm(s => ({ ...s, parking4W: e.target.value }))} className="w-full" />
                                 </div>
                             </div>

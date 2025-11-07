@@ -208,8 +208,22 @@ export default function ReservationTable() {
 
   // Export to CSV (uses current reservations)
   const exportToExcel = () => {
+    // Format date to DD-MMM-YY (e.g. 07-Nov-25). If value is empty or invalid,
+    // return an empty string or the original value.
+    const formatDateForExcel = (value: string) => {
+      if (!value) return '';
+      // If already in YYYY-MM-DD or other ISO formats, Date should parse it.
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return value;
+      const day = String(d.getDate()).padStart(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const mon = months[d.getMonth()] || '';
+      const yy = String(d.getFullYear()).slice(-2);
+      return `${day}-${mon}-${yy}`;
+    }
+
     const headers = [
-      "Booking ID", "Full Name", "Phone", "Email", "Check In", "Check Out",
+      "S. No", "Booking ID", "Full Name", "Phone", "Email", "Check In", "Check Out",
       "Guests", "Children", "Extra Guests", "Total Guests", "No. of Days",
       "Resort", "Rooms", "Number of Rooms", "Status", "Reservation Date",
       "Payment Status", "Total Amount", "Refund %"
@@ -217,13 +231,17 @@ export default function ReservationTable() {
 
     const csvContent = [
       headers.join(","),
-      ...reservationsRef.current.map(row => [
+      ...reservationsRef.current.map((row, idx) => [
+        // Serial number as first column (starting at 1)
+        idx + 1,
         `"${row.bookingId}"`,
         `"${row.fullName}"`,
         `"${row.phone}"`,
         `"${row.email}"`,
-        `"${row.checkIn}"`,
-        `"${row.checkOut}"`,
+        // Prefix formatted dates with an apostrophe so Excel treats them as text
+        // and doesn't auto-format/overflow them to '#######' when column is narrow
+        `"'${formatDateForExcel(row.checkIn)}"`,
+        `"'${formatDateForExcel(row.checkOut)}"`,
         row.guests,
         row.children,
         row.extraGuests,
@@ -233,7 +251,8 @@ export default function ReservationTable() {
         `"${row.roomNames.join(', ')}"`,
         row.numberOfRooms,
         `"${row.status}"`,
-        `"${row.reservationDate}"`,
+  // Reservation date also forced to text and formatted as DD-MMM-YY
+  `"'${formatDateForExcel(row.reservationDate)}"`,
         `"${row.paymentStatus}"`,
         row.totalPayable,
         `"${row.refundPercentage}%"`

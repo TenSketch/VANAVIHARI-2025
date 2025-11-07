@@ -1,10 +1,12 @@
 
-import { Menu, User, Home, LogOut} from "lucide-react";
+import { Menu, User, Home, LogOut, Building2, Tent, MapPin, Check, Globe, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router";
 import Breadcrumb from "./Breadcrumb";
 import NotificationDropdown from "./NotificationDropDown";
 import { useAdmin } from "@/lib/AdminProvider";
+import { useViewType } from "@/lib/ViewTypeContext";
+import type { ViewType } from "@/lib/ViewTypeContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,12 +47,27 @@ const breadcrumbMap: Record<string, string[]> = {
   "/tenttypes/all": ["Tent Types", "All Tent Types"],
   "/tentspots/add": ["Tent Spots", "Add Tent Spots"],
   "/tentspots/all": ["Tent Spots", "All Tent Spots"],
+  "/tent/dashboard": ["Tent", "Dashboard"],
+  "/tent/bookings": ["Tent", "Bookings"],
+  "/tent/inventory": ["Tent", "Inventory"],
+  "/tentspots/details": ["Tent Spots", "Details"],
+  "/tourist/dashboard": ["Tourist Spots", "Dashboard"],
+  "/tourist/bookings": ["Tourist", "Bookings"],
+  "/reports/daily-occupancy": ["Reports", "Daily Occupancy"],
+  "/reports/payments": ["Reports", "Payments"],
+  "/reports/utilisation": ["Reports", "Utilisation"],
+  "/reports/cancellations": ["Reports", "Cancellations"],
+  "/reports/visits": ["Reports", "Visits"],
+  "/reports/revenue": ["Reports", "Revenue"],
+  "/tourist/packages": ["Packages", "All Packages"],
+  "/settings": ["Settings"],
 };
 
 const Navbar = ({ onMenuClick }: NavbarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAdmin();
+  const { viewType, setViewType } = useViewType();
   const currentPath = location.pathname;
 
   const breadcrumbs = breadcrumbMap[currentPath] || ["Dashboard", "Unknown Page"];
@@ -59,6 +76,14 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
     logout();
     navigate('/auth/login');
   };
+
+  const viewTypeOptions: { value: ViewType; label: string; icon: typeof Building2 }[] = [
+    { value: "resort", label: "Resort", icon: Building2 },
+    { value: "tent", label: "Tent", icon: Tent },
+    { value: "tourist-spot", label: "Tourist Spot", icon: MapPin },
+  ];
+
+  const currentViewOption = viewTypeOptions.find(option => option.value === viewType);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
@@ -83,6 +108,8 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
             </span>
           </div>
 
+          {/* (view dropdown moved to right side) */}
+
           {/* Breadcrumb */}
           <div className="truncate whitespace-nowrap overflow-hidden min-w-0">
             <Breadcrumb
@@ -93,8 +120,58 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center">
+        <div className="flex items-center items-stretch space-x-2">
+          {/* View Type Dropdown (moved next to notifications) */}
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center space-x-2 h-9">
+                  {currentViewOption && <currentViewOption.icon className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{currentViewOption?.label}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {viewTypeOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option.value}
+                    onClick={() => setViewType(option.value)}
+                    className="flex items-center justify-between cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <option.icon className="h-4 w-4" />
+                      <span>{option.label}</span>
+                    </div>
+                    {viewType === option.value && <Check className="h-4 w-4" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <NotificationDropdown/>
+          {/* Global top-bar menu (Guests, Logs, Settings) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <Globe className="h-5 w-5" />
+                <span className="hidden md:inline">Global</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => navigate('/guests/all')}>
+                <Users className="mr-2 h-4 w-4" />
+                Guests
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/log-reports/all')}>
+                <FileText className="mr-2 h-4 w-4" />
+                Logs
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Home className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2">

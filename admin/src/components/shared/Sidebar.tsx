@@ -1,26 +1,20 @@
 
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router";
 import {
   ChevronRight,
   ChevronDown,
   Building2,
-  Users,
   Bed,
   Calendar,
   FileText,
   Home,
   Plus,
   Globe,
-  Wifi,
   BookOpen,
   BedDouble,
-  MonitorCheck,
-  ArrowRightFromLine,
-  ArrowLeftFromLine,
   ClipboardMinus,
-  ClipboardCheck,
   Tent,
   Binoculars,
 } from "lucide-react";
@@ -31,6 +25,8 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useViewType } from "@/lib/ViewTypeContext";
+import type { ViewType } from "@/lib/ViewTypeContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -39,6 +35,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
+  const { viewType } = useViewType();
   const [openSections, setOpenSections] = useState<string[]>([]);
 
   const toggleSection = (section: string) => {
@@ -49,123 +46,168 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     );
   };
 
-  const menuItems = [
+  const allMenuItems = [
+    // Resort Management
     {
-      id: "dashboard",
+      id: "resort-dashboard",
       label: "Dashboard",
       icon: Home,
       path: "/dashboard/report",
-    },
-    {
-      id: "dailyoccupancy",
-      label: "Daily Occupancy Report",
-      icon: ClipboardMinus,
-      children: [
-        { label: "Vanavihari", path: "/dailyoccupanyreport/vanavihari", icon: ClipboardCheck},
-        { label: "JungleStar", path: "/dailyoccupanyreport/junglestar", icon: ClipboardCheck},
-      ],
-    },
-    {
-      id: "frontdesk",
-      label: "Frontdesk",
-      icon: MonitorCheck,
-      children: [
-        { label: "Check In", path: "/frontdesk/checkin", icon: ArrowRightFromLine},
-        { label: "Check Out", path: "/frontdesk/checkout", icon: ArrowLeftFromLine},
-      ],
+      viewTypes: ["resort"] as ViewType[],
     },
     {
       id: "resorts",
       label: "Resorts",
       icon: Building2,
+      viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Add Resort", path: "/resorts/add", icon: Plus },
         { label: "All Resorts", path: "/resorts/all", icon: Globe },
-      ],
-    },
-    {
-      id: "room-amenities",
-      label: "Room Amenities",
-      icon: Wifi,
-      children: [
-        { label: "Add Amenities", path: "/room-amenities/add", icon: Plus },
-        { label: "All Amenities", path: "/room-amenities/all", icon: Wifi },
+        { label: "Add Resort", path: "/resorts/add", icon: Plus },
       ],
     },
     {
       id: "cottage-types",
       label: "Cottage Types",
-      icon: Home,
+      icon: BookOpen,
+      viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Add Type", path: "/cottage-types/add", icon: Plus },
         { label: "All Types", path: "/cottage-types/all", icon: BookOpen },
+        { label: "Add Type", path: "/cottage-types/add", icon: Plus },
       ],
     },
     {
       id: "rooms",
       label: "Rooms",
       icon: Bed,
+      viewTypes: ["resort"] as ViewType[],
       children: [
+        { label: "All Rooms", path: "/rooms/all", icon: BedDouble },
         { label: "Add Room", path: "/rooms/add", icon: Plus },
-        { label: "All Room", path: "/rooms/all", icon: BedDouble },
-        
       ],
     },
+    // Room Amenities removed from Resort Management per request
     {
-      id: "guests",
-      label: "Guests",
-      icon: Users,
-      children: [
-        { label: "Add Guest", path: "/guests/add", icon: Plus },
-        { label: "All Guests", path: "/guests/all", icon: Users },
-      ],
-    },
-    {
-      id: "reservations",
+      id: "res-reservations",
       label: "Reservations",
       icon: Calendar,
+      viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Add Reservation", path: "/reservation/add", icon: Plus },
         { label: "All Reservations", path: "/reservation/all", icon: Calendar },
+        { label: "Add Reservation", path: "/reservation/add", icon: Plus },
       ],
     },
     {
-      id: "touristspots",
-      label: "Tourist Spots",
-      icon: Binoculars,
+      id: "res-reports",
+      label: "Reports",
+      icon: FileText,
+      viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Add Tourist Spots", path: "/touristspots/add", icon: Plus },
-        { label: "All Tourist Spots", path: "/touristspots/all", icon: Calendar },
+        { label: "Daily Occupancy", path: "/reports/daily-occupancy", icon: ClipboardMinus },
+        { label: "Payments", path: "/reports/payments", icon: FileText },
+        { label: "Logs", path: "/log-reports/all", icon: FileText },
+      ],
+    },
+
+    // Tent Management
+    {
+      id: "tent-dashboard",
+      label: "Dashboard",
+      icon: Home,
+      path: "/tent/dashboard",
+      viewTypes: ["tent"] as ViewType[],
+    },
+    {
+      id: "tentspots",
+      label: "Tent Spots",
+      icon: Tent,
+      viewTypes: ["tent"] as ViewType[],
+      children: [
+        { label: "All Spots", path: "/tentspots/all", icon: Globe },
+        { label: "Spot Details", path: "/tentspots/details", icon: Globe },
       ],
     },
     {
       id: "tenttypes",
       label: "Tent Types",
       icon: Tent,
+      viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "Add Tent Types", path: "/tenttypes/add", icon: Plus },
-        { label: "All Tent Types", path: "/tenttypes/all", icon: Calendar },
+        { label: "All Tent Types", path: "/tenttypes/all", icon: BookOpen },
+        { label: "Add Tent Type", path: "/tenttypes/add", icon: Plus },
+      ],
+    },
+    // Tent Inventory removed from Tent Management per request
+    {
+      id: "tent-bookings",
+      label: "Tent Bookings",
+      icon: Calendar,
+      viewTypes: ["tent"] as ViewType[],
+      children: [
+        { label: "All Bookings", path: "/tent/bookings", icon: Calendar },
       ],
     },
     {
-      id: "tentspots",
-      label: "Tent Spots",
-      icon: Tent,
-      children: [
-        { label: "Add Tent Spots", path: "/tentspots/add", icon: Plus },
-        { label: "All Tent Spots", path: "/tentspots/all", icon: Calendar },
-      ],
-    },
-    {
-      id: "log-reports",
-      label: "Log Reports",
+      id: "tent-reports",
+      label: "Reports",
       icon: FileText,
+      viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "All Reports", path: "/log-reports/all", icon: FileText },
-        { label: "Log Table", path: "/log-reports/table", icon: FileText },
+        { label: "Utilisation", path: "/reports/utilisation", icon: FileText },
       ],
-    }
+    },
+
+    // Tourist Spot Management
+    {
+      id: "tourist-dashboard",
+      label: "Dashboard",
+      icon: Home,
+      path: "/tourist/dashboard",
+      viewTypes: ["tourist-spot"] as ViewType[],
+    },
+    {
+      id: "spots",
+      label: "Spots",
+      icon: Binoculars,
+      viewTypes: ["tourist-spot"] as ViewType[],
+      children: [
+        { label: "All Spots", path: "/touristspots/all", icon: Binoculars },
+        { label: "Add Spot", path: "/touristspots/add", icon: Plus },
+      ],
+    },
+    {
+      id: "packages",
+      label: "Packages",
+      icon: Globe,
+      viewTypes: ["tourist-spot"] as ViewType[],
+      children: [
+        { label: "All Packages", path: "/tourist/packages", icon: Globe },
+      ],
+    },
+    {
+      id: "tourist-bookings",
+      label: "Bookings",
+      icon: Calendar,
+      viewTypes: ["tourist-spot"] as ViewType[],
+      children: [
+        { label: "All Bookings", path: "/tourist/bookings", icon: Calendar },
+      ],
+    },
+    {
+      id: "tourist-reports",
+      label: "Reports",
+      icon: FileText,
+      viewTypes: ["tourist-spot"] as ViewType[],
+      children: [
+        { label: "Visits", path: "/reports/visits", icon: FileText },
+        { label: "Revenue", path: "/reports/revenue", icon: FileText },
+      ],
+    },
   ];
+
+  // Filter menu items based on current view type
+  const menuItems = useMemo(() => {
+    return allMenuItems.filter(item => item.viewTypes.includes(viewType));
+  }, [viewType]);
 
   const isActive = (path: string) => location.pathname === path;
 
