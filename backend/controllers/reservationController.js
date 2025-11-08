@@ -217,7 +217,10 @@ export const createPublicBooking = async (req, res) => {
 
     const reservation = new Reservation(payload)
     await reservation.save()
-    res.status(201).json({ success: true, reservation })
+    
+    // Return reservation without populated fields (just IDs)
+    const savedReservation = await Reservation.findById(reservation._id).lean()
+    res.status(201).json({ success: true, reservation: savedReservation })
   } catch (err) {
     console.error('createPublicBooking error', err)
     res.status(500).json({ success: false, error: err.message })

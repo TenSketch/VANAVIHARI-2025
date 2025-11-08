@@ -493,6 +493,9 @@ export class BookingSummaryComponent {
       }
     });
 
+    // Fetch actual room data from backend to get proper IDs
+    this.fetchRoomDetailsFromBackend();
+
     this.extra_children = JSON.parse(this.summaryData.extra_children);
     const roomIdsWithGuests = JSON.parse(this.summaryData.noof_guests);
     roomIdsWithGuests.forEach(
@@ -531,32 +534,108 @@ export class BookingSummaryComponent {
     this.router.navigate(['/sign-in']);
   }
 
+  fetchRoomDetailsFromBackend() {
+    if (!this.roomID || this.roomID.length === 0) {
+      return;
+    }
+
+    // Fetch room details from backend
+    this.http.get<any>(`${this.api_url}/api/rooms`).subscribe({
+      next: (response) => {
+        if (response.rooms) {
+          // Match rooms by ID
+          const backendRooms = response.rooms.filter((room: any) => 
+            this.roomID.includes(room._id)
+          );
+
+          if (backendRooms.length > 0) {
+            // Get resort ID from first room (handle both populated and unpopulated)
+            const firstRoomResort = backendRooms[0].resort;
+            const resortId = typeof firstRoomResort === 'string' 
+              ? firstRoomResort 
+              : firstRoomResort?._id || '';
+            
+            // Get unique cottage type IDs (handle both populated and unpopulated)
+            const cottageTypeIds = [...new Set(
+              backendRooms.map((room: any) => {
+                const ct = room.cottageType;
+                return typeof ct === 'string' ? ct : ct?._id;
+              })
+            )].filter(id => id);
+
+            // Store for later use
+            this.selectedResortData = {
+              _id: resortId,
+              cottageTypeIds: cottageTypeIds,
+              rooms: backendRooms,
+              extraGuestCharges: 0 // Will be updated when resort details are fetched
+            };
+
+            // Fetch resort details to get extraGuestCharges
+            if (resortId) {
+              this.http.get<any>(`${this.api_url}/api/resorts/${resortId}`).subscribe({
+                next: (resortResponse) => {
+                  if (resortResponse.resort) {
+                    this.selectedResortData.extraGuestCharges = resortResponse.resort.extraGuestCharges || 0;
+                  }
+                },
+                error: (err) => {
+                  console.error('Error fetching resort details:', err);
+                }
+              });
+            }
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Error fetching room details:', err);
+      }
+    });
+  }
+
   submitBooking() {
     this.showLoader = true;
     this.extra_guests = JSON.parse(this.summaryData.extra_guests).length;
     this.guestCount = parseInt(this.totalGuests + this.extra_children);
     this.adultsCount = parseInt(this.totalGuests);
 
-    // Determine resort details
+    // Get resort ID and cottage type IDs from backend data
     let resortId = '';
+    let cottageTypeIds: string[] = [];
+    let resortExtraGuestCharges = 0;
+    
+    if (this.selectedResortData) {
+      resortId = this.selectedResortData._id || '';
+      cottageTypeIds = this.selectedResortData.cottageTypeIds || [];
+      resortExtraGuestCharges = this.selectedResortData.extraGuestCharges || 0;
+    }
+
+    // Fallback: if backend data not loaded, show error
+    if (!resortId || cottageTypeIds.length === 0) {
+      this.showLoader = false;
+      this.showSnackBarAlert('Error: Room data not loaded. Please try again.');
+      return;
+    }
+
+    // Determine resort details for payment gateway
     if (this.resortName == 'Vanavihari, Maredumilli') {
       this.resort_name = 'vanavihari';
       this.subBillerId = 'MMILLI';
-      // You'll need to get the actual resort _id from your resorts collection
-      // For now using a placeholder - replace with actual ID
-      resortId = 'YOUR_VANAVIHARI_RESORT_ID';
     }
     if (this.resortName == 'Jungle Star, Valamuru') {
       this.resort_name = 'jungle-star';
       this.subBillerId = 'JSTAR';
-      resortId = 'YOUR_JUNGLE_STAR_RESORT_ID';
     }
 
     if (this.form.valid) {
+      // Calculate extra bed charges properly
+      const durationOfStay = this.calculateDurationOfStay();
+      const extraBedCharges = this.extra_guests * resortExtraGuestCharges * durationOfStay;
+
       // Prepare reservation data for new Node.js backend
       const reservationData = {
         resort: resortId,
-        cottageTypes: this.cardData.map(room => room.Cottage_Type_ID || room.Cottage_Type),
+        cottageTypes: cottageTypeIds,
         rooms: this.roomID, // Array of room IDs
         checkIn: this.checkinDate,
         checkOut: this.checkoutDate,
@@ -570,7 +649,7 @@ export class BookingSummaryComponent {
         totalPayable: parseFloat(this.calculateGrandTotal()),
         paymentStatus: 'Not Paid', // Will update after payment
         refundPercentage: null,
-        existingGuest: this.authService.getAccountUsername() || '',
+        // existingGuest will be set by backend from auth token
         fullName: this.form.value.gname,
         phone: this.form.value.gphone,
         email: this.form.value.gemail,
@@ -581,7 +660,7 @@ export class BookingSummaryComponent {
         postalCode: this.form.value.gpincode,
         country: this.form.value.gcountry,
         roomPrice: parseFloat(this.calculateTotalPrice()),
-        extraBedCharges: this.extra_guests * (this.selectedResortData?.extraGuestCharges || 0) * this.calculateDurationOfStay(),
+        extraBedCharges: extraBedCharges,
         rawSource: {
           resortName: this.resortName,
           foodPreference: this.form.value.foodpreference || '',
