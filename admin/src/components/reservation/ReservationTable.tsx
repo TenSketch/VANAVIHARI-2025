@@ -39,6 +39,15 @@ import { Label } from "@/components/ui/label";
 
 DataTable.use(DT);
 
+/**
+ * DATE HANDLING NOTES:
+ * - Backend stores dates as ISO timestamps (e.g., 2025-11-10T00:00:00.000Z)
+ * - We display dates as MM/DD/YYYY in the table (matches frontend date picker)
+ * - We export dates as DD-MMM-YY (e.g., 10-Nov-25) for Excel
+ * - Always use UTC methods to avoid timezone issues
+ * - Date inputs in edit mode use HTML5 date input (YYYY-MM-DD format internally)
+ */
+
 interface Reservation {
   id: string;
   fullName: string;
@@ -135,6 +144,9 @@ export default function ReservationTable() {
       // normalize some fields
       if (payload.noOfDays) delete payload.noOfDays
       if (payload.totalGuests) delete payload.totalGuests
+      
+      // Ensure dates are in YYYY-MM-DD format (HTML5 date input already provides this)
+      // Backend will convert to ISO timestamp
 
       const token = localStorage.getItem('admin_token')
       const headers: any = { 'Content-Type': 'application/json' }
@@ -206,19 +218,35 @@ export default function ReservationTable() {
     }
   }
 
+  // Helper function to format date for display (MM/DD/YYYY)
+  const formatDateForDisplay = (value: string) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    
+    // Use UTC methods to avoid timezone shifts
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
   // Export to CSV (uses current reservations)
   const exportToExcel = () => {
     // Format date to DD-MMM-YY (e.g. 07-Nov-25). If value is empty or invalid,
     // return an empty string or the original value.
+    // Uses UTC methods to avoid timezone issues
     const formatDateForExcel = (value: string) => {
       if (!value) return '';
-      // If already in YYYY-MM-DD or other ISO formats, Date should parse it.
+      // Parse ISO date string (YYYY-MM-DD or full ISO timestamp)
       const d = new Date(value);
       if (isNaN(d.getTime())) return value;
-      const day = String(d.getDate()).padStart(2, '0');
+      
+      // Use UTC methods to avoid timezone shifts
+      const day = String(d.getUTCDate()).padStart(2, '0');
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const mon = months[d.getMonth()] || '';
-      const yy = String(d.getFullYear()).slice(-2);
+      const mon = months[d.getUTCMonth()] || '';
+      const yy = String(d.getUTCFullYear()).slice(-2);
       return `${day}-${mon}-${yy}`;
     }
 
@@ -358,9 +386,20 @@ export default function ReservationTable() {
 
         const raw = resData.reservations || resData || [];
         const mapped: Reservation[] = raw.map((r: any) => {
+          // Parse dates using UTC to avoid timezone issues
           const checkIn = r.checkIn ? new Date(r.checkIn).toISOString().slice(0, 10) : '';
           const checkOut = r.checkOut ? new Date(r.checkOut).toISOString().slice(0, 10) : '';
-          const noOfDays = (r.checkIn && r.checkOut) ? Math.max(1, Math.round((new Date(r.checkOut).getTime() - new Date(r.checkIn).getTime()) / (1000 * 60 * 60 * 24))) : 0;
+          
+          // Calculate days using normalized dates (start of day UTC)
+          let noOfDays = 0;
+          if (r.checkIn && r.checkOut) {
+            const d1 = new Date(r.checkIn);
+            const d2 = new Date(r.checkOut);
+            d1.setUTCHours(0, 0, 0, 0);
+            d2.setUTCHours(0, 0, 0, 0);
+            noOfDays = Math.max(1, Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+          }
+          
           const totalGuests = (Number(r.guests) || 0) + (Number(r.extraGuests) || 0) + (Number(r.children) || 0);
 
           return {
@@ -568,8 +607,16 @@ export default function ReservationTable() {
       title: "Rooms",
       render: (data: string[]) => data.join(", ") || 'N/A',
     },
-    { data: "checkIn", title: "Check In" },
-    { data: "checkOut", title: "Check Out" },
+    { 
+      data: "checkIn", 
+      title: "Check In",
+      render: (data: string) => formatDateForDisplay(data)
+    },
+    { 
+      data: "checkOut", 
+      title: "Check Out",
+      render: (data: string) => formatDateForDisplay(data)
+    },
     { data: "noOfDays", title: "Days" },
     { data: "totalGuests", title: "Total Guests" },
     {
@@ -851,7 +898,7 @@ export default function ReservationTable() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Reservation Date</Label>
                         <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                          <span className="text-sm text-gray-900">{selectedReservation.reservationDate}</span>
+                          <span className="text-sm text-gray-900">{formatDateForDisplay(selectedReservation.reservationDate)}</span>
                         </div>
                       </div>
 
@@ -861,7 +908,7 @@ export default function ReservationTable() {
                           <Input className="mt-1" type="date" value={editForm?.checkIn || ''} onChange={(e) => handleEditChange('checkIn', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.checkIn}</span>
+                            <span className="text-sm text-gray-900">{formatDateForDisplay(selectedReservation.checkIn)}</span>
                           </div>
                         )}
                       </div>
@@ -872,7 +919,7 @@ export default function ReservationTable() {
                           <Input className="mt-1" type="date" value={editForm?.checkOut || ''} onChange={(e) => handleEditChange('checkOut', e.target.value)} />
                         ) : (
                           <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.checkOut}</span>
+                            <span className="text-sm text-gray-900">{formatDateForDisplay(selectedReservation.checkOut)}</span>
                           </div>
                         )}
                       </div>

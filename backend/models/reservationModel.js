@@ -1,9 +1,9 @@
 import mongoose from 'mongoose'
 
 const reservationSchema = new mongoose.Schema({
-  resort: String,
+  resort: mongoose.Schema.Types.Mixed, // Can be ObjectId or String for flexibility
   cottageTypes: [String], // Array of cottage type IDs
-  rooms: [String], // Array of room IDs
+  rooms: [String], // Array of room IDs (can be ObjectId strings, roomId, or roomName)
   checkIn: Date,
   checkOut: Date,
   guests: Number,

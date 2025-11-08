@@ -145,9 +145,11 @@ const listAvailableRooms = async (req, res) => {
       return res.json({ rooms: roomsWithAvailability, allRooms: true })
     }
     
-    // Parse dates
+    // Parse dates - set time to start of day for accurate comparison
     const checkInDate = new Date(checkin)
+    checkInDate.setHours(0, 0, 0, 0)
     const checkOutDate = new Date(checkout)
+    checkOutDate.setHours(0, 0, 0, 0)
     
     // Validate dates
     if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
@@ -159,46 +161,44 @@ const listAvailableRooms = async (req, res) => {
     }
     
     // Find all reservations that overlap with the requested dates
-    // A reservation overlaps if:
-    // 1. It starts before our checkout and ends after our checkin
-    // 2. Status is 'reserved' or 'pre-reserved' (not cancelled)
+    // A reservation overlaps if the date ranges intersect
+    // Two date ranges [A1, A2] and [B1, B2] overlap if: A1 < B2 AND A2 > B1
     const overlappingReservations = await Reservation.find({
-      resort: resort.resortName, // Use resort name as stored in reservation
-      status: { $in: ['reserved', 'pre-reserved', 'confirmed'] },
       $or: [
-        {
-          // Reservation starts during our stay
-          checkIn: { $gte: checkInDate, $lt: checkOutDate }
-        },
-        {
-          // Reservation ends during our stay
-          checkOut: { $gt: checkInDate, $lte: checkOutDate }
-        },
-        {
-          // Reservation completely covers our stay
-          checkIn: { $lte: checkInDate },
-          checkOut: { $gte: checkOutDate }
-        }
-      ]
+        { resort: resort._id.toString() }, // Match by resort ObjectId
+        { resort: resort.resortName }, // Match by resort name (legacy)
+        { resort: resort._id } // Match by resort ObjectId (without toString)
+      ],
+      status: { $in: ['reserved', 'pre-reserved', 'confirmed'] },
+      // Date overlap logic: checkIn < our checkOut AND checkOut > our checkIn
+      checkIn: { $lt: checkOutDate },
+      checkOut: { $gt: checkInDate }
     })
     
-    // Get list of reserved room IDs
-    const reservedRoomIds = new Set(
-      overlappingReservations.map(reservation => reservation.room).filter(Boolean)
-    )
+    console.log(`Found ${overlappingReservations.length} overlapping reservations for dates ${checkInDate.toISOString()} to ${checkOutDate.toISOString()}`)
     
-    // Filter available rooms
+    // Build a Set of all reserved room IDs from overlapping reservations
+    const reservedRoomIds = new Set()
+    overlappingReservations.forEach(reservation => {
+      // reservation.rooms is an array of room IDs
+      if (Array.isArray(reservation.rooms)) {
+        reservation.rooms.forEach(roomId => {
+          reservedRoomIds.add(roomId.toString())
+        })
+      }
+    })
+    
+    console.log(`Reserved room IDs:`, Array.from(reservedRoomIds))
+    
+    // Filter available rooms - exclude reserved ones
     const availableRooms = allRooms.filter(room => {
       const roomId = room._id.toString()
       const roomIdAlt = room.roomId
-      const roomName = room.roomName
       
-      // Check if room is reserved by ID, roomId, or roomName
-      const isReserved = overlappingReservations.some(reservation => 
-        reservation.room === roomId || 
-        reservation.room === roomIdAlt ||
-        reservation.room === roomName
-      )
+      // Check if this room is in any overlapping reservation
+      const isReserved = reservedRoomIds.has(roomId) || 
+                        reservedRoomIds.has(roomIdAlt) ||
+                        reservedRoomIds.has(room.roomName)
       
       return !isReserved && room.status === 'available'
     })

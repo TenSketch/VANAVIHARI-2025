@@ -484,18 +484,16 @@ export class RoomsComponent implements OnInit {
   }
 
   calculateDurationOfStay() {
-    const checkinDate = new Date(this.checkinDate);
-    const checkoutDate = new Date(this.checkoutDate);
-
-    // Set hours, minutes, seconds, and milliseconds to zero for both dates
-    checkinDate.setHours(0, 0, 0, 0);
-    checkoutDate.setHours(0, 0, 0, 0);
+    if (!this.checkinDate || !this.checkoutDate) return 0;
+    
+    const checkinDate = this.normalizeDate(this.checkinDate);
+    const checkoutDate = this.normalizeDate(this.checkoutDate);
 
     // Calculate the difference in milliseconds
     const timeDifferenceMs = checkoutDate.getTime() - checkinDate.getTime();
 
-    // Convert milliseconds to days and round up to the nearest whole number
-    const durationDays = Math.ceil(timeDifferenceMs / (1000 * 60 * 60 * 24));
+    // Convert milliseconds to days (should be exact whole number after normalization)
+    const durationDays = Math.max(1, Math.round(timeDifferenceMs / (1000 * 60 * 60 * 24)));
     return durationDays;
   }
 
@@ -542,11 +540,23 @@ export class RoomsComponent implements OnInit {
 
   formatDateForAPI(date: Date): string {
     if (!date) return '';
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    
+    // Handle both Date objects and date strings
+    const d = typeof date === 'string' ? new Date(date) : date;
+    
+    // Use UTC methods to avoid timezone issues
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    
     return `${year}-${month}-${day}`;
+  }
+
+  // Helper to normalize date to start of day in local timezone
+  normalizeDate(date: Date | string): Date {
+    const d = typeof date === 'string' ? new Date(date) : new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 
   filterByResort(selectResort: string): any[] {
