@@ -50,38 +50,117 @@ export class MyBookingsComponent {
 
     this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
 
+    // Check if user is logged in
+    if (!this.userService.isLoggedIn()) {
+      this.router.navigate(['/sign-in'], {
+        queryParams: { returnUrl: '/my-account/my-bookings' }
+      });
+      return;
+    }
+
     this.showLoader = true;
-    let params = new HttpParams()
-      .set('email', this.userService.getUser())
-      .set('token', this.userService.getUserToken());
+
+    // Use new Node.js API endpoint
+    const headers = {
+      token: this.userService.getUserToken() ?? ''
+    };
+
     this.http
-      .get<any>(this.api_url + '?api_type=booking_history&' + params.toString())
+      .get<any>(`${this.api_url}/api/reservations/my-bookings`, { headers })
       .subscribe({
         next: (response) => {
-          this.bookingData = response.result.details;
-          this.showLoader = false;
-          this.bookingData.forEach((item) => {
-            if (item.pay_trans_id) {
-              this.successData.push(item);
+          if (response.success && response.bookings) {
+            // Transform new API data to match old structure
+            this.bookingData = this.transformBookingData(response.bookings);
+            this.showLoader = false;
+            
+            this.bookingData.forEach((item) => {
+              if (item.pay_trans_id) {
+                this.successData.push(item);
+              }
+            });
+            
+            if (this.bookingData.length == 0) {
+              this.message = 'You have not made any bookings yet';
+              this.noBookings = true;
             }
-          });
-          if (this.bookingData.length == 0) {
-            this.message = 'You have not made any bookings yet';
-            this.noBookings = true;
-          }
 
-          this.bookingData.sort((a, b) => {
-            const dateA = new Date(a.reservation_date);
-            const dateB = new Date(b.reservation_date);
-            return dateB.getTime() - dateA.getTime();
-          });
+            this.bookingData.sort((a, b) => {
+              const dateA = new Date(a.reservation_date);
+              const dateB = new Date(b.reservation_date);
+              return dateB.getTime() - dateA.getTime();
+            });
+          } else {
+            this.noBookings = true;
+            this.showLoader = false;
+            this.message = 'You have not made any bookings yet';
+          }
         },
         error: (err) => {
+          console.error('Error fetching bookings:', err);
           this.noBookings = true;
           this.showLoader = false;
-          this.message = err;
+          this.message = 'Error loading bookings. Please try again later.';
         },
       });
+  }
+
+  // Transform new MongoDB booking data to match old PHP API structure
+  transformBookingData(bookings: any[]): any[] {
+    return bookings.map(booking => {
+      // Get room names - handle both array and null/undefined
+      let roomNames = 'N/A';
+      if (Array.isArray(booking.rooms) && booking.rooms.length > 0) {
+        const names = booking.rooms
+          .map((r: any) => r?.roomName || r?.roomId || r?.roomNumber)
+          .filter((name: any) => name); // Remove null/undefined
+        roomNames = names.length > 0 ? names.join(', ') : 'N/A';
+      }
+      
+      // Get cottage type names - handle both array and null/undefined
+      let cottageNames = 'N/A';
+      if (Array.isArray(booking.cottageTypes) && booking.cottageTypes.length > 0) {
+        const names = booking.cottageTypes
+          .map((c: any) => c?.name)
+          .filter((name: any) => name); // Remove null/undefined
+        cottageNames = names.length > 0 ? names.join(', ') : 'N/A';
+      }
+
+      // Get resort name - handle null/undefined
+      const resortName = booking.resort?.resortName || 'Unknown Resort';
+
+      // Format dates
+      const formatDate = (date: string) => {
+        if (!date) return '';
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      return {
+        booking_id: booking.bookingId,
+        rooms: {
+          name: roomNames,
+          cottage: cottageNames,
+          restort: resortName
+        },
+        checkin: formatDate(booking.checkIn),
+        checkout: formatDate(booking.checkOut),
+        noof_guest: booking.guests || 0,
+        noof_children: booking.children || 0,
+        noof_extra_guest: booking.extraGuests || 0,
+        total_payable_amt: booking.totalPayable || 0,
+        food_preference: booking.rawSource?.foodPreference || '',
+        reservation_date: formatDate(booking.reservationDate),
+        status: booking.status || 'reserved',
+        pay_status: booking.paymentStatus || 'Not Paid',
+        pay_trans_id: booking.rawSource?.transactionId || '',
+        pay_trans_date: booking.rawSource?.transactionDate || '',
+        pay_trans_amt: booking.totalPayable || 0
+      };
+    });
   }
 
   generateCalendar(year: number, month: number): void {
