@@ -82,6 +82,19 @@ interface Reservation {
   extraBedCharges: number;
   totalPayable: number;
   existingGuest: string;
+  // Optional fields that may exist depending on backend
+  reservedFrom?: string;
+  foodsBilled?: string;
+  foodPreference?: string;
+  amountPaid?: number;
+  paymentTransactionId?: string;
+  paymentTransactionDateTime?: string;
+  cancelBookingReason?: string;
+  cancellationMessage?: string;
+  refundRequestedDateTime?: string;
+  refundableAmount?: number;
+  amountRefunded?: number;
+  dateOfRefund?: string;
 }
 
 
@@ -588,102 +601,69 @@ export default function ReservationTable() {
   }, []);
 
   const columns = [
+    // Columns exactly as requested by the user (order and labels preserved)
     {
-      title: "S.No",
+      title: "Sno",
       data: null,
-      render: (_data: any, _type: any, _row: any, meta: any) => {
-        return meta.row + 1 + meta.settings._iDisplayStart;
-      },
+      render: (_data: any, _type: any, _row: any, meta: any) => meta.row + 1 + meta.settings._iDisplayStart,
       orderable: false,
-      searchable: false
+      searchable: false,
     },
     { data: "bookingId", title: "Booking ID" },
-    { data: "fullName", title: "Guest Name" },
+    { data: "fullName", title: "Full Name" },
     { data: "phone", title: "Phone" },
     { data: "email", title: "Email" },
+    {
+      data: null,
+      title: "Address",
+      render: (/*data: any,*/ _type: any, row: Reservation) => {
+        const parts = [row.address1, row.address2, row.city, row.state, row.postalCode, row.country].filter(Boolean);
+        return parts.join(', ') || 'N/A';
+      }
+    },
     { data: "resortName", title: "Resort" },
-    {
-      data: "roomNames",
-      title: "Rooms",
-      render: (data: string[]) => data.join(", ") || 'N/A',
-    },
-    { 
-      data: "checkIn", 
-      title: "Check In",
-      render: (data: string) => formatDateForDisplay(data)
-    },
-    { 
-      data: "checkOut", 
-      title: "Check Out",
-      render: (data: string) => formatDateForDisplay(data)
-    },
-    { data: "noOfDays", title: "Days" },
+    { data: "cottageTypeNames", title: "Cottage types", render: (data: string[]) => (Array.isArray(data) ? data.join(', ') : (data || 'N/A')) },
+    { data: "roomNames", title: "Room Name(s)", render: (data: string[]) => (Array.isArray(data) ? data.join(', ') : (data || 'N/A')) },
+    { data: "numberOfRooms", title: "No. of rooms" },
+    { data: "reservationDate", title: "Reservation Date", render: (d: string) => formatDateForDisplay(d) },
+    { data: "reservedFrom", title: "Reserved From", render: (_d: any, _t: any, row: Reservation) => (row.reservedFrom || row.existingGuest || 'N/A') },
+    { data: "checkIn", title: "Check In", render: (d: string) => formatDateForDisplay(d) },
+    { data: "checkOut", title: "Check Out", render: (d: string) => formatDateForDisplay(d) },
+    { data: "noOfDays", title: "No. of Days" },
+    { data: "guests", title: "Guests" },
+    { data: "extraGuests", title: "Extra Guests" },
+    { data: "children", title: "Children" },
     { data: "totalGuests", title: "Total Guests" },
-    {
-      data: "totalPayable",
-      title: "Total Amount",
-      render: (data: number) => `₹${data}`
-    },
-    { data: "paymentStatus", title: "Payment" },
+    { data: "foodsBilled", title: "Foods Billed", render: (d: any) => d || 'N/A' },
+    { data: "foodPreference", title: "Food Preference", render: (d: any) => d || 'N/A' },
     { data: "status", title: "Status" },
+    { data: "totalPayable", title: "Amount Payable", render: (d: number) => d != null ? `₹${d}` : 'N/A' },
+    { data: "paymentStatus", title: "Payment Status" },
+    { data: "amountPaid", title: "Amount Paid", render: (d: number, _t: any, row: Reservation) => d != null ? `₹${d}` : (row.paymentStatus === 'Paid' ? `₹${row.totalPayable}` : 'N/A') },
+    { data: "paymentTransactionId", title: "Payment Transaction ID", render: (d: any) => d || 'N/A' },
+    { data: "paymentTransactionDateTime", title: "Payment Transaction Date & Time", render: (d: any) => d ? formatDateForDisplay(String(d)) + (String(d).includes('T') ? ' ' + new Date(String(d)).toUTCString().split(' ')[4] : '') : 'N/A' },
+    { data: "cancelBookingReason", title: "Cancel Booking Reason", render: (d: any) => d || 'N/A' },
+    { data: "cancellationMessage", title: "Cancellation Message", render: (d: any) => d || 'N/A' },
+    { data: "refundRequestedDateTime", title: "Refund Requested Date & Time", render: (d: any) => d ? formatDateForDisplay(String(d)) : 'N/A' },
+    { data: "refundableAmount", title: "Refundable Amount", render: (d: number) => d != null ? `₹${d}` : 'N/A' },
+    { data: "amountRefunded", title: "Amount Refunded", render: (d: number) => d != null ? `₹${d}` : 'N/A' },
+    { data: "dateOfRefund", title: "Date of Refund", render: (d: any) => d ? formatDateForDisplay(String(d)) : 'N/A' },
+    // Actions column remains but is not part of the requested fields; keep it hidden by default in case admins need it
     {
       data: null,
       title: "Actions",
+      visible: false,
       orderable: false,
       searchable: false,
       render: (_data: any, _type: any, row: Reservation) => {
         return `
           <div style="display: flex; gap: 8px; align-items: center;">
-            ${perms.canEdit ? `
-            <button 
-              class="edit-btn" 
-              data-id="${row.id}" 
-              title="Edit Reservation"
-              style="
-                background: #3b82f6;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              "
-              onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
-              onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
-            >
-              Edit
-            </button>
-            ` : ''}
-            ${perms.canDisable ? `
-            <button 
-              class="delete-btn" 
-              data-id="${row.id}" 
-              title="Delete Reservation"
-              style="
-                background: #dc2626;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              "
-              onmouseover="this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
-              onmouseout="this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
-            >
-              Delete
-            </button>
-            ` : ''}
+            ${perms.canEdit ? `<button class="edit-btn" data-id="${row.id}" title="Edit" style="background:#3b82f6;color:white;border:none;padding:6px 10px;border-radius:6px;">Edit</button>` : ''}
+            ${perms.canDisable ? `<button class="delete-btn" data-id="${row.id}" title="Delete" style="background:#dc2626;color:white;border:none;padding:6px 10px;border-radius:6px;">Delete</button>` : ''}
           </div>
         `;
-      },
-    },
+      }
+    }
   ];
 
 
