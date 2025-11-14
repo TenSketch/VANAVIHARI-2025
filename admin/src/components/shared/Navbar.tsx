@@ -1,5 +1,5 @@
 
-import { Menu, User, Home, LogOut, Building2, Tent, MapPin, Check, Globe, Users, FileText } from "lucide-react";
+import { Menu, User, Home, LogOut, Building2, Tent, MapPin, Check, Globe, Users, FileText, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router";
 import Breadcrumb from "./Breadcrumb";
@@ -128,6 +128,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
                 <Button variant="outline" className="flex items-center space-x-2 h-9">
                   {currentViewOption && <currentViewOption.icon className="h-4 w-4" />}
                   <span className="hidden sm:inline">{currentViewOption?.label}</span>
+                  <ChevronDown className="h-4 w-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -154,6 +155,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
               <Button variant="ghost" className="flex items-center space-x-2">
                 <Globe className="h-5 w-5" />
                 <span className="hidden md:inline">Global</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -179,6 +181,7 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
                   <User className="h-4 w-4" />
                 </div>
                 <span className="hidden lg:block">Account</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">

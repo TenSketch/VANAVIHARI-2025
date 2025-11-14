@@ -283,11 +283,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                         <item.icon className="h-5 w-5" />
                         <span>{item.label}</span>
                       </div>
-                      {isOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
+                      <div className="ml-auto">
+                        {isOpen ? (
+                          <ChevronDown className="h-5 w-5 text-white font-bold" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-white font-bold" />
+                        )}
+                      </div>
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-1 mt-1">

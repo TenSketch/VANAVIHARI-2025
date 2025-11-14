@@ -48,6 +48,8 @@ const AddRoomAmenitiesPage = lazy(
 const AddTouristSpot = lazy(() => import("./pages/TouristSpot/AddTouristSpot"));
 const AllTouristSpot = lazy(() => import("./pages/TouristSpot/AllTouristSpot"));
 
+const AllBookings = lazy(() => import("./pages/tentbookings/AllBookings"));
+
 function App() {
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -80,6 +82,7 @@ function App() {
           <Route path="tenttypes/all" element={<AllTentTypes />} />
           <Route path="tentspots/add" element={<AddTentSpots />} />
           <Route path="tentspots/all" element={<AllTentSpots />} />
+          <Route path="tent/bookings" element={<AllBookings/>} />
         </Route>
       </Routes>
     </Suspense>
