@@ -1,175 +1,314 @@
-import { useState } from "react";
+import { useState} from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const AddTentSpots = () => {
-  const defaultForm = {
-    spotName: "Vanavihari",
-    location: "Maredumilli",
-    contactPerson: "Mrs. Anusha",
+// Interfaces
+interface TentSpotFormData {
+  spotName: string;
+  location: string;
+  contactPerson: string;
+  contactNo: string;
+  email: string;
+  rules: string;
+  accommodation: string;
+  foodAvailable: string;
+  kidsStay: string;
+  womenStay: string;
+  checkIn: string;
+  checkOut: string;
+}
+
+const AddSpots = () => {
+  const [formData, setFormData] = useState<TentSpotFormData>({
+    spotName: "",
+    location: "",
+    contactPerson: "",
     contactNo: "",
     email: "",
-    rules:
-      "Smoking & consumption of alcohol is strictly prohibited in and around accommodation.\nPlease carry valid identity proof of all members.\nTent damage will be fined\n* No extra persons allowed",
-    accommodation: "Only men",
-    foodAvailable: "No",
-    kidsStay: "No",
-    womenStay: "No",
-    checkIn: "10:00 AM",
-    checkOut: "9:00 AM",
+    rules: "",
+    accommodation: "",
+    foodAvailable: "",
+    kidsStay: "",
+    womenStay: "",
+    checkIn: "",
+    checkOut: "",
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const [form, setForm] = useState(defaultForm);
-  const [added, setAdded] = useState<Array<any>>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) return;
 
-  const handleAdd = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setIsSaving(true);
-    setError(null);
-    setSuccess(null);
+    // Basic validation (keep same required fields as the UI)
+    if (!formData.spotName || !formData.location || !formData.contactPerson || !formData.contactNo || !formData.email) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const submitData = {
+      id: `spot-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      ...formData,
+      createdAt: new Date().toISOString(),
+    };
+
     try {
-      const payload = { ...form };
-      const res = await fetch(`${apiBase}/api/tent-spots/add`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Failed to save (status ${res.status})`);
-      }
-      const data = await res.json();
-      const saved = data.tentSpot;
-      setAdded((s) => [...s, saved]);
-      setSuccess('Tent spot saved')
-      setForm(defaultForm);
-    } catch (err: any) {
-      console.error('Save tent spot failed', err);
-      setError(err.message || 'Failed to save tent spot');
+      const existing = JSON.parse(localStorage.getItem('tentSpotsDemo') || '[]');
+      existing.push(submitData);
+      localStorage.setItem('tentSpotsDemo', JSON.stringify(existing));
+      console.log('Saved tent spot (frontend-only):', submitData);
+      alert('Tent spot saved locally (frontend-only).');
+      handleReset();
+    } catch (err) {
+      console.error('Failed to save locally', err);
+      alert('Failed to save locally: ' + String(err));
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleReset = () => {
-    setForm(defaultForm);
-    setAdded([]);
+    setFormData({
+      spotName: "",
+      location: "",
+      contactPerson: "",
+      contactNo: "",
+      email: "",
+      rules: "",
+      accommodation: "",
+      foodAvailable: "",
+      kidsStay: "",
+      womenStay: "",
+      checkIn: "",
+      checkOut: "",
+    });
   };
 
   return (
     <div className="min-h-screen p-8">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-slate-800 mb-2">Add Tent Spot</h1>
-          <p className="text-slate-600">Add tent spot details</p>
+          <h1 className="text-2xl font-semibold text-slate-800 mb-2">Add New Tent Spot</h1>
+          <p className="text-slate-600">Fill in the details to add a tent spot</p>
         </div>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <Label>Tent Spot name</Label>
-              <Input value={form.spotName} onChange={(e) => setForm((s) => ({ ...s, spotName: e.target.value }))} />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-6">Basic Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="spotName" className="text-sm font-medium text-slate-700">Spot Name <span className="text-red-500">*</span></Label>
+              <Input
+                id="spotName"
+                name="spotName"
+                value={formData.spotName}
+                onChange={handleChange}
+                required
+                placeholder="e.g., Mountain View Tent Area"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
             </div>
-
-            <div>
-              <Label>Location</Label>
-              <Input value={form.location} onChange={(e) => setForm((s) => ({ ...s, location: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Contact person name</Label>
-              <Input value={form.contactPerson} onChange={(e) => setForm((s) => ({ ...s, contactPerson: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Contact no.</Label>
-              <Input value={form.contactNo} onChange={(e) => setForm((s) => ({ ...s, contactNo: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Email</Label>
-              <Input type="email" value={form.email} onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Accommodation for</Label>
-              <div className="flex gap-4 items-center mt-2">
-                <label className="inline-flex items-center">
-                  <input type="radio" name="accom" checked={form.accommodation === "Only men"} onChange={() => setForm((s) => ({ ...s, accommodation: "Only men" }))} />
-                  <span className="ml-2">Only men</span>
-                </label>
-                <label className="inline-flex items-center">
-                  <input type="radio" name="accom" checked={form.accommodation === "Both men and women"} onChange={() => setForm((s) => ({ ...s, accommodation: "Both men and women" }))} />
-                  <span className="ml-2">Both men and women</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <Label>Food availability</Label>
-              <Input value={form.foodAvailable} onChange={(e) => setForm((s) => ({ ...s, foodAvailable: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Kids stay</Label>
-              <Input value={form.kidsStay} onChange={(e) => setForm((s) => ({ ...s, kidsStay: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Women stay</Label>
-              <Input value={form.womenStay} onChange={(e) => setForm((s) => ({ ...s, womenStay: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Checkin time</Label>
-              <Input value={form.checkIn} onChange={(e) => setForm((s) => ({ ...s, checkIn: e.target.value }))} />
-            </div>
-
-            <div>
-              <Label>Check-out time</Label>
-              <Input value={form.checkOut} onChange={(e) => setForm((s) => ({ ...s, checkOut: e.target.value }))} />
+            <div className="space-y-2">
+              <Label htmlFor="location" className="text-sm font-medium text-slate-700">Location <span className="text-red-500">*</span></Label>
+              <Input
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                required
+                placeholder="e.g., Himachal Pradesh"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
             </div>
           </div>
 
-          <div>
-            <Label>Rules</Label>
-            <textarea rows={4} value={form.rules} onChange={(e) => setForm((s) => ({ ...s, rules: e.target.value }))} className="w-full px-3 py-2 border rounded-md bg-slate-50" />
-          </div>
-
-          <div className="flex gap-4 pt-4 max-w-md">
-            <Button type="button" onClick={handleAdd} disabled={isSaving} className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg disabled:opacity-50">{isSaving ? 'Saving...' : 'Add Tent Spot'}</Button>
-            <Button type="button" onClick={handleReset} disabled={isSaving} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg disabled:opacity-50">Reset</Button>
-          </div>
-
-          {success && <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-green-800">{success}</div>}
-          {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-800">{error}</div>}
-
-          {added.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Added Tent Spots</h2>
-              <div className="space-y-3">
-                {added.map((s, i) => (
-                  <div key={i} className="p-3 border rounded bg-white">
-                    <div className="font-medium">{s.spotName} — {s.location}</div>
-                    <div className="text-sm">Contact: {s.contactPerson} | {s.contactNo} | {s.email}</div>
-                    <div className="whitespace-pre-wrap text-sm">Rules: {s.rules}</div>
-                    <div className="text-sm">Accommodation: {s.accommodation}</div>
-                    <div className="text-sm">Food: {s.foodAvailable} • Kids: {s.kidsStay} • Women stay: {s.womenStay}</div>
-                    <div className="text-sm">Check-in: {s.checkIn} • Check-out: {s.checkOut}</div>
-                  </div>
-                ))}
-              </div>
+          {/* Contact Information */}
+          <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-6">Contact Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="contactPerson" className="text-sm font-medium text-slate-700">Contact Person <span className="text-red-500">*</span></Label>
+              <Input
+                id="contactPerson"
+                name="contactPerson"
+                value={formData.contactPerson}
+                onChange={handleChange}
+                required
+                placeholder="e.g., John Doe"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
             </div>
-          )}
+            <div className="space-y-2">
+              <Label htmlFor="contactNo" className="text-sm font-medium text-slate-700">Contact Number <span className="text-red-500">*</span></Label>
+              <Input
+                id="contactNo"
+                name="contactNo"
+                type="tel"
+                value={formData.contactNo}
+                onChange={handleChange}
+                required
+                placeholder="e.g., +91 9876543210"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email <span className="text-red-500">*</span></Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="e.g., contact@tentspot.com"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
+          </div>
+
+          {/* Facilities Information */}
+          <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-6">Facilities & Rules</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="accommodation" className="text-sm font-medium text-slate-700">Accommodation <span className="text-red-500">*</span></Label>
+              <Input
+                id="accommodation"
+                name="accommodation"
+                value={formData.accommodation}
+                onChange={handleChange}
+                required
+                placeholder="e.g., Tents, Sleeping Bags"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="foodAvailable" className="text-sm font-medium text-slate-700">Food Available <span className="text-red-500">*</span></Label>
+              <select
+                id="foodAvailable"
+                name="foodAvailable"
+                value={formData.foodAvailable}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              >
+                <option value="">-- Select Option --</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="On Request">On Request</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kidsStay" className="text-sm font-medium text-slate-700">Kids Stay <span className="text-red-500">*</span></Label>
+              <select
+                id="kidsStay"
+                name="kidsStay"
+                value={formData.kidsStay}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              >
+                <option value="">-- Select Option --</option>
+                <option value="Allowed">Allowed</option>
+                <option value="Not Allowed">Not Allowed</option>
+                <option value="With Supervision">With Supervision</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="womenStay" className="text-sm font-medium text-slate-700">Women Stay <span className="text-red-500">*</span></Label>
+              <select
+                id="womenStay"
+                name="womenStay"
+                value={formData.womenStay}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              >
+                <option value="">-- Select Option --</option>
+                <option value="Allowed">Allowed</option>
+                <option value="Not Allowed">Not Allowed</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="rules" className="text-sm font-medium text-slate-700">Rules & Regulations</Label>
+              <textarea
+                id="rules"
+                name="rules"
+                value={formData.rules}
+                onChange={handleChange}
+                rows={4}
+                placeholder="Enter rules and regulations for the tent spot..."
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50 resize-vertical"
+              />
+            </div>
+          </div>
+
+          {/* Check-in/Check-out Information */}
+          <h3 className="text-xl font-semibold text-slate-800 border-b border-slate-200 pb-3 mb-6">Check-in & Check-out</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="checkIn" className="text-sm font-medium text-slate-700">Check-in Time <span className="text-red-500">*</span></Label>
+              <Input
+                id="checkIn"
+                name="checkIn"
+                type="time"
+                value={formData.checkIn}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="checkOut" className="text-sm font-medium text-slate-700">Check-out Time <span className="text-red-500">*</span></Label>
+              <Input
+                id="checkOut"
+                name="checkOut"
+                type="time"
+                value={formData.checkOut}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-6 border-t border-slate-200">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="px-8 py-3 bg-slate-800 text-white hover:bg-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit'}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleReset}
+              disabled={isSubmitting}
+              className="px-8 py-3 border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Reset
+            </Button>
+          </div>
         </form>
       </div>
     </div>
   );
 };
 
-export default AddTentSpots;
+export default AddSpots;

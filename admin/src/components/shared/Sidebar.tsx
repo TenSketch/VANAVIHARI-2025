@@ -122,8 +122,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Tent,
       viewTypes: ["tent"] as ViewType[],
       children: [
+        { label: "Add Spots", path: "/tentspots/details", icon: Globe },
         { label: "All Spots", path: "/tentspots/all", icon: Globe },
-        { label: "Spot Details", path: "/tentspots/details", icon: Globe },
       ],
     },
     {
@@ -132,8 +132,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Tent,
       viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "All Tent Types", path: "/tenttypes/all", icon: BookOpen },
         { label: "Add Tent Type", path: "/tenttypes/add", icon: Plus },
+        { label: "All Tent Types", path: "/tenttypes/all", icon: BookOpen },
       ],
     },
     // Tent Inventory removed from Tent Management per request
@@ -143,7 +143,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Calendar,
       viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "All Bookings", path: "/tent/bookings", icon: Calendar },
+        { label: "Add Bookings", path: "/tentbookings/addbookings", icon: Plus },
+        { label: "All Bookings", path: "/tentbookings/allbookings", icon: Calendar }
       ],
     },
     {

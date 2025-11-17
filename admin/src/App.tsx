@@ -48,6 +48,9 @@ const AddRoomAmenitiesPage = lazy(
 const AddTouristSpot = lazy(() => import("./pages/TouristSpot/AddTouristSpot"));
 const AllTouristSpot = lazy(() => import("./pages/TouristSpot/AllTouristSpot"));
 
+const AllTentBook = lazy(() => import("./pages/tentBookings/AllTentBookings"));
+const AddTentBook = lazy(() => import("./pages/tentBookings/AddTentBookings"));
+
 function App() {
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -56,6 +59,8 @@ function App() {
         <Route path="/" element={<Navigate to="/auth/login" replace />} />
         <Route path="/*" element={<Layout />}>
           <Route path="dashboard/report" element={<ReportPage />} />
+          <Route path="tent/dashboard" element={<ReportPage />} />
+          <Route path="tourist/dashboard" element={<ReportPage />} />
           <Route path="dailyoccupanyreport/vanavihari" element={<VanaReportPage/>} />
           <Route path="dailyoccupanyreport/junglestar" element={<JunglestarReportPage/>} />
           <Route path="frontdesk/checkin" element={<CheckInPage/>} />
@@ -80,6 +85,11 @@ function App() {
           <Route path="tenttypes/all" element={<AllTentTypes />} />
           <Route path="tentspots/add" element={<AddTentSpots />} />
           <Route path="tentspots/all" element={<AllTentSpots />} />
+          <Route path="tentspots/details" element={<AddTentSpots />} />
+          <Route path="tentbookings/allbookings" element={<AllTentBook />} />
+          <Route path="tentbookings/addbookings" element={<AddTentBook />} />
+
+
         </Route>
       </Routes>
     </Suspense>
