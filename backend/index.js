@@ -22,6 +22,7 @@ connectDB()
 
 //middleware
 app.use(express.json())
+app.use(express.urlencoded({ extended: true })) // Add this for form data
 app.use(cors({
     origin: [process.env.FRONTEND_URL, process.env.ADMIN_URL],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
