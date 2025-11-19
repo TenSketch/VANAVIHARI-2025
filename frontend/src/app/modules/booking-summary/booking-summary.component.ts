@@ -733,12 +733,14 @@ export class BookingSummaryComponent {
     form.method = 'POST';
     form.action = paymentData.formAction;
 
-    // Add hidden fields
+    // Add hidden fields - BillDesk requires: mercid, bdorderid, rdata
     const fields = {
+      mercid: paymentData.mercid,
       bdorderid: paymentData.bdorderid,
-      merchantid: paymentData.merchantid,
       rdata: paymentData.rdata
     };
+
+    console.log('Payment form fields:', fields);
 
     Object.keys(fields).forEach((key) => {
       const input = document.createElement('input');
@@ -749,7 +751,7 @@ export class BookingSummaryComponent {
     });
 
     document.body.appendChild(form);
-    console.log('Submitting payment form to BillDesk...');
+    console.log('Submitting payment form to BillDesk:', paymentData.formAction);
     form.submit();
   }
 

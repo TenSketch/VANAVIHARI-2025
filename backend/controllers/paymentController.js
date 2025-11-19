@@ -127,8 +127,8 @@ export const initiatePayment = async (req, res) => {
         success: true,
         paymentData: {
           bdorderid: billdeskResponse.bdorderid,
-          merchantid: billdeskResponse.merchantid,
-          rdata: billdeskResponse.links?.[1]?.parameters?.rdata || signed,
+          mercid: billdeskResponse.mercid,
+          rdata: billdeskResponse.links?.[1]?.parameters?.rdata,
           formAction: billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk'
         },
         debug: debugInfo
