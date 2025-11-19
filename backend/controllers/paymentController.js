@@ -190,16 +190,22 @@ export const handlePaymentCallback = async (req, res) => {
     console.log("Request Params:", req.params);
     console.log("Raw Body:", req.rawBody);
 
-    // BillDesk sends encrypted response in 'msg' parameter
+    // BillDesk sends encrypted response in different field names
     // Try multiple sources
-    const encryptedResponse = req.body?.msg || req.query?.msg || req.body?.response || req.query?.response;
+    const encryptedResponse = req.body?.transaction_response 
+      || req.body?.msg 
+      || req.query?.msg 
+      || req.body?.response 
+      || req.query?.response;
 
     if (!encryptedResponse) {
-      console.error("No encrypted response received");
+      console.error("❌ No encrypted response received");
       console.error("Available keys in body:", req.body ? Object.keys(req.body) : 'body is undefined');
       console.error("Available keys in query:", req.query ? Object.keys(req.query) : 'query is undefined');
       return res.redirect(`${process.env.FRONTEND_URL}/booking-failed?error=no_response`);
     }
+
+    console.log("✅ Found encrypted response in:", req.body?.transaction_response ? 'transaction_response' : 'msg');
 
     const encKey = process.env.BILLDESK_ENCRYPTION_KEY;
     const signKey = process.env.BILLDESK_SIGNING_KEY;
