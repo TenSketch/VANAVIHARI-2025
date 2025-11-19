@@ -124,13 +124,37 @@ export const initiatePayment = async (req, res) => {
 
       // Return data for frontend to submit form
       // Note: Form uses 'merchantid' but BillDesk response has 'mercid'
+      const merchantId = billdeskResponse.mercid || billdeskResponse.links?.[1]?.parameters?.mercid || process.env.BILLDESK_MERCID;
+      const bdorderid = billdeskResponse.bdorderid;
+      const rdata = billdeskResponse.links?.[1]?.parameters?.rdata;
+      const formAction = billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
+      
+      console.log('\n=== Payment Data for Frontend ===');
+      console.log('merchantid:', merchantId);
+      console.log('bdorderid:', bdorderid);
+      console.log('rdata:', rdata?.substring(0, 50) + '...');
+      console.log('formAction:', formAction);
+      console.log('================================\n');
+      
+      // Validate all required fields are present
+      if (!merchantId || !bdorderid || !rdata) {
+        console.error('Missing required payment fields!');
+        console.error('merchantId:', merchantId);
+        console.error('bdorderid:', bdorderid);
+        console.error('rdata:', rdata ? 'present' : 'MISSING');
+        return res.status(500).json({
+          success: false,
+          error: 'Missing required payment fields from BillDesk response'
+        });
+      }
+      
       return res.status(200).json({
         success: true,
         paymentData: {
-          bdorderid: billdeskResponse.bdorderid,
-          merchantid: billdeskResponse.mercid, // Form expects 'merchantid'
-          rdata: billdeskResponse.links?.[1]?.parameters?.rdata,
-          formAction: billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk'
+          merchantid: merchantId,
+          bdorderid: bdorderid,
+          rdata: rdata,
+          formAction: formAction
         },
         debug: debugInfo
       });
