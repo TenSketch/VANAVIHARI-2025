@@ -4,6 +4,7 @@ import CottageType from '../models/cottageTypeModel.js'
 import Room from '../models/roomModel.js'
 import mongoose from 'mongoose'
 
+// admin only
 export const createReservation = async (req, res) => {
   try {
     const payload = { ...req.body }
@@ -151,7 +152,7 @@ export const getNextSerial = async (req, res) => {
   }
 }
 
-// User booking endpoint (requires user authentication)
+// User booking endpoint (requires user authentication) - creates pre-reservation
 export const createPublicBooking = async (req, res) => {
   try {
     const payload = { ...req.body }
@@ -177,6 +178,13 @@ export const createPublicBooking = async (req, res) => {
     if (payload.roomPrice) payload.roomPrice = Number(String(payload.roomPrice).replace(/[₹,\s]/g, ''))
     if (payload.extraBedCharges) payload.extraBedCharges = Number(String(payload.extraBedCharges).replace(/[₹,\s]/g, ''))
     if (payload.totalPayable) payload.totalPayable = Number(String(payload.totalPayable).replace(/[₹,\s]/g, ''))
+
+    // Set pre-reserved status and expiry (15 minutes)
+    payload.status = 'pre-reserved'
+    payload.paymentStatus = 'unpaid'
+    const expiryTime = new Date()
+    expiryTime.setMinutes(expiryTime.getMinutes() + 15)
+    payload.expiresAt = expiryTime
 
     // Auto-generate booking ID if not provided
     if (!payload.bookingId) {
