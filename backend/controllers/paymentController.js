@@ -45,7 +45,7 @@ export const initiatePayment = async (req, res) => {
       amount: reservation.totalPayable.toFixed(2),
       order_date: orderDate,
       currency: "356",
-      ru: process.env.BILLDESK_RETURN_URL || `${process.env.API_URL}/api/payment/callback`,
+      ru: process.env.BILLDESK_RETURN_URL,
       additional_info: {
         additional_info1: reservation.fullName || '',
         additional_info2: reservation.phone || '',
