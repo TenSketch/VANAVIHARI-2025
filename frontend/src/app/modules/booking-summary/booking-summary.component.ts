@@ -728,31 +728,24 @@ export class BookingSummaryComponent {
   }
 
   submitPaymentForm(paymentData: any) {
-    // Create form and auto-submit to BillDesk
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = paymentData.formAction;
-
-    // Add hidden fields - BillDesk requires: mercid, bdorderid, rdata
-    const fields = {
-      mercid: paymentData.mercid,
-      bdorderid: paymentData.bdorderid,
-      rdata: paymentData.rdata
+    // Prepare payment data for redirect page
+    const paymentRedirectData = {
+      action: paymentData.formAction,
+      parameters: {
+        merchantid: paymentData.merchantid,
+        bdorderid: paymentData.bdorderid,
+        rdata: paymentData.rdata
+      }
     };
 
-    console.log('Payment form fields:', fields);
+    console.log('Redirecting to payment page with data:', paymentRedirectData);
 
-    Object.keys(fields).forEach((key) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = (fields as any)[key];
-      form.appendChild(input);
-    });
-
-    document.body.appendChild(form);
-    console.log('Submitting payment form to BillDesk:', paymentData.formAction);
-    form.submit();
+    // Encode data and redirect to payment-redirect.html
+    const encodedData = encodeURIComponent(JSON.stringify(paymentRedirectData));
+    const redirectUrl = `/payment-redirect.html?data=${encodedData}`;
+    
+    // Redirect to payment redirect page
+    window.location.href = redirectUrl;
   }
 
   //catch logs

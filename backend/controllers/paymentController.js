@@ -123,11 +123,12 @@ export const initiatePayment = async (req, res) => {
       );
 
       // Return data for frontend to submit form
+      // Note: Form uses 'merchantid' but BillDesk response has 'mercid'
       return res.status(200).json({
         success: true,
         paymentData: {
           bdorderid: billdeskResponse.bdorderid,
-          mercid: billdeskResponse.mercid,
+          merchantid: billdeskResponse.mercid, // Form expects 'merchantid'
           rdata: billdeskResponse.links?.[1]?.parameters?.rdata,
           formAction: billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk'
         },

@@ -58,10 +58,11 @@
 - [ ] Add logging to file/external service
 
 ### Frontend - High Priority
+- [x] Create payment redirect page with loading screen
 - [ ] Create/update booking-pending page
 - [ ] Create/update booking-failed page
 - [ ] Add better error messages
-- [ ] Add loading states during payment
+- [x] Add loading states during payment (redirect page)
 - [ ] Add payment retry UI (if needed)
 
 ### Frontend - Medium Priority
