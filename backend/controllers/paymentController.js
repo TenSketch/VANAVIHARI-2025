@@ -284,13 +284,13 @@ export const handlePaymentCallback = async (req, res) => {
       // TODO: Send email notification placeholder
       console.log(`[EMAIL PLACEHOLDER] Send ${paymentTransaction.status} email to ${reservation.email}`);
 
-      // Redirect based on status
+      // Redirect based on status (Angular uses hash routing)
       if (paymentTransaction.status === 'success') {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/#/booking-status?bookingId=${bookingId}`);
       } else if (paymentTransaction.status === 'pending') {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}&status=pending`);
+        return res.redirect(`${process.env.FRONTEND_URL}/#/booking-status?bookingId=${bookingId}&status=pending`);
       } else {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}&status=failed&error=${transaction_error_desc || 'payment_failed'}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/#/booking-status?bookingId=${bookingId}&status=failed&error=${transaction_error_desc || 'payment_failed'}`);
       }
     } else {
       console.error("Payment transaction not found");
