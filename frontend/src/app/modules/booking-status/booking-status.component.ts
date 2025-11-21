@@ -108,7 +108,11 @@ export class BookingStatusComponent {
               })) || [{ room_name: 'N/A', cottage_type: 'N/A' }];
 
               // Get transaction ID from rawSource (stored during payment callback)
-              const transactionId = booking.rawSource?.transactionId || booking.rawSource?.bdOrderId || 'N/A';
+              // Fallback to paymentTransactionId if not in rawSource (for old bookings)
+              const transactionId = booking.rawSource?.transactionId 
+                || booking.rawSource?.bankRefNo 
+                || booking.paymentTransactionId 
+                || booking.bookingId;
 
               this.reservationDetails = {
                 guestName: booking.fullName,
