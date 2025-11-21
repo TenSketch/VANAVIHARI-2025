@@ -258,6 +258,8 @@ export const handlePaymentCallback = async (req, res) => {
         reservation.rawSource.transactionId = transactionid;
         reservation.rawSource.bankRefNo = decryptedResponse.bank_ref_no;
         reservation.rawSource.authCode = decryptedResponse.authcode;
+        // Mark rawSource as modified for Mongoose to save it
+        reservation.markModified('rawSource');
       } else if (auth_status === '0399') {
         // Failed
         paymentTransaction.status = 'failed';
