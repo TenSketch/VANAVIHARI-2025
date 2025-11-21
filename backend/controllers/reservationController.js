@@ -3,6 +3,19 @@ import Resort from '../models/resortModel.js'
 import CottageType from '../models/cottageTypeModel.js'
 import Room from '../models/roomModel.js'
 import mongoose from 'mongoose'
+import transporter from '../config/nodemailer.js'
+
+
+function sendMail({ to, subject, html }) {
+  console.log('SendMail function called with:', { to, subject: subject.substring(0, 50) + '...' });
+  return transporter.sendMail({
+    from: process.env.SENDER_EMAIL,
+    to,
+    subject,
+    html
+  })
+}
+
 
 // admin only
 export const createReservation = async (req, res) => {

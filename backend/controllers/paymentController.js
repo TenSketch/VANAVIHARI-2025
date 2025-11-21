@@ -286,11 +286,11 @@ export const handlePaymentCallback = async (req, res) => {
 
       // Redirect based on status
       if (paymentTransaction.status === 'success') {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-successfull?bookingId=${bookingId}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}`);
       } else if (paymentTransaction.status === 'pending') {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-pending?bookingId=${bookingId}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}&status=pending`);
       } else {
-        return res.redirect(`${process.env.FRONTEND_URL}/booking-failed?bookingId=${bookingId}&error=${transaction_error_desc || 'payment_failed'}`);
+        return res.redirect(`${process.env.FRONTEND_URL}/booking-status?bookingId=${bookingId}&status=failed&error=${transaction_error_desc || 'payment_failed'}`);
       }
     } else {
       console.error("Payment transaction not found");

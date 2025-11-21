@@ -62,107 +62,79 @@ export class BookingStatusComponent {
     this.showLoader = true;
 
     this.route.queryParams.subscribe((params) => {
-      this.bookingId = params['booking_id'];
+      // Support both 'booking_id' and 'bookingId' parameters
+      this.bookingId = params['booking_id'] || params['bookingId'];
     });
 
-    const params = new HttpParams().set('booking_id', this.bookingId ?? '');
+    if (!this.bookingId) {
+      this.showLoader = false;
+      this.bookingStatus = 'failed';
+      return;
+    }
+
+    // Fetch reservation details from new Node.js backend
     this.http
-      .get<any>(this.api_url + '?api_type=booking_detail', { params })
+      .get<any>(`${this.api_url}/api/reservations/my-bookings`, {
+        headers: { token: this.authService.getAccessToken() ?? '' }
+      })
       .subscribe({
         next: (response) => {
           this.showLoader = false;
-          if (response.result.payment_transaction_id == '') {
-            this.bookingStatus = 'failed';
-            let input_str = localStorage.getItem('input_str');
-            let username = localStorage.getItem('userfullname');
-            if (input_str && username) {
-              let modifiedString = input_str.replace(/\|/g, 'dollar');
+          
+          if (response.success && response.bookings) {
+            // Find the booking with matching bookingId
+            const booking = response.bookings.find((b: any) => b.bookingId === this.bookingId);
+            
+            if (!booking) {
+              this.bookingStatus = 'failed';
+              return;
+            }
 
-              this.logMessage(    
-                response.result.booking_id,
-                username,
-                'request',
-                modifiedString
-              );
+            // Check payment status
+            if (booking.paymentStatus === 'paid' && booking.status === 'reserved') {
+              this.bookingStatus = 'success';
+              
+              setTimeout(() => {
+                this.authService.clearBookingRooms(this.bookingTypeResort);
+              }, 3000);
+
+              // Get resort name
+              const resortName = booking.resort?.resortName || booking.rawSource?.resortName || 'Resort';
+              
+              // Format room names
+              const roomNames = booking.rooms?.map((room: any) => room.roomName || room.roomNumber).join(', ') || 'N/A';
+
+              this.reservationDetails = {
+                guestName: booking.fullName,
+                resortName: resortName,
+                transactionId: booking.paymentTransactionId || 'N/A',
+                resortLocation: resortName,
+                bookingId: booking.bookingId,
+                checkInDate: this.formatDate(booking.checkIn),
+                checkOutDate: this.formatDate(booking.checkOut),
+                amount: `INR ${booking.totalPayable?.toFixed(2) || '0.00'}`,
+                upiId: 'QR917382151617-5587@unionbankofindia',
+                qrCodeUrl: '1711639164121_qr2.pdf',
+                contactPerson: 'Mr. Veerababu',
+                contactNumber: '+919494151617',
+                contactEmail: 'info@vanavihari.com',
+                guestEmail: booking.email,
+                rooms: [{ room_name: roomNames }], // Format for template
+                totalGuest: booking.guests || 0,
+                totalExtraGuests: booking.extraGuests || 0,
+                totalChildren: booking.children || 0,
+                stayDuration: this.durationOfStay(booking.checkIn, booking.checkOut),
+                email: booking.email,
+              };
+            } else if (booking.paymentStatus === 'pending') {
+              this.bookingStatus = 'pending';
+            } else {
+              this.bookingStatus = 'failed';
             }
           } else {
-            let input_str = localStorage.getItem('input_str');
-            let username = localStorage.getItem('userfullname');
-
-            if (input_str && username) {
-              let modifiedString = input_str.replace(/\|/g, 'dollar');
-
-              this.logMessage(
-                response.result.booking_id,
-                username,
-                'request',
-                modifiedString
-              );
-            }
-            this.bookingStatus = 'success';
-          }
-          if (response.code == 3000 && response.result.status == 'success') {
-            this.showLoader = false;
-
-            setTimeout(() => {
-              this.authService.clearBookingRooms(this.bookingTypeResort);
-            }, 3000);
-            this.reservationDetails = {
-              guestName: response.result.guest_name,
-              resortName: response.result.resort,
-              transactionId: response.result.payment_transaction_id ?? null,
-              resortLocation: 'Jungle Star, Valamuru',
-              bookingId: response.result.booking_id,
-              checkInDate: response.result.checkin,
-              checkOutDate: response.result.checkout,
-              amount: response.result.payment_transaction_amt,
-              upiId: 'QR917382151617-5587@unionbankofindia',
-              qrCodeUrl: '1711639164121_qr2.pdf',
-              contactPerson: 'Mr. Veerababu',
-              contactNumber: '+919494151617',
-              contactEmail: 'info@vanavihari.com',
-              guestEmail: response.result.email,
-              rooms: response.result.rooms,
-              totalGuest: response.result.total_guest,
-              totalExtraGuests: response.result.total_extra_guest,
-              totalChildren: response.result.total_children,
-              stayDuration: this.durationOfStay(
-                response.result.checkin,
-                response.result.checkout
-              ),
-              email: response.result.email,
-            };
-
-            // this.reservationDetails = {
-            //   guestName: response.result.name,
-            //   resortName: this.bookingId,
-            //   resortLocation: 'Jungle Star, Valamuru',
-            //   bookingId: 'BJ2404971',
-            //   checkInDate: this.authService.getSearchData('checkin'),
-            //   checkOutDate: this.authService.getSearchData('checkout'),
-            //   amount: 'INR 11000',
-            //   upiId: 'QR917382151617-5587@unionbankofindia',
-            //   qrCodeUrl: '1711639164121_qr2.pdf',
-            //   contactPerson: 'Mr. Veerababu',
-            //   contactNumber: '+919494151617',
-            //   contactEmail: 'info@vanavihari.com',
-            //   guestEmail:response.result.email
-
-            // };
-          } else if (response.code == 3000) {
-            this.showLoader = false;
-
             this.bookingStatus = 'failed';
-            // alert('Login Error!');
             setTimeout(() => {
               this.authService.clearBookingRooms(this.bookingTypeResort);
-              // this.router.navigate(['/home']);
-            }, 10 * 1000);
-          } else {
-            // alert('Login Error!');
-            setTimeout(() => {
-              this.authService.clearBookingRooms(this.bookingTypeResort);
-              // this.router.navigate(['/home']);
             }, 10 * 1000);
           }
         },
@@ -288,5 +260,15 @@ export class BookingStatusComponent {
     // Convert milliseconds to days and round up to the nearest whole number
     const durationDays = Math.ceil(timeDifferenceMs / (1000 * 60 * 60 * 24));
     return durationDays;
+  }
+
+  formatDate(dateString: string): string {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
   }
 }
