@@ -256,7 +256,8 @@ export const handlePaymentCallback = async (req, res) => {
         // Store transaction ID in rawSource for easy access
         if (!reservation.rawSource) reservation.rawSource = {};
         reservation.rawSource.transactionId = transactionid;
-        reservation.rawSource.bdOrderId = bdorderid;
+        reservation.rawSource.bankRefNo = decryptedResponse.bank_ref_no;
+        reservation.rawSource.authCode = decryptedResponse.authcode;
       } else if (auth_status === '0399') {
         // Failed
         paymentTransaction.status = 'failed';
