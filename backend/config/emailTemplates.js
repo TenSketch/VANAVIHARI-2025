@@ -338,11 +338,11 @@ export const RESERVATION_SUCCESS_EMAIL_ADMIN_TEMPLATE =`
         </tr>
         <tr>
           <td style="font-weight: bold;">Transaction ID</td>
-          <td>{{Transaction_Id}}</td>
+          <td>{{Transaction_ID}}</td>
         </tr>
         <tr>
           <td style="font-weight: bold;">Amount Paid On</td>
-          <td>{{Transaction_Date}}</td>
+          <td>{{Payment_Date}}</td>
         </tr>
         <tr>
           <td style="font-weight: bold;">Booking Status</td>
