@@ -253,12 +253,19 @@ export const handlePaymentCallback = async (req, res) => {
         reservation.status = 'reserved';
         reservation.paymentStatus = 'paid';
         reservation.expiresAt = null; // Clear expiry
+        // Store transaction ID in rawSource for easy access
+        if (!reservation.rawSource) reservation.rawSource = {};
+        reservation.rawSource.transactionId = transactionid;
+        reservation.rawSource.bdOrderId = bdorderid;
       } else if (auth_status === '0399') {
         // Failed
         paymentTransaction.status = 'failed';
         paymentTransaction.errorMessage = transaction_error_desc;
         reservation.status = 'cancelled';
         reservation.paymentStatus = 'failed';
+        // Store error info
+        if (!reservation.rawSource) reservation.rawSource = {};
+        reservation.rawSource.paymentError = transaction_error_desc;
       } else if (auth_status === '0002') {
         // Pending
         paymentTransaction.status = 'pending';

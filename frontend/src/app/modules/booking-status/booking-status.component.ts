@@ -101,13 +101,19 @@ export class BookingStatusComponent {
               // Get resort name
               const resortName = booking.resort?.resortName || booking.rawSource?.resortName || 'Resort';
               
-              // Format room names
-              const roomNames = booking.rooms?.map((room: any) => room.roomName || room.roomNumber).join(', ') || 'N/A';
+              // Format rooms array with proper structure
+              const roomsArray = booking.rooms?.map((room: any) => ({
+                room_name: room.roomName || room.roomNumber || 'Room',
+                cottage_type: room.cottageType?.name || 'Standard'
+              })) || [{ room_name: 'N/A', cottage_type: 'N/A' }];
+
+              // Get transaction ID from rawSource (stored during payment callback)
+              const transactionId = booking.rawSource?.transactionId || booking.rawSource?.bdOrderId || 'N/A';
 
               this.reservationDetails = {
                 guestName: booking.fullName,
                 resortName: resortName,
-                transactionId: booking.paymentTransactionId || 'N/A',
+                transactionId: transactionId,
                 resortLocation: resortName,
                 bookingId: booking.bookingId,
                 checkInDate: this.formatDate(booking.checkIn),
@@ -119,7 +125,7 @@ export class BookingStatusComponent {
                 contactNumber: '+919494151617',
                 contactEmail: 'info@vanavihari.com',
                 guestEmail: booking.email,
-                rooms: [{ room_name: roomNames }], // Format for template
+                rooms: roomsArray,
                 totalGuest: booking.guests || 0,
                 totalExtraGuests: booking.extraGuests || 0,
                 totalChildren: booking.children || 0,
