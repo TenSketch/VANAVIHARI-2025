@@ -11,6 +11,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import { useEffect, useRef, useState } from "react";
 import { usePermissions } from '@/lib/AdminProvider'
+import { Download } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -114,6 +115,56 @@ export default function AllTentSpotsTable() {
 
   useEffect(()=>{ tentSpotsRef.current = tentSpots }, [tentSpots])
   useEffect(()=>{ permsRef.current = perms }, [perms])
+
+  const exportToExcel = () => {
+    const headers = [
+      "S.No",
+      "Tent Spot Name",
+      "Location & Map",
+      "Contact Person",
+      "Contact No.",
+      "Email",
+      "Rules",
+      "Accommodation (Gender)",
+      "Food",
+      "Kids Stay",
+      "Women Stay",
+      "Check-in Time",
+      "Check-out Time",
+      "Status"
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...tentSpots.map((spot) => {
+        return [
+          spot.sno,
+          `"${spot.spotName.replace(/"/g, '""')}"`,
+          `"${spot.location.replace(/"/g, '""')}"`,
+          `"${spot.contactPerson.replace(/"/g, '""')}"`,
+          `"${spot.contactNo}"`,
+          `"${spot.email}"`,
+          `"${spot.rules.replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          `"${spot.accommodation.replace(/"/g, '""')}"`,
+          `"${spot.foodAvailable.replace(/"/g, '""')}"`,
+          `"${spot.kidsStay.replace(/"/g, '""')}"`,
+          `"${spot.womenStay.replace(/"/g, '""')}"`,
+          `"${spot.checkIn}"`,
+          `"${spot.checkOut}"`,
+          `"${spot.isActive ? 'Active' : 'Inactive'}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Tent_Spots_Records.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const openForView = (spot: TentSpot) => {
     setSelectedSpot(spot);
@@ -255,9 +306,24 @@ export default function AllTentSpotsTable() {
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
-      <h2 className="text-xl font-semibold text-slate-800 mb-4 flex-shrink-0">
-        Tent Spots
-      </h2>
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 className="text-xl font-semibold text-slate-800">
+          Tent Spots
+        </h2>
+        <Button
+          onClick={() => perms.canViewDownload ? exportToExcel() : null}
+          className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg ${
+            perms.canViewDownload 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gray-300 cursor-not-allowed'
+          }`}
+          disabled={!perms.canViewDownload}
+          title={perms.canViewDownload ? 'Export to Excel' : 'You do not have permission to download/export'}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export to Excel
+        </Button>
+      </div>
 
       <div ref={tableRef} className="flex-1 overflow-hidden">
         {isLoading && (

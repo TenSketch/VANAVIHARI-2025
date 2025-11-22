@@ -11,6 +11,7 @@ import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
 import { useEffect, useRef, useState } from "react";
 import { usePermissions } from '@/lib/AdminProvider'
+import { Download } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -28,6 +29,7 @@ DataTable.use(DT);
 interface TentType {
   id: string;
   sno: number;
+  tentId: string;
   tentType: string;
   dimensions: string;
   brand: string;
@@ -55,6 +57,32 @@ export default function AllTentTypesTable() {
   const [editPrice, setEditPrice] = useState("");
   const [editAmenities, setEditAmenities] = useState("");
 
+  // Generate Tent ID based on location and tent type
+  const generateTentId = (tentType: string, allTents: any[], currentIndex: number, location: string = 'V'): string => {
+    const locationCode = location.toUpperCase();
+    let typeCode = 'TX'; // Default for unknown types
+    
+    if (tentType.toLowerCase().includes('2-person') || tentType.toLowerCase().includes('2 person')) {
+      typeCode = 'T2';
+    } else if (tentType.toLowerCase().includes('4-person') || tentType.toLowerCase().includes('4 person')) {
+      typeCode = 'T4';
+    }
+    
+    // Count how many tents of the same type come before this one
+    const sameTypeTentsBefore = allTents.slice(0, currentIndex).filter((t: any) => {
+      const tType = (t.tentType || '').toLowerCase();
+      if (typeCode === 'T2') {
+        return tType.includes('2-person') || tType.includes('2 person');
+      } else if (typeCode === 'T4') {
+        return tType.includes('4-person') || tType.includes('4 person');
+      }
+      return false;
+    }).length;
+    
+    const number = String(sameTypeTentsBefore + 1).padStart(2, '0');
+    return `${locationCode}-${typeCode}-${number}`;
+  };
+
   // Fetch tent types from backend
   useEffect(() => {
     const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
@@ -74,6 +102,7 @@ export default function AllTentTypesTable() {
         const mapped = list.map((t: any, idx: number) => ({
           id: t._id,
           sno: idx + 1,
+          tentId: generateTentId(t.tentType || '', list, idx),
           tentType: t.tentType || '',
           dimensions: t.dimensions || '',
           brand: t.brand || '',
@@ -97,6 +126,46 @@ export default function AllTentTypesTable() {
   // keep refs up to date for DOM handlers
   useEffect(()=>{ tentTypesRef.current = tentTypes }, [tentTypes])
   useEffect(()=>{ permsRef.current = perms }, [perms])
+
+  const exportToExcel = () => {
+    const headers = [
+      "S.No",
+      "Tent ID",
+      "Tent Type",
+      "Dimensions",
+      "Brand",
+      "Features",
+      "Price (₹)",
+      "Amenities",
+      "Status"
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...tentTypes.map((tent) => {
+        return [
+          tent.sno,
+          `"${tent.tentId}"`,
+          `"${tent.tentType.replace(/"/g, '""')}"`,
+          `"${tent.dimensions.replace(/"/g, '""')}"`,
+          `"${tent.brand.replace(/"/g, '""')}"`,
+          `"${tent.features.replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          `₹${tent.price.toLocaleString()}`,
+          `"${tent.amenities.replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          `"${tent.isActive ? 'Active' : 'Inactive'}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Tent_Types_Records.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const openForView = (tent: TentType) => {
     setSelectedTent(tent);
@@ -130,6 +199,7 @@ export default function AllTentTypesTable() {
 
   const columns = [
     { data: "sno", title: "S.No" },
+    { data: "tentId", title: "Tent ID" },
     { data: "tentType", title: "Tent Type" },
     { data: "dimensions", title: "Dimensions" },
     { data: "brand", title: "Brand" },
@@ -229,9 +299,24 @@ export default function AllTentTypesTable() {
 
   return (
     <div className="flex flex-col h-full max-h-screen overflow-hidden py-6">
-      <h2 className="text-xl font-semibold text-slate-800 mb-4 flex-shrink-0">
-        Tent Types
-      </h2>
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <h2 className="text-xl font-semibold text-slate-800">
+          Tent Types
+        </h2>
+        <Button
+          onClick={() => perms.canViewDownload ? exportToExcel() : null}
+          className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg ${
+            perms.canViewDownload 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gray-300 cursor-not-allowed'
+          }`}
+          disabled={!perms.canViewDownload}
+          title={perms.canViewDownload ? 'Export to Excel' : 'You do not have permission to download/export'}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export to Excel
+        </Button>
+      </div>
 
       <div ref={tableRef} className="flex-1 overflow-hidden">
         {isLoading && (
@@ -298,6 +383,11 @@ export default function AllTentTypesTable() {
                 <div>
                   <Label>S.No</Label>
                   <div className="p-3 bg-gray-50 rounded-md border">{selectedTent.sno}</div>
+                </div>
+
+                <div>
+                  <Label>Tent ID</Label>
+                  <div className="p-3 bg-gray-50 rounded-md border font-mono text-blue-600">{selectedTent.tentId}</div>
                 </div>
 
                 <div>

@@ -88,6 +88,8 @@ function App() {
           <Route path="tentspots/details" element={<AddTentSpots />} />
           <Route path="tentbookings/allbookings" element={<AllTentBook />} />
           <Route path="tentbookings/addbookings" element={<AddTentBook />} />
+          <Route path="reports/daily-occupancy-junglestar" element={<JunglestarReportPage />} />
+          <Route path="reports/daily-occupancy-vanavihari" element={<VanaReportPage />} />
 
 
         </Route>
