@@ -12,6 +12,8 @@ import "datatables.net-buttons-dt/css/buttons.dataTables.css";
 import staticSeed from "./allTouristSpots.json";
 import { useEffect, useRef, useState } from "react";
 import { usePermissions } from '@/lib/AdminProvider'
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 DataTable.use(DT);
 
@@ -39,6 +41,48 @@ export default function AllTouristSpots() {
   useEffect(() => { spotsRef.current = spots }, [spots])
 
   const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+
+  const exportToExcel = () => {
+    const headers = [
+      "ID",
+      "Tourist Spot Name",
+      "Category", 
+      "Entry Fees (₹)",
+      "2 Wheeler Parking (₹)",
+      "4 Wheelers Parking (₹)",
+      "Camera Fees (₹)",
+      "Description",
+      "Address",
+      "Map Link"
+    ];
+
+    const csvContent = [
+      headers.join(","),
+      ...spots.map((spot) => {
+        return [
+          `"${spot.id}"`,
+          `"${spot.name.replace(/"/g, '""')}"`,
+          `"${(spot.category || '—').replace(/"/g, '""')}"`,
+          `₹${(spot.entryFees || 0).toLocaleString()}`,
+          `₹${(spot.parking2W || 0).toLocaleString()}`,
+          `₹${(spot.parking4W || 0).toLocaleString()}`,
+          spot.cameraFees ? `₹${spot.cameraFees.toLocaleString()}` : '—',
+          `"${(spot.description || '—').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          `"${(spot.address || '—').replace(/"/g, '""')}"`,
+          `"${spot.mapEmbed || '—'}"`
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "Tourist_Spots_Records.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
     (async () => {
@@ -149,6 +193,19 @@ export default function AllTouristSpots() {
     <div className="w-full max-w-full overflow-hidden">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-slate-800">Tourist Spots</h2>
+        <Button
+          onClick={() => perms.canViewDownload ? exportToExcel() : null}
+          className={`inline-flex items-center px-4 py-2 text-white text-sm font-medium rounded-lg ${
+            perms.canViewDownload 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gray-300 cursor-not-allowed'
+          }`}
+          disabled={!perms.canViewDownload}
+          title={perms.canViewDownload ? 'Export to Excel' : 'You do not have permission to download/export'}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export to Excel
+        </Button>
       </div>
 
       <div ref={tableRef} className="w-full">

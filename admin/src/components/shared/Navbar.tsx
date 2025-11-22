@@ -29,6 +29,11 @@ const breadcrumbMap: Record<string, string[]> = {
   "/frontdesk/checkout": ["Front Desk", "Check Out"],
   "/rooms/add": ["Rooms", "Add Room"],
   "/rooms/all": ["Rooms", "All Rooms"],
+
+  "/reports/daily-occupancy-junglestar": ["Report", "JungleStar"],
+  "/reports/daily-occupancy-vanavihari": ["Report", "Vanavihari"],
+
+
   "/guests/add": ["Guests", "Add Guest"],
   "/guests/all": ["Guests", "All Guests"],
   "/resorts/add": ["Resorts", "Add Resort"],

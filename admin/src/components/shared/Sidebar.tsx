@@ -102,8 +102,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: FileText,
       viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Daily Occupancy", path: "/reports/daily-occupancy", icon: ClipboardMinus },
-        { label: "Payments", path: "/reports/payments", icon: FileText },
+        { label: "Daily Occupancy Jungle Star", path: "/reports/daily-occupancy-junglestar", icon: ClipboardMinus },
+        { label: "Daily Occupancy Vanavihari", path: "/reports/daily-occupancy-vanavihari", icon: ClipboardMinus },
+        // { label: "Payments", path: "/reports/payments", icon: FileText },
         { label: "Logs", path: "/log-reports/all", icon: FileText },
       ],
     },
@@ -147,15 +148,15 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { label: "All Bookings", path: "/tentbookings/allbookings", icon: Calendar }
       ],
     },
-    {
-      id: "tent-reports",
-      label: "Reports",
-      icon: FileText,
-      viewTypes: ["tent"] as ViewType[],
-      children: [
-        { label: "Utilisation", path: "/reports/utilisation", icon: FileText },
-      ],
-    },
+    // {
+    //   id: "tent-reports",
+    //   label: "Reports",
+    //   icon: FileText,
+    //   viewTypes: ["tent"] as ViewType[],
+    //   children: [
+    //     { label: "Utilisation", path: "/reports/utilisation", icon: FileText },
+    //   ],
+    // },
 
     // Tourist Spot Management
     {
@@ -193,16 +194,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { label: "All Bookings", path: "/tourist/bookings", icon: Calendar },
       ],
     },
-    {
-      id: "tourist-reports",
-      label: "Reports",
-      icon: FileText,
-      viewTypes: ["tourist-spot"] as ViewType[],
-      children: [
-        { label: "Visits", path: "/reports/visits", icon: FileText },
-        { label: "Revenue", path: "/reports/revenue", icon: FileText },
-      ],
-    },
+    // {
+    //   id: "tourist-reports",
+    //   label: "Reports",
+    //   icon: FileText,
+    //   viewTypes: ["tourist-spot"] as ViewType[],
+    //   children: [
+    //     { label: "Visits", path: "/reports/visits", icon: FileText },
+    //     { label: "Revenue", path: "/reports/revenue", icon: FileText },
+    //   ],
+    // },
   ];
 
   // Filter menu items based on current view type
