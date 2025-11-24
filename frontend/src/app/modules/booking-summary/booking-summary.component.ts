@@ -665,7 +665,7 @@ export class BookingSummaryComponent {
         }
       };
 
-      // Create pre-reservation in new backend (requires user login)
+      // Create reservation with pending status
       const headers = {
         token: this.authService.getAccessToken() ?? ''
       };
@@ -677,21 +677,47 @@ export class BookingSummaryComponent {
             if (response.success && response.reservation) {
               const bookingId = response.reservation.bookingId;
               
-              this.showSnackBarAlert(
-                'Pre-reservation created! Booking Id: ' + bookingId
-              );
-
-              // Initiate payment
+              // Initiate payment immediately
               this.initiatePayment(bookingId);
             } else {
               this.showLoader = false;
-              this.showSnackBarAlert('Failed to create reservation');
+              this.showSnackBarAlert('Failed to create reservation. Please try again.');
             }
           },
           error: (err) => {
             console.error('Reservation error:', err);
             this.showLoader = false;
-            this.showSnackBarAlert('Error creating reservation: ' + (err.error?.error || err.message));
+            
+            // Handle reservation creation errors
+            let errorMessage = 'We are facing technical issues. Please try again later.';
+            
+            if (err.status) {
+              switch (err.status) {
+                case 400:
+                  errorMessage = 'Invalid booking details. Please check your information and try again.';
+                  break;
+                case 401:
+                  errorMessage = 'Session expired. Please login again.';
+                  setTimeout(() => {
+                    this.router.navigate(['/sign-in'], {
+                      queryParams: { returnUrl: '/booking-summary' }
+                    });
+                  }, 3000);
+                  break;
+                case 403:
+                  errorMessage = 'You do not have permission to make this booking.';
+                  break;
+                case 409:
+                  errorMessage = 'Selected rooms are no longer available. Please select different rooms.';
+                  break;
+                case 500:
+                default:
+                  errorMessage = 'We are facing technical issues. Please try again later.';
+                  break;
+              }
+            }
+            
+            this.showSnackBarAlert(errorMessage);
           },
         });
     }
@@ -716,15 +742,63 @@ export class BookingSummaryComponent {
             this.submitPaymentForm(response.paymentData);
           } else {
             this.showLoader = false;
-            this.showSnackBarAlert('Failed to initiate payment');
+            this.showSnackBarAlert(
+              'Failed to initiate payment. Your booking (ID: ' + bookingId + ') will expire in 15 minutes. Please contact support if needed.'
+            );
           }
         },
         error: (err) => {
           console.error('Payment initiation error:', err);
           this.showLoader = false;
-          this.showSnackBarAlert('Error initiating payment: ' + (err.error?.error || err.message));
+          this.handlePaymentError(err, bookingId);
         },
       });
+  }
+
+  handlePaymentError(err: any, bookingId?: string) {
+    let errorMessage = 'We are facing technical issues. Please try again later.';
+    let shouldShowBookingId = false;
+    
+    if (err.status) {
+      switch (err.status) {
+        case 400:
+          errorMessage = 'Invalid payment request. Please try again or contact support.';
+          shouldShowBookingId = true;
+          break;
+        case 401:
+          errorMessage = 'Session expired. Please login again.';
+          setTimeout(() => {
+            this.router.navigate(['/sign-in'], {
+              queryParams: { returnUrl: '/booking-summary' }
+            });
+          }, 3000);
+          break;
+        case 403:
+          errorMessage = 'Payment gateway access denied. Please contact support.';
+          shouldShowBookingId = true;
+          break;
+        case 404:
+          errorMessage = 'Payment service not found. Please try again later.';
+          shouldShowBookingId = true;
+          break;
+        case 409:
+          errorMessage = 'Payment conflict detected. Please try again.';
+          shouldShowBookingId = true;
+          break;
+        case 500:
+        default:
+          errorMessage = 'Payment gateway is temporarily unavailable. Please try again later.';
+          shouldShowBookingId = true;
+          break;
+      }
+    }
+    
+    // Add booking ID to message if available and relevant
+    if (bookingId && shouldShowBookingId) {
+      errorMessage += ` Your booking ID is: ${bookingId}. It will expire in 15 minutes.`;
+    }
+    
+    this.showSnackBarAlert(errorMessage);
   }
 
   submitPaymentForm(paymentData: any) {

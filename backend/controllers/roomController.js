@@ -163,19 +163,21 @@ const listAvailableRooms = async (req, res) => {
     // Find all reservations that overlap with the requested dates
     // A reservation overlaps if the date ranges intersect
     // Two date ranges [A1, A2] and [B1, B2] overlap if: A1 < B2 AND A2 > B1
+    // Only consider reservations with status: pending, reserved, or confirmed
+    // Exclude: cancelled and not-reserved (these rooms should be available)
     const overlappingReservations = await Reservation.find({
       $or: [
         { resort: resort._id.toString() }, // Match by resort ObjectId
         { resort: resort.resortName }, // Match by resort name (legacy)
         { resort: resort._id } // Match by resort ObjectId (without toString)
       ],
-      status: { $in: ['reserved', 'pre-reserved', 'confirmed'] },
+      status: { $in: ['pending', 'reserved', 'confirmed'] }, // Only these statuses block rooms
       // Date overlap logic: checkIn < our checkOut AND checkOut > our checkIn
       checkIn: { $lt: checkOutDate },
       checkOut: { $gt: checkInDate }
     })
     
-    console.log(`Found ${overlappingReservations.length} overlapping reservations for dates ${checkInDate.toISOString()} to ${checkOutDate.toISOString()}`)
+    console.log(`Found ${overlappingReservations.length} overlapping reservations (pending/reserved/confirmed) for dates ${checkInDate.toISOString()} to ${checkOutDate.toISOString()}`)
     
     // Build a Set of all reserved room IDs from overlapping reservations
     const reservedRoomIds = new Set()

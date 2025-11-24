@@ -16,6 +16,37 @@ function sendMail({ to, subject, html }) {
   })
 }
 
+// Utility function to expire pending reservations
+export const expirePendingReservations = async () => {
+  try {
+    const now = new Date()
+    
+    // Find all pending reservations that have expired
+    const expiredReservations = await Reservation.updateMany(
+      {
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        expiresAt: { $lte: now }
+      },
+      {
+        $set: { 
+          status: 'not-reserved',
+          paymentStatus: 'unpaid'
+        }
+      }
+    )
+    
+    if (expiredReservations.modifiedCount > 0) {
+      console.log(`Expired ${expiredReservations.modifiedCount} pending reservations`)
+    }
+    
+    return expiredReservations
+  } catch (err) {
+    console.error('Error expiring pending reservations:', err)
+    return null
+  }
+}
+
 
 // admin only
 export const createReservation = async (req, res) => {
@@ -192,8 +223,8 @@ export const createPublicBooking = async (req, res) => {
     if (payload.extraBedCharges) payload.extraBedCharges = Number(String(payload.extraBedCharges).replace(/[₹,\s]/g, ''))
     if (payload.totalPayable) payload.totalPayable = Number(String(payload.totalPayable).replace(/[₹,\s]/g, ''))
 
-    // Set pre-reserved status and expiry (15 minutes)
-    payload.status = 'pre-reserved'
+    // Set pending status and expiry (15 minutes)
+    payload.status = 'pending'
     payload.paymentStatus = 'unpaid'
     const expiryTime = new Date()
     expiryTime.setMinutes(expiryTime.getMinutes() + 15)

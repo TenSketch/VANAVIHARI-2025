@@ -3,9 +3,9 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: false,
-  API_URL: 'https://api.vanavihari.com', // Updated to use local backend
- 
+  production: true,
+  //API_URL: 'https://api.vanavihari.com', // Updated to use local backend
+ API_URL: 'http://localhost:5000'
   // Account_Registration: process.env.Account_Registration,
   // Edit_Profile: process.env.Edit_Profile,
   // Email_Verification: process.env.Email_Verification,

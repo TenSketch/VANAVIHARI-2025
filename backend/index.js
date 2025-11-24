@@ -13,11 +13,20 @@ import paymentRouter from './routes/paymentRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 import tentSpotRouter from './routes/tentSpotRoutes.js'
 import tentRouter from './routes/tentRoutes.js'
+import { expirePendingReservations } from './controllers/reservationController.js'
 
 //App config
 const app = express()
 const port = process.env.PORT || 5000
 connectDB()
+
+// Run expiry check every minute
+setInterval(async () => {
+  await expirePendingReservations()
+}, 60000) // 60000ms = 1 minute
+
+// Run once on startup
+expirePendingReservations()
 
 
 //middleware
