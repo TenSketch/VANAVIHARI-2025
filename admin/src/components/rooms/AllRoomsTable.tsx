@@ -14,7 +14,6 @@ import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 import "datatables.net-fixedcolumns";
 import "datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.css";
 
-import AllRoomTypes from "./allrooms.json";
 import { useEffect, useRef, useState } from "react";
 import { usePermissions } from '@/lib/AdminProvider'
 // Removed Dialog imports (edit & confirm modals eliminated)
@@ -51,9 +50,6 @@ interface Room {
   status?: string;
 }
 
-// Seed static rooms until API loads
-const staticSeedRooms: Room[] = AllRoomTypes as any;
-
 export default function RoomsTable() {
   const tableRef = useRef(null);
   const perms = usePermissions()
@@ -63,7 +59,7 @@ export default function RoomsTable() {
   const [sheetMode, setSheetMode] = useState<'view'|'edit'>('view')
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [disabledRooms, setDisabledRooms] = useState<Set<string>>(new Set());
-  const [roomsData, setRoomsData] = useState<Room[]>(staticSeedRooms);
+  const [roomsData, setRoomsData] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState<boolean>(true);
   // keep a ref to always have latest rooms list for event listeners
   const roomsDataRef = useRef<Room[]>(roomsData);
@@ -259,7 +255,13 @@ export default function RoomsTable() {
     // fetch real rooms (including disabled ones for admin panel)
     (async () => {
       try {
-        const res = await fetch(`${apiBase}/api/rooms?includeDisabled=true`);
+        const token = localStorage.getItem('admin_token');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        const res = await fetch(`${apiBase}/api/rooms/admin/all`, { headers });
         const data = await res.json().catch(() => null);
         if (res.ok && data && Array.isArray(data.rooms)) {
           const mapped: Room[] = data.rooms.map((r: any, idx: number) => ({

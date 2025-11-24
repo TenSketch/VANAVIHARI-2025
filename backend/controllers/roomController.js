@@ -93,13 +93,13 @@ const createRoom = async (req, res) => {
 
 const listRooms = async (req, res) => {
   try {
-    const { resortSlug, includeDisabled } = req.query
+    const { resortSlug } = req.query
     
     let query = {}
     
-    // Only exclude disabled rooms if includeDisabled is not set to 'true'
-    // This allows admin panel to see all rooms while public API excludes disabled ones
-    if (includeDisabled !== 'true') {
+    // Check if this is an admin request (has req.admin from adminAuth middleware)
+    // Admin routes can see all rooms, public routes exclude disabled rooms
+    if (!req.admin) {
       query.status = { $ne: 'disabled' }
     }
     
