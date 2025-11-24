@@ -5,7 +5,17 @@ Implemented proper booking status management and comprehensive error handling fo
 
 ## Changes Made
 
-### 1. Backend Changes (roomController.js)
+### 1. Backend Changes (reservationModel.js)
+
+#### Status Enum Update
+Updated the `status` field enum to include:
+- Added `pending` - New default status for bookings
+- Added `confirmed` - For successful payment completion
+- Added `not-reserved` - For expired bookings
+- Changed default from `pre-reserved` to `pending`
+- Kept legacy values (`pre-reserved`, `reserved`) for backward compatibility
+
+### 2. Backend Changes (roomController.js)
 
 #### Room Availability Filter
 Updated `listAvailableRooms` function to:
@@ -13,7 +23,7 @@ Updated `listAvailableRooms` function to:
 - Show rooms as available if reservation status is: `cancelled` or `not-reserved`
 - This ensures expired/cancelled bookings don't block room availability
 
-### 2. Backend Changes (reservationController.js)
+### 3. Backend Changes (reservationController.js)
 
 #### Status Management
 - **Initial Status**: Changed from `pre-reserved` to `pending`
@@ -28,14 +38,14 @@ Added `expirePendingReservations()` function that:
 - Keeps paymentStatus as `unpaid`
 - Makes rooms available again automatically
 
-### 3. Backend Changes (index.js)
+### 4. Backend Changes (index.js)
 
 #### Periodic Expiry Check
 - Imported `expirePendingReservations` function
 - Set up interval to run every 60 seconds
 - Runs once on server startup
 
-### 4. Frontend Changes (booking-summary.component.ts)
+### 5. Frontend Changes (booking-summary.component.ts)
 
 #### Reservation Flow
 1. User clicks "Confirm and Pay"
@@ -81,14 +91,27 @@ User Action → pending (15 min timer starts) [Room BLOCKED]
 ## Room Availability Logic
 
 **Rooms are BLOCKED (not shown) when reservation status is:**
-- `pending` - Reservation in progress, payment pending
+- `pending` - Reservation in progress, payment pending (15-minute window)
+- `pre-reserved` - Legacy status for pending bookings
 - `reserved` - Legacy status for confirmed bookings
 - `confirmed` - Payment completed, booking confirmed
 
 **Rooms are AVAILABLE (shown) when reservation status is:**
 - `not-reserved` - Reservation expired or never completed
 - `cancelled` - Booking was cancelled by user/admin
+- `completed` - Past booking that has been completed
 - No reservation exists for those dates
+
+## Reservation Status Enum Values
+
+The Reservation model now supports these status values:
+- `pending` - New default status for bookings awaiting payment
+- `pre-reserved` - Legacy status (kept for backward compatibility)
+- `reserved` - Legacy confirmed booking status
+- `confirmed` - Payment completed successfully
+- `cancelled` - Booking cancelled by user or admin
+- `completed` - Booking has been completed (past check-out date)
+- `not-reserved` - Booking expired without payment
 
 ## Benefits
 

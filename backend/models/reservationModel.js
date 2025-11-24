@@ -9,7 +9,7 @@ const reservationSchema = new mongoose.Schema({
   guests: Number,
   extraGuests: Number,
   children: Number,
-  status: { type: String, default: 'pre-reserved', enum: ['pre-reserved', 'reserved', 'cancelled', 'completed'] },
+  status: { type: String, default: 'pending', enum: ['pending', 'pre-reserved', 'reserved', 'confirmed', 'cancelled', 'completed', 'not-reserved'] },
   bookingId: String,
   reservationDate: Date,
   numberOfRooms: Number,
