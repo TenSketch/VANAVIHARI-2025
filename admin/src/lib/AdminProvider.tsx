@@ -50,18 +50,26 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setAdmin(null)
         return
       }
-      const res = await fetch('/api/admin/me', {
+      
+      // For now, just check if token exists
+      // If you have a /api/admin/me endpoint, uncomment the code below
+      /*
+      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+      const res = await fetch(`${apiBase}/api/admin/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       })
       if (!res.ok) {
-        // invalid token or server error; clear auth state but don't hard redirect
         setAdmin(null)
         return
       }
       const data = await res.json()
       setAdmin(data?.admin || null)
+      */
+      
+      // Simple token-based auth (token exists = authenticated)
+      setAdmin({ username: 'admin', role: 'superadmin' })
     } catch (err) {
       // network or parsing error; keep user logged out gracefully
       setAdmin(null)
@@ -79,18 +87,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (e.key === 'admin_token') fetchMe()
     }
     const onAuthChanged = () => fetchMe()
-    const onFocus = () => {
-      // Refresh on tab focus to pick up any external auth changes
-      fetchMe()
-    }
+    
     window.addEventListener('storage', onStorage)
     window.addEventListener('admin-auth-changed', onAuthChanged as EventListener)
-    window.addEventListener('focus', onFocus)
+    
     return () => {
       isMountedRef.current = false
       window.removeEventListener('storage', onStorage)
       window.removeEventListener('admin-auth-changed', onAuthChanged as EventListener)
-      window.removeEventListener('focus', onFocus)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

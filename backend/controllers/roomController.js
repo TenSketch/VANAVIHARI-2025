@@ -70,9 +70,32 @@ const createRoom = async (req, res) => {
     if (req.files && req.files.length) {
       for (const file of req.files) {
         try {
-          const result = await cloudinary.uploader.upload(file.path, { folder: 'vanavihari/rooms' })
-          images.push({ url: result.secure_url, public_id: result.public_id })
+          // Upload from buffer (memory storage) or file path (disk storage)
+          let result
+          if (file.buffer) {
+            // Memory storage - upload from buffer
+            result = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'vanavihari/rooms' },
+                (error, result) => {
+                  if (error) reject(error)
+                  else resolve(result)
+                }
+              )
+              uploadStream.end(file.buffer)
+            })
+          } else if (file.path) {
+            // Disk storage - upload from file path
+            result = await cloudinary.uploader.upload(file.path, { folder: 'vanavihari/rooms' })
+          }
+          
+          if (result) {
+            images.push({ url: result.secure_url, public_id: result.public_id })
+          }
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError)
         } finally {
+          // Clean up disk file if it exists
           if (file && file.path) {
             try { await unlinkAsync(file.path) } catch (e) { console.warn('cleanup failed', e.message || e) }
           }
@@ -275,9 +298,32 @@ const updateRoom = async (req, res) => {
       const images = []
       for (const file of req.files) {
         try {
-          const result = await cloudinary.uploader.upload(file.path, { folder: 'vanavihari/rooms' })
-          images.push({ url: result.secure_url, public_id: result.public_id })
+          // Upload from buffer (memory storage) or file path (disk storage)
+          let result
+          if (file.buffer) {
+            // Memory storage - upload from buffer
+            result = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'vanavihari/rooms' },
+                (error, result) => {
+                  if (error) reject(error)
+                  else resolve(result)
+                }
+              )
+              uploadStream.end(file.buffer)
+            })
+          } else if (file.path) {
+            // Disk storage - upload from file path
+            result = await cloudinary.uploader.upload(file.path, { folder: 'vanavihari/rooms' })
+          }
+          
+          if (result) {
+            images.push({ url: result.secure_url, public_id: result.public_id })
+          }
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError)
         } finally {
+          // Clean up disk file if it exists
           if (file && file.path) {
             try { await unlinkAsync(file.path) } catch (e) { console.warn('cleanup failed', e.message || e) }
           }

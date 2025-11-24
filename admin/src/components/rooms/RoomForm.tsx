@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 
 // Interfaces
 interface RoomFormData {
@@ -134,6 +134,16 @@ const AddRoomForm = () => {
     fetchNextRoomId();
   }, [formData.resortId]);
 
+  // Cleanup object URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      formData.roomImages.forEach(file => {
+        const url = URL.createObjectURL(file);
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [formData.roomImages]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -142,11 +152,21 @@ const AddRoomForm = () => {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
     const files = e.target.files;
-    if (files) {
+    if (files && files.length > 0) {
       const fileArray = Array.from(files);
-      setFormData((prev) => ({ ...prev, roomImages: fileArray }));
+      setFormData((prev) => ({ ...prev, roomImages: [...prev.roomImages, ...fileArray] }));
+      // Clear the input so the same file can be selected again if needed
+      e.target.value = '';
     }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      roomImages: prev.roomImages.filter((_, index) => index !== indexToRemove)
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -349,7 +369,7 @@ const AddRoomForm = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-2 lg:col-span-3 xl:col-span-4">
               <Label htmlFor="roomImages" className="text-sm font-medium text-slate-700">
                 Room Images {formData.roomImages.length > 0 && `(${formData.roomImages.length} selected)`}
               </Label>
@@ -367,6 +387,45 @@ const AddRoomForm = () => {
                 />
               </div>
               <p className="text-xs text-slate-500">You can select multiple images</p>
+              
+              {/* Image Preview List */}
+              {formData.roomImages.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium text-slate-700">Selected Images:</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {formData.roomImages.map((file, index) => (
+                      <div
+                        key={index}
+                        className="group relative bg-white border border-slate-200 rounded-lg p-3 hover:border-slate-400 transition-colors"
+                      >
+                        {/* Image Preview */}
+                        <div className="relative aspect-video bg-slate-100 rounded-md overflow-hidden mb-2">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        
+                        {/* File Name */}
+                        <p className="text-xs text-slate-600 truncate" title={file.name}>
+                          {file.name}
+                        </p>
+                        
+                        {/* Remove Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Remove image"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="orderNumber" className="text-sm font-medium text-slate-700">Order Number *</Label>

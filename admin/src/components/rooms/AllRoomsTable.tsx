@@ -35,7 +35,9 @@ interface Room {
   id: string;
   _id?: string; // backend mongo id (if data loaded from API)
   resort: string;
+  resortId?: string;
   cottageType: string;
+  cottageTypeId?: string;
   roomId: string;
   roomName: string;
   roomImage: string;
@@ -68,6 +70,8 @@ export default function RoomsTable() {
   const [editData, setEditData] = useState<Partial<Room>>({});
   const [saving, setSaving] = useState(false);
   const [newImages, setNewImages] = useState<File[]>([]);
+  const [resorts, setResorts] = useState<Array<{ _id: string; resortName: string }>>([]);
+  const [cottageTypes, setCottageTypes] = useState<Array<{ _id: string; name: string }>>([]);
   const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
   
   const handleEdit = (room: Room) => {
@@ -158,6 +162,8 @@ export default function RoomsTable() {
         // Append other fields
         if (editData.roomName) formData.append('roomName', editData.roomName);
         if (editData.roomId) formData.append('roomId', editData.roomId);
+        if (editData.resortId) formData.append('resort', editData.resortId);
+        if (editData.cottageTypeId) formData.append('cottageType', editData.cottageTypeId);
         formData.append('status', statusValue);
         if (editData.weekdayRate !== undefined) formData.append('weekdayRate', String(editData.weekdayRate));
         if (editData.weekendRate !== undefined) formData.append('weekendRate', String(editData.weekendRate));
@@ -200,6 +206,8 @@ export default function RoomsTable() {
         const payload: any = {
           roomName: editData.roomName ?? '',
           roomId: editData.roomId ?? '',
+          resort: editData.resortId ?? undefined,
+          cottageType: editData.cottageTypeId ?? undefined,
           status: statusValue,
           weekdayRate: editData.weekdayRate ?? undefined,
           weekendRate: editData.weekendRate ?? undefined,
@@ -261,6 +269,7 @@ export default function RoomsTable() {
           headers['Authorization'] = `Bearer ${token}`;
         }
         
+        // Fetch rooms
         const res = await fetch(`${apiBase}/api/rooms/admin/all`, { headers });
         const data = await res.json().catch(() => null);
         if (res.ok && data && Array.isArray(data.rooms)) {
@@ -268,7 +277,9 @@ export default function RoomsTable() {
             id: r._id || String(idx + 1),
             _id: r._id,
             resort: (r.resort && (r.resort.resortName || r.resort.name)) || r.resortName || '—',
+            resortId: (r.resort && r.resort._id) || r.resort || '',
             cottageType: (r.cottageType && r.cottageType.name) || r.cottageTypeName || '—',
+            cottageTypeId: (r.cottageType && r.cottageType._id) || r.cottageType || '',
             roomId: r.roomId || r.roomNumber || '',
             roomName: r.roomName || r.roomNumber || r.roomId || `Room ${idx + 1}`,
             roomImage: (r.images && r.images[0] && r.images[0].url) || '/img/placeholder.jpg',
@@ -292,6 +303,26 @@ export default function RoomsTable() {
             }
           });
           setDisabledRooms(disabled);
+        }
+        
+        // Fetch resorts
+        const resortsRes = await fetch(`${apiBase}/api/resorts`, { headers });
+        const resortsData = await resortsRes.json().catch(() => null);
+        if (resortsRes.ok && resortsData && Array.isArray(resortsData.resorts)) {
+          setResorts(resortsData.resorts.map((r: any) => ({ 
+            _id: r._id || r.id, 
+            resortName: r.resortName || r.name 
+          })));
+        }
+        
+        // Fetch cottage types
+        const cottageTypesRes = await fetch(`${apiBase}/api/cottage-types`, { headers });
+        const cottageTypesData = await cottageTypesRes.json().catch(() => null);
+        if (cottageTypesRes.ok && cottageTypesData && Array.isArray(cottageTypesData.cottageTypes)) {
+          setCottageTypes(cottageTypesData.cottageTypes.map((ct: any) => ({ 
+            _id: ct._id, 
+            name: ct.name 
+          })));
         }
       } catch (e) {
         console.warn('Failed to load rooms; using static data');
@@ -561,9 +592,18 @@ export default function RoomsTable() {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Room ID</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedRoom.id}</span>
-                    </div>
+                    {sheetMode === 'edit' ? (
+                      <input
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.roomId || ''}
+                        onChange={(e) => handleFieldChange('roomId', e.target.value)}
+                        placeholder="e.g., JS1, VM1"
+                      />
+                    ) : (
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedRoom.roomId}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -572,21 +612,52 @@ export default function RoomsTable() {
                       className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
                       value={editData.roomName || ''}
                       onChange={(e) => handleFieldChange('roomName', e.target.value)}
+                      disabled={sheetMode === 'view'}
                     />
                   </div>
                   
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Resort</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedRoom.resort}</span>
-                    </div>
+                    {sheetMode === 'edit' ? (
+                      <select
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.resortId || selectedRoom.resortId || ''}
+                        onChange={(e) => handleFieldChange('resortId' as keyof Room, e.target.value)}
+                      >
+                        <option value="">-- Select Resort --</option>
+                        {resorts.map((resort) => (
+                          <option key={resort._id} value={resort._id}>
+                            {resort.resortName}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedRoom.resort}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Cottage Type</Label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                      <span className="text-sm text-gray-900">{selectedRoom.cottageType}</span>
-                    </div>
+                    {sheetMode === 'edit' ? (
+                      <select
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={editData.cottageTypeId || selectedRoom.cottageTypeId || ''}
+                        onChange={(e) => handleFieldChange('cottageTypeId' as keyof Room, e.target.value)}
+                      >
+                        <option value="">-- Select Cottage Type --</option>
+                        {cottageTypes.map((ct) => (
+                          <option key={ct._id} value={ct._id}>
+                            {ct.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                        <span className="text-sm text-gray-900">{selectedRoom.cottageType}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
