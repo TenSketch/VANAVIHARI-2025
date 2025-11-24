@@ -28,6 +28,7 @@ export function MultiSelect({
   className,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const handleUnselect = (item: string) => {
     onChange(selected.filter((i) => i !== item));
@@ -41,14 +42,24 @@ export function MultiSelect({
     }
   };
 
+  // Filter options based on search query
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery) return options;
+    return options.filter((option) =>
+      option.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [options, searchQuery]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
+        <div
+          role="button"
+          tabIndex={0}
+          aria-disabled={disabled}
           className={cn(
-            "flex min-h-[48px] w-full items-center justify-between rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+            "flex min-h-[48px] w-full items-center justify-between rounded-lg border border-slate-300 bg-slate-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors cursor-pointer",
+            disabled && "cursor-not-allowed opacity-50 pointer-events-none",
             className
           )}
         >
@@ -90,32 +101,41 @@ export function MultiSelect({
               <span className="text-slate-500">{placeholder}</span>
             )}
           </div>
-        </button>
+        </div>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-[300px] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Search..." />
-          <CommandEmpty>No item found.</CommandEmpty>
-          <CommandGroup className="max-h-64 overflow-auto">
-            {options.map((option) => (
-              <CommandItem
-                key={option.value}
-                onSelect={() => handleSelect(option.value)}
-              >
-                <div
-                  className={cn(
-                    "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                    selected.includes(option.value)
-                      ? "bg-primary text-primary-foreground"
-                      : "opacity-50 [&_svg]:invisible"
-                  )}
+          <CommandInput 
+            placeholder="Search..." 
+            className="h-9"
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
+          {filteredOptions.length === 0 ? (
+            <CommandEmpty>No item found.</CommandEmpty>
+          ) : (
+            <CommandGroup className="max-h-64 overflow-auto">
+              {filteredOptions.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  onSelect={() => handleSelect(option.value)}
+                  className="cursor-pointer"
                 >
-                  <span className="h-4 w-4">✓</span>
-                </div>
-                <span>{option.label}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+                  <div
+                    className={cn(
+                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                      selected.includes(option.value)
+                        ? "bg-primary text-primary-foreground"
+                        : "opacity-50 [&_svg]:invisible"
+                    )}
+                  >
+                    <span className="h-4 w-4">✓</span>
+                  </div>
+                  <span>{option.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
         </Command>
       </PopoverContent>
     </Popover>
