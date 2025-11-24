@@ -747,7 +747,7 @@ export default function AddReservationForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="reserved">Reserved</SelectItem>
-                    <SelectItem value="pre-reserved">Pre-Reserved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="not-reserved">Not Reserved</SelectItem>
                     <SelectItem value="canceled">Canceled</SelectItem>
                   </SelectContent>

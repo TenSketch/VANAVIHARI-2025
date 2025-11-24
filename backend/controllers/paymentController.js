@@ -113,8 +113,8 @@ export const initiatePayment = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Reservation not found' });
     }
 
-    // Check if reservation is pre-reserved and not expired
-    if (reservation.status !== 'pre-reserved') {
+    // Check if reservation is pending and not expired
+    if (reservation.status !== 'pending') {
       return res.status(400).json({ success: false, error: 'Reservation is not in pre-reserved state' });
     }
 
