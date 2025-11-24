@@ -123,7 +123,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Tent,
       viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "Add Spots", path: "/tentspots/details", icon: Globe },
+        { label: "Add Spots", path: "/tentspots/details", icon: Plus },
         { label: "All Spots", path: "/tentspots/all", icon: Globe },
       ],
     },

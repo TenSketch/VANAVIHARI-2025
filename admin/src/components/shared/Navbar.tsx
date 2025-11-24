@@ -82,6 +82,23 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
     navigate('/auth/login');
   };
 
+  const handleViewTypeChange = (newViewType: ViewType) => {
+    setViewType(newViewType);
+    
+    // Navigate to the appropriate dashboard for the selected view type
+    switch (newViewType) {
+      case "resort":
+        navigate('/dashboard/report');
+        break;
+      case "tent":
+        navigate('/tent/dashboard');
+        break;
+      case "tourist-spot":
+        navigate('/tourist/dashboard');
+        break;
+    }
+  };
+
   const viewTypeOptions: { value: ViewType; label: string; icon: typeof Building2 }[] = [
     { value: "resort", label: "Resort", icon: Building2 },
     { value: "tent", label: "Tent", icon: Tent },
@@ -125,22 +142,24 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center items-stretch space-x-2">
+        <div className="flex items-center items-stretch space-x-1 sm:space-x-2">
           {/* View Type Dropdown (moved next to notifications) */}
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center space-x-2 h-9">
-                  {currentViewOption && <currentViewOption.icon className="h-4 w-4" />}
-                  <span className="hidden sm:inline">{currentViewOption?.label}</span>
-                  <ChevronDown className="h-4 w-4" />
+                <Button variant="outline" className="flex items-center justify-between min-w-32 sm:min-w-36 h-9 px-2 sm:px-3">
+                  <div className="flex items-center space-x-2">
+                    {currentViewOption && <currentViewOption.icon className="h-3 w-3 sm:h-4 sm:w-4" />}
+                    <span className="text-xs sm:text-sm whitespace-nowrap">{currentViewOption?.label}</span>
+                  </div>
+                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
                 {viewTypeOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.value}
-                    onClick={() => setViewType(option.value)}
+                    onClick={() => handleViewTypeChange(option.value)}
                     className="flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center space-x-2">
@@ -157,9 +176,9 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           {/* Global top-bar menu (Guests, Logs, Settings) */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <Globe className="h-5 w-5" />
-                <span className="hidden md:inline">Global</span>
+              <Button variant="ghost" className="flex items-center space-x-1 px-2 sm:px-3">
+                <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden md:inline text-sm">Global</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -180,11 +199,11 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
           </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4" />
+              <Button variant="ghost" className="flex items-center space-x-1 px-2 sm:px-3">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
-                <span className="hidden lg:block">Account</span>
+                <span className="hidden lg:block text-sm">Account</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
