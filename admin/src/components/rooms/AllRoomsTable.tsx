@@ -256,10 +256,10 @@ export default function RoomsTable() {
   // Removed update/cancel/confirmation & form handlers
 
   useEffect(() => {
-    // fetch real rooms
+    // fetch real rooms (including disabled ones for admin panel)
     (async () => {
       try {
-        const res = await fetch(`${apiBase}/api/rooms`);
+        const res = await fetch(`${apiBase}/api/rooms?includeDisabled=true`);
         const data = await res.json().catch(() => null);
         if (res.ok && data && Array.isArray(data.rooms)) {
           const mapped: Room[] = data.rooms.map((r: any, idx: number) => ({
