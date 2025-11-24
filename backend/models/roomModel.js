@@ -7,8 +7,8 @@ const roomSchema = new mongoose.Schema(
     roomName: String,
     status: {
       type: String,
-      enum: ['pending', 'pre-reserved', 'reserved', 'cancelled', 'not-reserved'],
-      default: "not-reserved",
+      enum: ['available', 'disabled'],
+      default: "available",
     },
     price: { type: Number },
     weekdayRate: { type: Number },

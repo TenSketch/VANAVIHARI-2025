@@ -95,7 +95,9 @@ const listRooms = async (req, res) => {
   try {
     const { resortSlug } = req.query
     
-    let query = {}
+    let query = {
+      status: { $ne: 'disabled' } // Exclude disabled rooms
+    }
     
     // If resortSlug is provided, filter by resort
     if (resortSlug) {
@@ -128,8 +130,11 @@ const listAvailableRooms = async (req, res) => {
       return res.status(404).json({ error: 'Resort not found' })
     }
     
-    // Get all rooms for this resort
-    const allRooms = await Room.find({ resort: resort._id })
+    // Get all rooms for this resort (exclude disabled rooms)
+    const allRooms = await Room.find({ 
+      resort: resort._id,
+      status: { $ne: 'disabled' } // Exclude disabled rooms
+    })
       .sort({ createdAt: -1 })
       .populate('resort')
       .populate('cottageType')

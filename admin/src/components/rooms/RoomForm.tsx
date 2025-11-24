@@ -10,6 +10,7 @@ interface RoomFormData {
   cottageTypeId: string;
   roomId: string;
   roomName: string;
+  status: string;
   roomImages: File[];
   orderNumber: string;
   weekDaysRate: string;
@@ -27,6 +28,7 @@ const AddRoomForm = () => {
     cottageTypeId: "",
     roomId: "",
     roomName: "",
+    status: "available",
     roomImages: [],
     orderNumber: "",
     weekDaysRate: "",
@@ -170,6 +172,7 @@ const AddRoomForm = () => {
     if (formData.cottageTypeId) form.append('cottageType', formData.cottageTypeId)
     if (formData.roomId) form.append('roomId', formData.roomId)
     if (formData.roomName) form.append('roomName', formData.roomName)
+    if (formData.status) form.append('status', formData.status)
     if (formData.orderNumber) form.append('orderNumber', formData.orderNumber)
 
     // backend uses 'price' field; use weekdays rate as primary price
@@ -236,6 +239,7 @@ const AddRoomForm = () => {
       cottageTypeId: "",
       roomId: "",
       roomName: "",
+      status: "available",
       roomImages: [],
       orderNumber: "",
       weekDaysRate: "",
@@ -327,6 +331,20 @@ const AddRoomForm = () => {
                 placeholder="e.g., Sea View Room"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-sm font-medium text-slate-700">Status *</Label>
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              >
+                <option value="available">Available</option>
+                <option value="disabled">Disabled</option>
+              </select>
             </div>
           </div>
 

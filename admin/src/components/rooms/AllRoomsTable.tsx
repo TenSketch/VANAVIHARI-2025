@@ -48,6 +48,7 @@ interface Room {
   children?: number;
   bedChargeWeekday: number;
   bedChargeWeekend: number;
+  status?: string;
 }
 
 // Seed static rooms until API loads
@@ -82,10 +83,47 @@ export default function RoomsTable() {
     setIsDetailSheetOpen(true);
   };
 
-  const handleDisable = (room: Room) => {
+  const handleToggleStatus = async (room: Room) => {
     if (!permsRef.current.canDisable) return
-    // Directly disable without confirmation modal
-    setDisabledRooms(prev => new Set([...prev, room.id]));
+    
+    if (!room._id) {
+      alert('This room exists only in static seed data. Cannot update status.');
+      return;
+    }
+    
+    const isCurrentlyDisabled = disabledRooms.has(room.id);
+    const newStatus = isCurrentlyDisabled ? 'available' : 'disabled';
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${apiBase}/api/rooms/${room._id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((data && data.error) || res.statusText);
+      
+      // Update local state
+      if (newStatus === 'disabled') {
+        setDisabledRooms(prev => new Set([...prev, room.id]));
+      } else {
+        setDisabledRooms(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(room.id);
+          return newSet;
+        });
+      }
+      
+      alert(`Room ${newStatus === 'disabled' ? 'disabled' : 'enabled'} successfully!`);
+    } catch (e: any) {
+      console.error(e);
+      alert('Failed to update status: ' + e.message);
+    }
   };
 
   const handleRowClick = (room: Room) => {
@@ -112,6 +150,7 @@ export default function RoomsTable() {
     setSaving(true);
     try {
       const token = localStorage.getItem('admin_token');
+      const statusValue = disabledRooms.has(selectedRoom.id) ? 'disabled' : 'available';
       
       // Use FormData if there are new images
       if (newImages.length > 0) {
@@ -123,6 +162,7 @@ export default function RoomsTable() {
         // Append other fields
         if (editData.roomName) formData.append('roomName', editData.roomName);
         if (editData.roomId) formData.append('roomId', editData.roomId);
+        formData.append('status', statusValue);
         if (editData.weekdayRate !== undefined) formData.append('weekdayRate', String(editData.weekdayRate));
         if (editData.weekendRate !== undefined) formData.append('weekendRate', String(editData.weekendRate));
         if (editData.guests !== undefined) formData.append('guests', String(editData.guests));
@@ -164,6 +204,7 @@ export default function RoomsTable() {
         const payload: any = {
           roomName: editData.roomName ?? '',
           roomId: editData.roomId ?? '',
+          status: statusValue,
           weekdayRate: editData.weekdayRate ?? undefined,
           weekendRate: editData.weekendRate ?? undefined,
           guests: editData.guests ?? undefined,
@@ -237,8 +278,18 @@ export default function RoomsTable() {
             children: r.children || r.noOfChildren || 0,
             bedChargeWeekday: r.bedChargeWeekday || r.chargesPerBedWeekDays || 0,
             bedChargeWeekend: r.bedChargeWeekend || r.chargesPerBedWeekEnd || 0,
+            status: r.status || 'available',
           }));
           setRoomsData(mapped);
+          
+          // Initialize disabledRooms set based on status from backend
+          const disabled = new Set<string>();
+          mapped.forEach(room => {
+            if (room.status === 'disabled') {
+              disabled.add(room.id);
+            }
+          });
+          setDisabledRooms(disabled);
         }
       } catch (e) {
         console.warn('Failed to load rooms; using static data');
@@ -310,10 +361,6 @@ export default function RoomsTable() {
         transform: translateY(0) !important;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
       }
-      .disable-btn:active:not([disabled]) {
-        transform: translateY(0) !important;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-      }
       /* Clickable row styling */
       table.dataTable tbody tr {
         cursor: pointer !important;
@@ -340,9 +387,6 @@ export default function RoomsTable() {
         if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
           if (!permsRef.current.canEdit) return
           handleEdit(room);
-        } else if (target.classList.contains('disable-btn') || target.closest('.disable-btn')) {
-          if (!permsRef.current.canDisable) return
-          handleDisable(room);
         }
       }
     };
@@ -351,7 +395,7 @@ export default function RoomsTable() {
       const target = event.target as HTMLElement;
       
       // Don't trigger row click if a button was clicked
-      if (target.closest('.edit-btn, .disable-btn')) {
+      if (target.closest('.edit-btn')) {
         return;
       }
       
@@ -445,29 +489,6 @@ export default function RoomsTable() {
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
               Edit
-            </button>` : ''}
-            ${perms.canDisable ? `
-            <button 
-              class="disable-btn" 
-              data-id="${row.id}" 
-              title="${isDisabled ? 'Already Disabled' : 'Disable Record'}"
-              style="
-                background: ${isDisabled ? '#6b7280' : '#dc2626'};
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: ${isDisabled ? 'not-allowed' : 'pointer'};
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              "
-              ${isDisabled ? 'disabled' : ''}
-              onmouseover="${!isDisabled ? `this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'` : ''}"
-              onmouseout="${!isDisabled ? `this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'` : ''}"
-            >
-              ${isDisabled ? 'Disabled' : 'Disable'}
             </button>` : ''}
           </div>
         `;
@@ -698,14 +719,37 @@ export default function RoomsTable() {
                   
                   <div>
                     <Label className="text-sm font-medium text-gray-700">Status</Label>
-                    <div className="mt-1">
-                      <Badge 
-                        variant={disabledRooms.has(selectedRoom.id) ? "destructive" : "default"}
-                        className="px-2 py-1"
+                    {sheetMode === 'edit' ? (
+                      <select
+                        className="mt-1 w-full p-2 bg-white rounded-md border text-sm"
+                        value={disabledRooms.has(selectedRoom.id) ? 'disabled' : 'available'}
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          if (newStatus === 'disabled') {
+                            setDisabledRooms(prev => new Set([...prev, selectedRoom.id]));
+                          } else {
+                            setDisabledRooms(prev => {
+                              const newSet = new Set(prev);
+                              newSet.delete(selectedRoom.id);
+                              return newSet;
+                            });
+                          }
+                          handleFieldChange('status' as keyof Room, newStatus);
+                        }}
                       >
-                        {disabledRooms.has(selectedRoom.id) ? "Disabled" : "Active"}
-                      </Badge>
-                    </div>
+                        <option value="available">Available</option>
+                        <option value="disabled">Disabled</option>
+                      </select>
+                    ) : (
+                      <div className="mt-1">
+                        <Badge 
+                          variant={disabledRooms.has(selectedRoom.id) ? "destructive" : "default"}
+                          className="px-2 py-1"
+                        >
+                          {disabledRooms.has(selectedRoom.id) ? "Disabled" : "Available"}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -722,12 +766,12 @@ export default function RoomsTable() {
                       Edit Room
                     </Button>
                     <Button 
-                      variant="destructive" 
-                      onClick={() => { if (!perms.canDisable) return; handleDisable(selectedRoom) }}
-                      disabled={disabledRooms.has(selectedRoom.id) || !perms.canDisable}
-                      title={!perms.canDisable ? 'You do not have permission to disable' : undefined}
+                      variant={disabledRooms.has(selectedRoom.id) ? "default" : "destructive"}
+                      onClick={() => { if (!perms.canDisable) return; handleToggleStatus(selectedRoom) }}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to change status' : undefined}
                     >
-                      {disabledRooms.has(selectedRoom.id) ? 'Disabled' : 'Disable'}
+                      {disabledRooms.has(selectedRoom.id) ? 'Enable' : 'Disable'}
                     </Button>
                     <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)} disabled={saving}>Close</Button>
                   </>
