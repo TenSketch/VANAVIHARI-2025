@@ -690,6 +690,7 @@ export class BookingSummaryComponent {
             
             // Handle reservation creation errors
             let errorMessage = 'We are facing technical issues. Please try again later.';
+            let shouldRedirectToRooms = false;
             
             if (err.status) {
               switch (err.status) {
@@ -708,7 +709,8 @@ export class BookingSummaryComponent {
                   errorMessage = 'You do not have permission to make this booking.';
                   break;
                 case 409:
-                  errorMessage = 'Selected rooms are no longer available. Please select different rooms.';
+                  errorMessage = 'Sorry! The selected room(s) are no longer available for your chosen dates. Someone else just booked them. Please select different rooms or dates.';
+                  shouldRedirectToRooms = true;
                   break;
                 case 500:
                 default:
@@ -718,6 +720,14 @@ export class BookingSummaryComponent {
             }
             
             this.showSnackBarAlert(errorMessage);
+            
+            // Redirect to rooms page after showing error for room conflicts
+            if (shouldRedirectToRooms) {
+              setTimeout(() => {
+                this.authService.clearBookingRooms(this.bookingTypeResort);
+                this.router.navigate(['/resorts/rooms']);
+              }, 4000);
+            }
           },
         });
     }
