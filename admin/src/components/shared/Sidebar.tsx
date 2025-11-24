@@ -138,6 +138,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       ],
     },
     // Tent Inventory removed from Tent Management per request
+        {
+      id: "tentinventory",
+      label: "Tent Inventory",
+      icon: Tent,
+      viewTypes: ["tent"] as ViewType[],
+      children: [
+        { label: "Add Tents", path: "/tentinventory/addtents", icon: Plus },
+        { label: "All Tents", path: "/tentinventory/alltents", icon: BookOpen },
+      ],
+    },
     {
       id: "tent-bookings",
       label: "Tent Bookings",
