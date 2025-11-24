@@ -149,30 +149,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
             </DropdownMenu>
           </div>
           <NotificationDropdown/>
-          {/* Global top-bar menu (Guests, Logs, Settings) */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <Globe className="h-5 w-5" />
-                <span className="hidden md:inline">Global</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={() => navigate('/guests/all')}>
-                <Users className="mr-2 h-4 w-4" />
-                Guests
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/log-reports/all')}>
-                <FileText className="mr-2 h-4 w-4" />
-                Logs
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Home className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center space-x-2">
@@ -186,10 +162,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
                 My Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Home className="mr-2 h-4 w-4" />
-                Home
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>

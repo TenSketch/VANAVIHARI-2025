@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router";
 import { Suspense, lazy } from "react";
 import LoadingScreen from "./components/shared/LoadingScreen";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const Layout = lazy(() => import('./components/shared/Layout'))
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
@@ -56,8 +57,12 @@ function App() {
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/auth/login" element={<LoginPage />} />
-        <Route path="/" element={<Navigate to="/auth/login" replace />} />
-        <Route path="/*" element={<Layout />}>
+        <Route path="/" element={<Navigate to="/dashboard/report" replace />} />
+        <Route path="/*" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
           <Route path="dashboard/report" element={<ReportPage />} />
           <Route path="tent/dashboard" element={<ReportPage />} />
           <Route path="tourist/dashboard" element={<ReportPage />} />
