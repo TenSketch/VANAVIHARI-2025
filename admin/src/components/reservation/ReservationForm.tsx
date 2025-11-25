@@ -55,7 +55,7 @@ export default function AddReservationForm() {
     reservationDate: format(new Date(), "yyyy-MM-dd"),
     numberOfRooms: "",
     totalPayable: 0,
-    paymentStatus: "Paid",
+    paymentStatus: "paid",
     refundPercentage: "",
     existingGuest: "",
     fullName: "",
@@ -439,7 +439,7 @@ export default function AddReservationForm() {
       reservationDate: format(new Date(), "yyyy-MM-dd"),
       numberOfRooms: "",
       totalPayable: 0,
-      paymentStatus: "Paid",
+      paymentStatus: "paid",
       refundPercentage: "",
       existingGuest: "",
       fullName: "",
@@ -510,7 +510,7 @@ export default function AddReservationForm() {
           reservationDate: format(new Date(), "yyyy-MM-dd"),
           numberOfRooms: "",
           totalPayable: 0,
-          paymentStatus: "Paid",
+          paymentStatus: "paid",
           refundPercentage: "",
           existingGuest: "",
           fullName: "",
@@ -747,7 +747,7 @@ export default function AddReservationForm() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="reserved">Reserved</SelectItem>
-                    <SelectItem value="pre-reserved">Pre-Reserved</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="not-reserved">Not Reserved</SelectItem>
                     <SelectItem value="canceled">Canceled</SelectItem>
                   </SelectContent>
@@ -816,8 +816,8 @@ export default function AddReservationForm() {
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                    <SelectItem value="Not Paid">Not Paid</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="not-paid">Not Paid</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

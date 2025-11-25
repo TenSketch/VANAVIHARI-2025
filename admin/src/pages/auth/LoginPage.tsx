@@ -1,9 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAdmin } from "@/lib/AdminProvider";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,8 +14,21 @@ const LoginPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { isAuthenticated, loading: authLoading } = useAdmin()
 
   const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000'
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard/report', { replace: true })
+    }
+  }, [isAuthenticated, authLoading, navigate])
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return <LoadingScreen />
+  }
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault()

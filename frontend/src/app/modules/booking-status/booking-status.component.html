@@ -66,8 +66,8 @@
                     >{{ reservationDetails.stayDuration }}
                   </p>
                   <strong>Rooms Booked:</strong>
-                  <p *ngFor="let item of reservationDetails.rooms">
-                    {{ item }}
+                  <p *ngFor="let room of reservationDetails.rooms">
+                    {{ room.room_name }} ({{ room.cottage_type }})
                   </p>
                   <p>
                     <strong>Guests:</strong
@@ -83,7 +83,8 @@
                   </p>
 
                   <img
-                src="{{ getRoomImages(reservationDetails.rooms[0])[0] }}"
+                *ngIf="reservationDetails.rooms && reservationDetails.rooms[0]"
+                src="{{ getRoomImages(reservationDetails.rooms[0].room_name)[0] }}"
                 class="img-fluid"
                 alt="Room Image"
               />

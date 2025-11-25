@@ -1,5 +1,5 @@
 
-import { Menu, User, Home, LogOut, Building2, Tent, MapPin, Check, Globe, Users, FileText, ChevronDown } from "lucide-react";
+import { Menu, User, LogOut, Building2, Tent, MapPin, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router";
 import Breadcrumb from "./Breadcrumb";
@@ -210,10 +210,6 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
                 My Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Home className="mr-2 h-4 w-4" />
-                Home
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" onClick={handleSignOut}>

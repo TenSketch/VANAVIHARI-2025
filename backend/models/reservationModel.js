@@ -9,12 +9,12 @@ const reservationSchema = new mongoose.Schema({
   guests: Number,
   extraGuests: Number,
   children: Number,
-  status: { type: String, default: 'reserved' },
+  status: { type: String, default: 'pending', enum: ['pending', 'reserved', 'cancelled', 'not-reserved'] },
   bookingId: String,
   reservationDate: Date,
   numberOfRooms: Number,
   totalPayable: Number,
-  paymentStatus: String,
+  paymentStatus: { type: String, default: 'unpaid', enum: ['unpaid', 'paid', 'failed', 'pending', 'refunded'] },
   refundPercentage: Number,
   existingGuest: String,
   fullName: String,
@@ -28,6 +28,8 @@ const reservationSchema = new mongoose.Schema({
   country: String,
   roomPrice: Number,
   extraBedCharges: Number,
+  paymentTransactionId: String, // Reference to payment transaction
+  expiresAt: Date, // For pre-reserved bookings (15 mins expiry)
   rawSource: { type: mongoose.Schema.Types.Mixed },
 }, { timestamps: true })
 

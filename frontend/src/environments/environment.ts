@@ -4,8 +4,7 @@
 
 export const environment = {
   production: false,
-  API_URL: 'http://localhost:5000', // Updated to use local backend
- 
+  API_URL: 'http://localhost:5000' // Development environment
   // Account_Registration: process.env.Account_Registration,
   // Edit_Profile: process.env.Edit_Profile,
   // Email_Verification: process.env.Email_Verification,

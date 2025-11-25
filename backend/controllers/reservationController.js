@@ -3,7 +3,53 @@ import Resort from '../models/resortModel.js'
 import CottageType from '../models/cottageTypeModel.js'
 import Room from '../models/roomModel.js'
 import mongoose from 'mongoose'
+import transporter from '../config/nodemailer.js'
+import { checkRoomAvailability } from '../utils/roomAvailability.js'
 
+
+function sendMail({ to, subject, html }) {
+  console.log('SendMail function called with:', { to, subject: subject.substring(0, 50) + '...' });
+  return transporter.sendMail({
+    from: process.env.SENDER_EMAIL,
+    to,
+    subject,
+    html
+  })
+}
+
+// Utility function to expire pending reservations
+export const expirePendingReservations = async () => {
+  try {
+    const now = new Date()
+    
+    // Find all pending reservations that have expired
+    const expiredReservations = await Reservation.updateMany(
+      {
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        expiresAt: { $lte: now }
+      },
+      {
+        $set: { 
+          status: 'not-reserved',
+          paymentStatus: 'unpaid'
+        }
+      }
+    )
+    
+    if (expiredReservations.modifiedCount > 0) {
+      console.log(`Expired ${expiredReservations.modifiedCount} pending reservations`)
+    }
+    
+    return expiredReservations
+  } catch (err) {
+    console.error('Error expiring pending reservations:', err)
+    return null
+  }
+}
+
+
+// admin only
 export const createReservation = async (req, res) => {
   try {
     const payload = { ...req.body }
@@ -19,6 +65,25 @@ export const createReservation = async (req, res) => {
     if (payload.roomPrice) payload.roomPrice = Number(String(payload.roomPrice).replace(/[₹,\s]/g, ''))
     if (payload.extraBedCharges) payload.extraBedCharges = Number(String(payload.extraBedCharges).replace(/[₹,\s]/g, ''))
     if (payload.totalPayable) payload.totalPayable = Number(String(payload.totalPayable).replace(/[₹,\s]/g, ''))
+
+    // Check room availability (unless admin explicitly bypasses with forceBook flag)
+    if (!payload.forceBook && payload.rooms && Array.isArray(payload.rooms) && payload.rooms.length > 0) {
+      await expirePendingReservations()
+      
+      const availabilityCheck = await checkRoomAvailability(
+        payload.rooms,
+        payload.checkIn,
+        payload.checkOut
+      )
+
+      if (!availabilityCheck.available) {
+        return res.status(409).json({ 
+          success: false, 
+          error: 'One or more selected rooms are not available for the chosen dates.',
+          conflictingRooms: availabilityCheck.conflictingRooms
+        })
+      }
+    }
 
     const reservation = new Reservation(payload)
     await reservation.save()
@@ -151,7 +216,7 @@ export const getNextSerial = async (req, res) => {
   }
 }
 
-// User booking endpoint (requires user authentication)
+// User booking endpoint (requires user authentication) - creates pre-reservation
 export const createPublicBooking = async (req, res) => {
   try {
     const payload = { ...req.body }
@@ -177,6 +242,42 @@ export const createPublicBooking = async (req, res) => {
     if (payload.roomPrice) payload.roomPrice = Number(String(payload.roomPrice).replace(/[₹,\s]/g, ''))
     if (payload.extraBedCharges) payload.extraBedCharges = Number(String(payload.extraBedCharges).replace(/[₹,\s]/g, ''))
     if (payload.totalPayable) payload.totalPayable = Number(String(payload.totalPayable).replace(/[₹,\s]/g, ''))
+
+    // CRITICAL: Check room availability before creating reservation
+    // First, expire any pending reservations that have timed out
+    await expirePendingReservations()
+    
+    // Check if any of the requested rooms are already booked for overlapping dates
+    if (payload.rooms && Array.isArray(payload.rooms) && payload.rooms.length > 0) {
+      const availabilityCheck = await checkRoomAvailability(
+        payload.rooms,
+        payload.checkIn,
+        payload.checkOut
+      )
+
+      if (!availabilityCheck.available) {
+        console.log('Room availability conflict:', {
+          requestedRooms: payload.rooms,
+          conflictingRooms: availabilityCheck.conflictingRooms,
+          checkIn: payload.checkIn,
+          checkOut: payload.checkOut
+        })
+        
+        return res.status(409).json({ 
+          success: false, 
+          error: 'One or more selected rooms are not available for the chosen dates. Please select different rooms or dates.',
+          conflictingRooms: availabilityCheck.conflictingRooms,
+          message: 'Room availability conflict detected'
+        })
+      }
+    }
+
+    // Set pending status and expiry (15 minutes)
+    payload.status = 'pending'
+    payload.paymentStatus = 'unpaid'
+    const expiryTime = new Date()
+    expiryTime.setMinutes(expiryTime.getMinutes() + 15)
+    payload.expiresAt = expiryTime
 
     // Auto-generate booking ID if not provided
     if (!payload.bookingId) {

@@ -389,11 +389,10 @@
                     <div class="col my-2 pe-0">
                       <button mat-raised-button color="primary" class="float-end float-md-start"
                         [disabled]="isRoomAdded(room.Room_Id) || !room.canBook" 
-                        (click)="addRoom(room)"
-                        [matTooltip]="!room.canBook ? room.message || 'Please select dates to book' : ''">
+                        (click)="addRoom(room)">
                         Add room
                       </button>
-                      <small *ngIf="!room.canBook && room.message" class="text-warning d-block mt-1">
+                      <small *ngIf="!room.canBook && room.message" class="text-danger d-block mt-2 text-end text-md-start" style="clear: both;">
                         {{ room.message }}
                       </small>
                     </div>
