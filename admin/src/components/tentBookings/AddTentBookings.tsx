@@ -64,7 +64,7 @@ const AddTentBookings = () => {
     tentType: "",
     tentTypeName: "",
     numberOfTents: "1",
-    reservedFrom: "Website",
+    reservedFrom: "Admin",
     checkIn: "",
     checkOut: "",
     guests: "1",
@@ -111,7 +111,7 @@ const AddTentBookings = () => {
     if (isSubmitting) return;
     
     // Basic validation
-    if (!formData.fullName || !formData.phone || !formData.email || !formData.city || !formData.state || !formData.checkIn || !formData.checkOut) {
+    if (!formData.fullName || !formData.phone || !formData.email || !formData.address1 || !formData.postalCode || !formData.country || !formData.tentType || !formData.city || !formData.state || !formData.checkIn || !formData.checkOut) {
       alert('Please fill in all required fields');
       return;
     }
@@ -178,7 +178,7 @@ const AddTentBookings = () => {
       tentType: "",
       tentTypeName: "",
       numberOfTents: "1",
-      reservedFrom: "Website",
+      reservedFrom: "Admin",
       checkIn: "",
       checkOut: "",
       guests: "1",
@@ -256,12 +256,13 @@ const AddTentBookings = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address1" className="text-sm font-medium text-slate-700">Address Line 1</Label>
+              <Label htmlFor="address1" className="text-sm font-medium text-slate-700">Address Line 1 <span className="text-red-500">*</span></Label>
               <Input
                 id="address1"
                 name="address1"
                 value={formData.address1}
                 onChange={handleChange}
+                required
                 placeholder="e.g., 123 Main Street"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
@@ -302,25 +303,28 @@ const AddTentBookings = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="postalCode" className="text-sm font-medium text-slate-700">Postal Code</Label>
+              <Label htmlFor="postalCode" className="text-sm font-medium text-slate-700">Postal Code <span className="text-red-500">*</span></Label>
               <Input
                 id="postalCode"
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
+                required
                 placeholder="e.g., 400001"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="country" className="text-sm font-medium text-slate-700">Country</Label>
+              <Label htmlFor="country" className="text-sm font-medium text-slate-700">Country <span className="text-red-500">*</span></Label>
               <select
                 id="country"
                 name="country"
                 value={formData.country}
                 onChange={handleChange}
+                required
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               >
+                <option value="">-- Select Country --</option>
                 <option value="India">India</option>
                 <option value="USA">USA</option>
                 <option value="UK">UK</option>
@@ -346,12 +350,13 @@ const AddTentBookings = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tentType" className="text-sm font-medium text-slate-700">Tent Type ID</Label>
+              <Label htmlFor="tentType" className="text-sm font-medium text-slate-700">Tent Type ID <span className="text-red-500">*</span></Label>
               <Input
                 id="tentType"
                 name="tentType"
                 value={formData.tentType}
                 onChange={handleChange}
+                required
                 placeholder="e.g., tt-001"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
@@ -367,11 +372,8 @@ const AddTentBookings = () => {
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               >
                 <option value="">-- Select Tent Type --</option>
-                <option value="Deluxe Dome">Deluxe Dome</option>
-                <option value="Luxury Canvas">Luxury Canvas</option>
-                <option value="Family Tent">Family Tent</option>
-                <option value="Adventure Tent">Adventure Tent</option>
-                <option value="Premium Safari">Premium Safari</option>
+                <option value="2 Person">2 Person</option>
+                <option value="4 Person">4 Person</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -389,16 +391,18 @@ const AddTentBookings = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="reservedFrom" className="text-sm font-medium text-slate-700">Reserved From</Label>
+              <Label htmlFor="reservedFrom" className="text-sm font-medium text-slate-700">Reserved From <span className="text-red-500">*</span></Label>
               <select
                 id="reservedFrom"
                 name="reservedFrom"
                 value={formData.reservedFrom}
                 onChange={handleChange}
+                required
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               >
-                <option value="Online">Online</option>
+                <option value="">-- Select Source --</option>
                 <option value="Admin">Admin</option>
+                <option value="Online">Online</option>
               </select>
             </div>
             <div className="space-y-2">

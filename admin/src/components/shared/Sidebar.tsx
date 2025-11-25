@@ -102,8 +102,9 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: FileText,
       viewTypes: ["resort"] as ViewType[],
       children: [
-        { label: "Daily Occupancy", path: "/reports/daily-occupancy", icon: ClipboardMinus },
-        { label: "Payments", path: "/reports/payments", icon: FileText },
+        { label: "Daily Occupancy Jungle Star", path: "/reports/daily-occupancy-junglestar", icon: ClipboardMinus },
+        { label: "Daily Occupancy Vanavihari", path: "/reports/daily-occupancy-vanavihari", icon: ClipboardMinus },
+        // { label: "Payments", path: "/reports/payments", icon: FileText },
         { label: "Logs", path: "/log-reports/all", icon: FileText },
       ],
     },
@@ -122,7 +123,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Tent,
       viewTypes: ["tent"] as ViewType[],
       children: [
-        { label: "Add Spots", path: "/tentspots/details", icon: Globe },
+        { label: "Add Spots", path: "/tentspots/details", icon: Plus },
         { label: "All Spots", path: "/tentspots/all", icon: Globe },
       ],
     },
@@ -137,6 +138,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       ],
     },
     // Tent Inventory removed from Tent Management per request
+        {
+      id: "tentinventory",
+      label: "Tent Inventory",
+      icon: Tent,
+      viewTypes: ["tent"] as ViewType[],
+      children: [
+        { label: "Add Tents", path: "/tentinventory/addtents", icon: Plus },
+        { label: "All Tents", path: "/tentinventory/alltents", icon: BookOpen },
+      ],
+    },
     {
       id: "tent-bookings",
       label: "Tent Bookings",
@@ -147,15 +158,15 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { label: "All Bookings", path: "/tentbookings/allbookings", icon: Calendar }
       ],
     },
-    {
-      id: "tent-reports",
-      label: "Reports",
-      icon: FileText,
-      viewTypes: ["tent"] as ViewType[],
-      children: [
-        { label: "Utilisation", path: "/reports/utilisation", icon: FileText },
-      ],
-    },
+    // {
+    //   id: "tent-reports",
+    //   label: "Reports",
+    //   icon: FileText,
+    //   viewTypes: ["tent"] as ViewType[],
+    //   children: [
+    //     { label: "Utilisation", path: "/reports/utilisation", icon: FileText },
+    //   ],
+    // },
 
     // Tourist Spot Management
     {
@@ -193,16 +204,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         { label: "All Bookings", path: "/tourist/bookings", icon: Calendar },
       ],
     },
-    {
-      id: "tourist-reports",
-      label: "Reports",
-      icon: FileText,
-      viewTypes: ["tourist-spot"] as ViewType[],
-      children: [
-        { label: "Visits", path: "/reports/visits", icon: FileText },
-        { label: "Revenue", path: "/reports/revenue", icon: FileText },
-      ],
-    },
+    // {
+    //   id: "tourist-reports",
+    //   label: "Reports",
+    //   icon: FileText,
+    //   viewTypes: ["tourist-spot"] as ViewType[],
+    //   children: [
+    //     { label: "Visits", path: "/reports/visits", icon: FileText },
+    //     { label: "Revenue", path: "/reports/revenue", icon: FileText },
+    //   ],
+    // },
   ];
 
   // Filter menu items based on current view type
