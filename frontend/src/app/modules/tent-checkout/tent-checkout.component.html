@@ -21,42 +21,26 @@
         <div class="row gap-4">
           <!-- Left Side: Summary Cards -->
           <div class="col-md-4">
-            <!-- Spot Details Card -->
+            <!-- Tent Details Card -->
             <div class="card">
-              <h5><strong>Tourist Spot Details</strong></h5>
+              <h5><strong>Tent Details</strong></h5>
               
-              <div class="pb-4" *ngIf="bookingData && bookingData.spots">
-                <div class="pt-2" *ngFor="let spot of bookingData.spots">
+              <div class="pb-4" *ngIf="bookingData && bookingData.tents">
+                <div class="pt-2" *ngFor="let tent of bookingData.tents">
                   <h6 class="fst-italic">
-                    <strong>Spot:</strong><span> {{ spot.name }}</span>
+                    <strong>Tent:</strong><span> {{ tent.name }}</span>
                   </h6>
                   <div class="small text-muted ms-2">
-                    <div *ngIf="spot.counts.adults > 0">Adults: {{ spot.counts.adults }}</div>
-                    <div *ngIf="spot.counts.vehicles > 0">Vehicles: {{ spot.counts.vehicles }}</div>
-                    <div *ngIf="spot.counts.cameras > 0">Cameras: {{ spot.counts.cameras }}</div>
+                    <div>Capacity: {{ tent.capacity }} Person(s)</div>
+                    <div>Price: ₹{{ tent.price }}</div>
                   </div>
                   <hr class="my-1">
                 </div>
                 
                 <p class="mb-1 mt-3">
-                  <strong>Total Spots: </strong><span>{{ bookingData.spots.length }}</span>
+                  <strong>Total Tents: </strong><span>{{ bookingData.tents.length }}</span>
                 </p>
-                <a class="font-weight-bold" style="cursor: pointer;" title="go back to change selection" (click)="router.navigate(['/tourist-places'])">Change your selection</a>
-              </div>
-            </div>
-
-            <!-- Booking Date Card -->
-            <div class="card">
-              <h5>Your booking details</h5>
-              <div class="d-flex">
-                <div class="col">
-                  <p class="mb-0">Visit Date</p>
-                  <!-- Assuming bookingData has a date or we use today/tomorrow if not set, but usually it's selected before or during checkout. 
-                       If visit date is part of the form, we might display it here dynamically or just static if it was passed. 
-                       For now, let's display the date from bookingData if available, or just "Selected Date" -->
-                   <h6 *ngIf="bookingData?.date">{{ bookingData.date | date:'mediumDate' }}</h6>
-                   <h6 *ngIf="!bookingData?.date" class="text-muted">Date to be selected</h6>
-                </div>
+                <a class="font-weight-bold" style="cursor: pointer;" title="go back to change selection" (click)="router.navigate(['/vanavihari/book-tent'])">Change your selection</a>
               </div>
             </div>
 
@@ -163,7 +147,6 @@
                   support with your booking ID to confirm your reservation.
                 </p>
                 <h5 class="mb-3">Review the terms before booking.</h5>
-                <!-- Terms cards (simplified for brevity, can copy full content if needed) -->
                 <div class="row row-cols-1 row-cols-md-2 g-4">
                   <div class="col">
                     <div class="card h-100">
@@ -205,7 +188,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="onCancel()">No</button>
-        <button type="button" class="btn btn-primary" (click)="router.navigate(['/tourist-places'])">Yes</button>
+        <button type="button" class="btn btn-primary" (click)="router.navigate(['/vanavihari/book-tent'])">Yes</button>
       </div>
     </div>
   </div>

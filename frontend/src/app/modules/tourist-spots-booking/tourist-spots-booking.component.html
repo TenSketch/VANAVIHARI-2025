@@ -209,6 +209,9 @@
                       [addOns]="spot.addOns"
                       [detailsLink]="['/tourist-destination']"
                       [detailsFragment]="spot.detailsFragment || spot.id"
+                      [openInNewTab]="true"
+                      [ticketsLeftToday]="spot.ticketsLeftToday"
+                      [isSoldOut]="spot.ticketsLeftToday === 0"
                       (addToBooking)="onAddTouristBooking($event, spot.id)"
                     >
                     </app-tourist-spot-selection>

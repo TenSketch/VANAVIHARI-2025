@@ -52,6 +52,9 @@ const AllTouristSpot = lazy(() => import("./pages/TouristSpot/AllTouristSpot"));
 const AllTentBook = lazy(() => import("./pages/tentBookings/AllTentBookings"));
 const AddTentBook = lazy(() => import("./pages/tentBookings/AddTentBookings"));
 
+const AllTouristBookingsPage = lazy(() => import("./pages/touristBookings/AllTouristBookingsPage"));
+const AddTouristBookingPage = lazy(() => import("./pages/touristBookings/AddTouristBookingPage"));
+
 const AddTents = lazy(() => import("./pages/tentInventory/AddTents"));
 const AllTents = lazy(() => import("./pages/tentInventory/AllTents"));
 
@@ -96,6 +99,8 @@ function App() {
           <Route path="tentspots/details" element={<AddTentSpots />} />
           <Route path="tentbookings/allbookings" element={<AllTentBook />} />
           <Route path="tentbookings/addbookings" element={<AddTentBook />} />
+          <Route path="tourist/bookings" element={<AllTouristBookingsPage />} />
+          <Route path="tourist/bookings/add" element={<AddTouristBookingPage />} />
           <Route path="reports/daily-occupancy-junglestar" element={<JunglestarReportPage />} />
           <Route path="reports/daily-occupancy-vanavihari" element={<VanaReportPage />} />
           <Route path="tentinventory/addtents" element={<AddTents />} />

@@ -1,4 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { Lightbox } from 'ng-gallery/lightbox';
 import { Gallery, GalleryItem, ImageItem, ImageSize } from 'ng-gallery';
 
@@ -40,6 +42,8 @@ export class TouristSpotSelectionComponent {
   @Input() parkingFee?: string | number;
   @Input() cameraFee?: string | number;
   @Input() fees?: { entryPerPerson?: number; parkingPerVehicle?: number; cameraPerCamera?: number; parkingTwoWheeler?: number; parkingFourWheeler?: number };
+  @Input() ticketsLeftToday?: number;
+  @Input() isSoldOut = false;
 
   // Add-ons
   @Input() addOns: TouristAddOn[] = [];
@@ -47,6 +51,8 @@ export class TouristSpotSelectionComponent {
   // Routing for details
   @Input() detailsLink: any[] | string = ['/tourist-destination'];
   @Input() detailsFragment?: string;
+  // Should details open in a new tab? Default false for backwards compatibility
+  @Input() openInNewTab = false;
 
   @Output() addToBooking = new EventEmitter<TouristBookingSelection>();
 
@@ -65,8 +71,10 @@ export class TouristSpotSelectionComponent {
 
   constructor(
     public lightbox: Lightbox,
-    public gallery: Gallery
-  ) {}
+    public gallery: Gallery,
+    private router: Router,
+    private locationSvc: Location
+  ) { }
 
   private toNumber(val: unknown): number | undefined {
     if (typeof val === 'number' && !isNaN(val)) return val;
@@ -106,9 +114,9 @@ export class TouristSpotSelectionComponent {
   get estimatedTotal(): number | undefined {
     const e = this.unitEntry, p = this.unitParking, c = this.unitCamera;
     const p2 = this.parkingTwoWheeler, p4 = this.parkingFourWheeler;
-    
+
     if (e === undefined && p === undefined && c === undefined && p2 === undefined && p4 === undefined && this.addOnsTotal === 0) return undefined;
-    
+
     let parkingTotal = 0;
     if (p2 !== undefined && p4 !== undefined) {
       // Use split parking
@@ -117,13 +125,13 @@ export class TouristSpotSelectionComponent {
       // Use generic parking
       parkingTotal = (p || 0) * (this.vehicles || 0);
     }
-    
+
     const base = (e || 0) * this.peopleCount + parkingTotal + (c || 0) * (this.cameras || 0);
     return base + this.addOnsTotal;
   }
 
-  inc(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
-  dec(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') {
+  inc(field: 'adults' | 'children' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
+  dec(field: 'adults' | 'children' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') {
     const next = Math.max(0, ((this as any)[field] || 0) - 1);
     // allow adults to go to zero; the template will disable add-to-booking until adults >= 1
     (this as any)[field] = next;
@@ -154,6 +162,14 @@ export class TouristSpotSelectionComponent {
       addOns: Array.from(this.selectedAddOnIds),
     };
     this.addToBooking.emit(payload);
+  }
+
+  get detailsHref(): string {
+    const link = Array.isArray(this.detailsLink) ? this.detailsLink : [this.detailsLink];
+    const tree = this.router.createUrlTree(link, { fragment: this.detailsFragment });
+    // serializeUrl returns path like '/tourist-destination#jalatarangini'.
+    // prepareExternalUrl adds the configured base/hashing strategy so the final output is '/#/tourist-destination#jalatarangini'.
+    return this.locationSvc.prepareExternalUrl(this.router.serializeUrl(tree));
   }
 
   setGalleryData(index: number) {

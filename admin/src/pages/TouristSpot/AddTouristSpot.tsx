@@ -8,11 +8,13 @@ const AddTouristSpot = () => {
 
         const [form, setForm] = useState({
             name: '',
-            category: '',
+            category: 'TREK', // Default to TREK for trek spots
             entryFees: '',
             parking2W: '',
             parking4W: '',
             cameraFees: '',
+            maxSlotsPerDay: '',
+            maxMembersPerSlot: '30',
             description: '',
             address: '',
             mapEmbed: '',
@@ -30,7 +32,11 @@ const AddTouristSpot = () => {
         setError(null);
         setSuccess(null);
 
-            try {
+                try {
+                    // Simple required field validation
+                    if (!form.name || form.entryFees === '') {
+                        throw new Error('Spot Name and Entry Fee are required');
+                    }
                 // If there are images, send multipart/form-data
                 if (newImages.length > 0) {
                     const formData = new FormData();
@@ -43,6 +49,8 @@ const AddTouristSpot = () => {
                     if (form.cameraFees !== '') formData.append('cameraFees', String(Number(form.cameraFees)));
                     if (form.description) formData.append('description', form.description);
                     if (form.address) formData.append('address', form.address);
+                    if (form.maxSlotsPerDay !== '') formData.append('maxSlotsPerDay', String(Number(form.maxSlotsPerDay)));
+                    if (form.maxMembersPerSlot !== '') formData.append('maxMembersPerSlot', String(Number(form.maxMembersPerSlot)));
                     if (form.mapEmbed) formData.append('mapEmbed', form.mapEmbed);
 
                     const res = await fetch(`${apiBase}/api/touristspots/add`, {
@@ -69,6 +77,8 @@ const AddTouristSpot = () => {
                     if (form.cameraFees !== '') payload.cameraFees = Number(form.cameraFees);
                     if (form.description) payload.description = form.description;
                     if (form.address) payload.address = form.address;
+                    if (form.maxSlotsPerDay !== '') payload.maxSlotsPerDay = Number(form.maxSlotsPerDay);
+                    if (form.maxMembersPerSlot !== '') payload.maxMembersPerSlot = Number(form.maxMembersPerSlot);
                     if (form.mapEmbed) payload.mapEmbed = form.mapEmbed;
 
                     const res = await fetch(`${apiBase}/api/touristspots/add`, {
@@ -86,7 +96,7 @@ const AddTouristSpot = () => {
                 }
 
                 setSuccess('Tourist spot added successfully');
-                setForm({ name: '', category: '', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', description: '', address: '', mapEmbed: '' });
+                setForm({ name: '', category: 'TREK', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', maxSlotsPerDay: '', maxMembersPerSlot: '', description: '', address: '', mapEmbed: '' });
                 setNewImages([]);
             } catch (err: any) {
                 console.error('Add tourist spot error', err);
@@ -97,7 +107,7 @@ const AddTouristSpot = () => {
     };
 
     const handleReset = () => {
-        setForm({ name: '', category: '', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', description: '', address: '', mapEmbed: '' });
+        setForm({ name: '', category: 'TREK', entryFees: '', parking2W: '', parking4W: '', cameraFees: '', maxSlotsPerDay: '', maxMembersPerSlot: '', description: '', address: '', mapEmbed: '' });
         setNewImages([]);
         setError(null);
         setSuccess(null);
@@ -122,35 +132,47 @@ const AddTouristSpot = () => {
                     <div className="p-4 bg-transparent">
                         <div className="space-y-4">
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Tourist Spot Name</Label>
-                                                <Input value={form.name} onChange={(e) => setForm(s => ({ ...s, name: e.target.value }))} className="w-full" />
+                                                <Label className="text-sm font-medium text-gray-700">Spot Name</Label>
+                                                <Input placeholder="e.g. Jalatarangini" value={form.name} onChange={(e) => setForm(s => ({ ...s, name: e.target.value }))} className="w-full" />
                                             </div>
 
                             <div>
                                 <Label className="text-sm font-medium text-gray-700">Category</Label>
-                                <Input value={form.category} onChange={(e) => setForm(s => ({ ...s, category: e.target.value }))} className="w-full" />
+                                <Input value={form.category} onChange={(e) => setForm(s => ({ ...s, category: e.target.value }))} className="w-full" disabled />
+                                <p className="text-xs text-gray-500 mt-1">Defaulted to 'TREK' for trek spots</p>
                             </div>
 
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Entry Fees</Label>
-                                    <Input type="number" value={form.entryFees} onChange={(e) => setForm(s => ({ ...s, entryFees: e.target.value }))} className="w-full" />
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Entry Fee (₹) <span className="text-red-600">*</span></Label>
+                                    <Input required type="number" min={0} placeholder="e.g. 800" value={form.entryFees} onChange={(e) => setForm(s => ({ ...s, entryFees: e.target.value }))} className="w-full" />
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">2W Parking</Label>
-                                    <Input type="number" value={form.parking2W} onChange={(e) => setForm(s => ({ ...s, parking2W: e.target.value }))} className="w-full" />
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">2W Parking Fee (Optional)</Label>
+                                    <Input type="number" min={0} value={form.parking2W} onChange={(e) => setForm(s => ({ ...s, parking2W: e.target.value }))} className="w-full" />
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">4W Parking</Label>
-                                    <Input type="number" value={form.parking4W} onChange={(e) => setForm(s => ({ ...s, parking4W: e.target.value }))} className="w-full" />
+                                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">4W Parking Fee (Optional)</Label>
+                                    <Input type="number" min={0} value={form.parking4W} onChange={(e) => setForm(s => ({ ...s, parking4W: e.target.value }))} className="w-full" />
                                 </div>
                             </div>
 
                             <div>
-                                <Label className="text-sm font-medium text-gray-700">Camera Fees</Label>
-                                <Input type="number" value={form.cameraFees} onChange={(e) => setForm(s => ({ ...s, cameraFees: e.target.value }))} className="w-full" />
+                                <Label className="text-sm font-medium text-gray-700">Camera Fee (Optional)</Label>
+                                <Input type="number" min={0} value={form.cameraFees} onChange={(e) => setForm(s => ({ ...s, cameraFees: e.target.value }))} className="w-full" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">Max Treks/Slots per Day</Label>
+                                    <Input type="number" min={1} placeholder="e.g. 2" value={form.maxSlotsPerDay} onChange={(e) => setForm(s => ({ ...s, maxSlotsPerDay: e.target.value }))} className="w-full" />
+                                </div>
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-700">Max Members per Trek/Slot</Label>
+                                    <Input type="number" min={1} placeholder="e.g. 30" value={form.maxMembersPerSlot} onChange={(e) => setForm(s => ({ ...s, maxMembersPerSlot: e.target.value }))} className="w-full" />
+                                </div>
                             </div>
               
                                             <div>
@@ -169,7 +191,8 @@ const AddTouristSpot = () => {
                                             </div>
 
                                             <div>
-                                                <Label className="text-sm font-medium text-gray-700">Images</Label>
+                                                <Label className="text-sm font-medium text-gray-700">Photos (multiple)</Label>
+                                                <p className="text-xs text-gray-500">For frontend scroll view</p>
                                                 <input type="file" accept="image/*" multiple onChange={(e) => {
                                                     const files = e.target.files;
                                                     if (files) setNewImages(Array.from(files));
@@ -198,9 +221,11 @@ const AddTouristSpot = () => {
                                     <div key={i} className="p-3 border rounded bg-white">
                                         <div className="font-medium">{a.name || a.title || '—'}</div>
                                         <div className="text-sm text-slate-600">Category: {a.category || '—'}</div>
-                                        <div className="text-sm">Entry: ₹{(a.entryFees ?? 0).toLocaleString()}</div>
-                                        <div className="text-sm">2W Park: ₹{(a.parking2W ?? 0).toLocaleString()} • 4W Park: ₹{(a.parking4W ?? 0).toLocaleString()}</div>
-                                        <div className="text-sm">Camera: {a.cameraFees ? `₹${a.cameraFees}` : '—'}</div>
+                                            <div className="text-sm">Entry: ₹{(a.entryFees ?? 0).toLocaleString()}</div>
+                                            <div className="text-sm">Address: {a.address || '—'}</div>
+                                            <div className="text-sm">2W Park: {a.parking2W ? `₹${a.parking2W}` : '—'} • 4W Park: {a.parking4W ? `₹${a.parking4W}` : '—'}</div>
+                                            <div className="text-sm">Camera: {a.cameraFees ? `₹${a.cameraFees}` : '—'}</div>
+                                            <div className="text-sm">Max Slots/Day: {a.maxSlotsPerDay ?? '—'} • Max Members/Slot: {a.maxMembersPerSlot ?? '—'}</div>
                                     </div>
                                 ))}
                             </div>

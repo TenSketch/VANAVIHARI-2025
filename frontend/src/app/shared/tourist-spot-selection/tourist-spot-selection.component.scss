@@ -23,7 +23,7 @@
 /* Two-column layout: Gallery on left, Info cards on right */
 .gallery-and-info {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 4fr 6fr; /* 40% - 60% split */
   gap: 1.5rem;
   align-items: start;
 }
@@ -37,8 +37,8 @@
   gap: 0.75rem;
 }
 .gallery img {
-  height: 120px; /* reduced from 140px */
-  width: 180px; /* reduced from 220px */
+  height: 200px; /* Increased height for better aspect ratio with wider width */
+  width: 100%; /* Fill the 40% column */
   border-radius: 8px;
   object-fit: cover; /* zoom to fill the thumbnail canvas */
   cursor: pointer;
@@ -55,14 +55,15 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.6rem; /* reduced from 0.75rem */
+  grid-auto-rows: minmax(92px, auto); /* ensures consistently tall cards for readability */
 }
 
 .grid-card {
   background: #ffffff; /* solid white background */
   border: 1px solid hsl(90, 50%, 85%);
   border-radius: 10px;
-  padding: 0.8rem; /* reduced from 1rem */
-  min-height: 70px; /* reduced from 84px */
+  padding: 0.9rem; /* slightly increased to give breathing room */
+  min-height: 92px; /* increased for clarity */
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.18s ease;
   position: relative;
@@ -91,7 +92,9 @@
 .grid-card .card-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  justify-content: center; /* centers icon + info horizontally */
+  text-align: center; /* make nested texts centered */
 }
 
 .grid-card .icon {
@@ -109,19 +112,20 @@
 .grid-card .info {
   flex: 1;
   display: flex;
-  flex-direction: row; /* change to row for same-line layout */
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column; /* stack label and value for better centered layout */
+  align-items: center; /* center label/value under icon */
+  justify-content: center;
+  gap: 0.25rem;
 }
 
 .grid-card .label {
   color: #495057;
-  font-size: 0.8rem;
+  font-size: 0.82rem; /* slightly larger for readability on mobile */
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
-  line-height: 1;
+  letter-spacing: 0.35px;
+  line-height: 1.05;
+  text-align: center; /* center the label text */
 }
 
 .grid-card .label .required {
@@ -132,21 +136,22 @@
 
 .grid-card .value {
   font-weight: 700;
-  font-size: 1.1rem; /* slightly larger value */
+  font-size: 1.06rem; /* slightly toned down to avoid overflow on narrow cards */
   color: hsl(90, 100%, 20%);
   line-height: 1.1;
+  text-align: center; /* center the numeric value */
 }
 
 .grid-card .ctrl {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center; /* center controls horizontally */
   gap: 0.5rem;
 }
 
 .grid-card .ctrl button {
-  width: 40px; /* slightly larger */
-  height: 40px;
+  width: 36px; /* slightly reduced to save horizontal real estate on mobile */
+  height: 36px;
   border-radius: 8px;
   border: 1px solid #ced4da;
   background: #f8f9fa;
@@ -166,6 +171,14 @@
   font-weight: 700;
   font-size: 1.05rem;
   color: #212529;
+}
+
+/* Small note area indicating tickets left or sold out; align under the controls */
+.grid-card .stock-indicator {
+  text-align: center;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  padding: 0 12px 8px;
 }
 
 /* Right side: Booking inputs (vertically stacked) */
@@ -220,14 +233,35 @@
   /* mobile: quick info becomes 2x2 grid */
   .quick-info-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    gap: 0.8rem; /* slightly bigger spacing on mobile for breathing room */
+    grid-auto-rows: minmax(96px, auto);
   }
   .grid-card {
-    padding: 0.7rem;
+    padding: 0.85rem;
+    min-height: 96px;
   }
   .grid-card .icon {
-    font-size: 2rem;
+    font-size: 1.85rem;
   }
+  .grid-card .card-header {
+    display: flex;
+    flex-direction: column; /* stack icon, label & value on narrow screens to reduce horizontal crowding */
+    align-items: center; /* better visual balance - icon and labels centered in small cards */
+    gap: 0.45rem;
+  }
+  .grid-card .info {
+    flex-direction: column;
+    align-items: center; /* center label & value under icon */
+    gap: 0.2rem;
+  }
+  .grid-card .value { font-size: 1rem; }
+  .grid-card .label { font-size: 0.78rem; }
+  .grid-card .ctrl {
+    width: 100%;
+    justify-content: center; /* center controls under the card to avoid side congestion */
+    gap: 0.6rem;
+  }
+  .grid-card .ctrl button { width: 36px; height: 36px; }
   /* mobile: make gallery horizontal scrollable */
   .gallery {
     overflow-x: auto;
@@ -237,6 +271,17 @@
     gap: 0.5rem;
   }
   .gallery img { height: 120px; width: 180px; }
+}
+
+/* Very small devices (tiny phones): optimize proportions further */
+@media (max-width: 420px) {
+  .quick-info-grid { gap: 0.85rem; }
+  .grid-card { padding: 0.75rem; min-height: 92px; }
+  .grid-card .icon { font-size: 1.6rem; }
+  .grid-card .label { font-size: 0.72rem; }
+  .grid-card .value { font-size: 0.95rem; }
+  .grid-card .ctrl button { width: 32px; height: 32px; }
+  .grid-card .ctrl span { font-size: 0.95rem; }
 }
 
 /* tablet breakpoint: horizontal gallery */

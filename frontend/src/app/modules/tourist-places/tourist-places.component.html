@@ -25,6 +25,10 @@
             ]"
             [detailsLink]="['/tourist-destination']"
             detailsFragment="jalatarangini"
+            [maxSlotsPerDay]="maxSlotsForSpotId('jalatarangini')"
+            [maxMembersPerSlot]="maxMembersForSpotId('jalatarangini')"
+            [ticketsLeftToday]="ticketsLeftForSpotId('jalatarangini')"
+            [isSoldOut]="(ticketsLeftForSpotId('jalatarangini') !== undefined && ticketsLeftForSpotId('jalatarangini') <= 0)"
             (addToBooking)="onAddTouristBooking($event)">
           </app-tourist-spot-selection>
         </div>
