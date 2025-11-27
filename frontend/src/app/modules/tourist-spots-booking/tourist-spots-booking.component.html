@@ -209,6 +209,7 @@
                       [addOns]="spot.addOns"
                       [detailsLink]="['/tourist-destination']"
                       [detailsFragment]="spot.detailsFragment || spot.id"
+                      [openInNewTab]="true"
                       (addToBooking)="onAddTouristBooking($event, spot.id)"
                     >
                     </app-tourist-spot-selection>

@@ -1,4 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { Lightbox } from 'ng-gallery/lightbox';
 import { Gallery, GalleryItem, ImageItem, ImageSize } from 'ng-gallery';
 
@@ -47,6 +49,8 @@ export class TouristSpotSelectionComponent {
   // Routing for details
   @Input() detailsLink: any[] | string = ['/tourist-destination'];
   @Input() detailsFragment?: string;
+  // Should details open in a new tab? Default false for backwards compatibility
+  @Input() openInNewTab = false;
 
   @Output() addToBooking = new EventEmitter<TouristBookingSelection>();
 
@@ -65,7 +69,9 @@ export class TouristSpotSelectionComponent {
 
   constructor(
     public lightbox: Lightbox,
-    public gallery: Gallery
+    public gallery: Gallery,
+    private router: Router,
+    private locationSvc: Location
   ) {}
 
   private toNumber(val: unknown): number | undefined {
@@ -154,6 +160,14 @@ export class TouristSpotSelectionComponent {
       addOns: Array.from(this.selectedAddOnIds),
     };
     this.addToBooking.emit(payload);
+  }
+
+  get detailsHref(): string {
+    const link = Array.isArray(this.detailsLink) ? this.detailsLink : [this.detailsLink];
+    const tree = this.router.createUrlTree(link, { fragment: this.detailsFragment });
+    // serializeUrl returns path like '/tourist-destination#jalatarangini'.
+    // prepareExternalUrl adds the configured base/hashing strategy so the final output is '/#/tourist-destination#jalatarangini'.
+    return this.locationSvc.prepareExternalUrl(this.router.serializeUrl(tree));
   }
 
   setGalleryData(index: number) {
