@@ -1,137 +1,87 @@
-<!-- Full-width section wrapper using Bootstrap -->
 <div class="container tourist-spot-section">
-  <!-- <div class="container"> -->
-    <div class="tourist-spot">
-  <!-- Header -->
-  <header class="header">
-    <h3 class="title">{{ name }}<span class="sep">,</span> <span class="loc">{{ location }}</span></h3>
-    <div class="sub" *ngIf="type">{{ type }}</div>
-  </header>
+  <div class="tourist-spot">
+    <!-- Entry fee badge shown on top-right if fee exists -->
+    <!-- Ticket-style pricing badge -->
+    <div class="ticket-badge" *ngIf="unitEntry !== undefined">
+      <div class="ticket-content">
+        <div class="ticket-main">
+          <div class="ticket-price-row">
+            <span class="currency">INR</span>
+            <span class="amount">₹{{ (unitEntry * peopleCount) | number:'1.0-0' }}</span>
+          </div>
+          <div class="ticket-sub">{{ peopleCount }} x guest</div>
+        </div>
+        
+        <div class="ticket-divider" *ngIf="parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined || unitCamera !== undefined"></div>
 
-  <!-- Two-column layout: Gallery on left, Info cards on right -->
-  <div class="gallery-and-info">
-    <!-- Left side: Gallery with vertical stack -->
-    <div class="gallery" *ngIf="images?.length">
-      <div class="rail">
-        <img 
-          *ngFor="let img of images; let i = index" 
-          [src]="img" 
-          [alt]="name" 
-          (click)="openLightbox(i)"
-          style="cursor: pointer;" />
-      </div>
-    </div>
-
-    <!-- Right side: 2x2 Grid with inline controls -->
-    <div class="quick-info-grid">
-      <!-- Top Left: Entry (moved to be first and marked required) -->
-      <div class="grid-card" *ngIf="unitEntry !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-ticket-simple"></i></div>
-          <div class="info">
-            <div class="label">Entry <span class="required">*</span></div>
-            <div class="value">₹{{ unitEntry }}</div>
+        <div class="ticket-extras" *ngIf="parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined || unitCamera !== undefined">
+          <div class="extra-row" *ngIf="parkingTwoWheeler !== undefined">
+            <span class="label">2 wheeler</span>
+            <span class="price">₹{{ parkingTwoWheeler }}</span>
+          </div>
+          <div class="extra-row" *ngIf="parkingFourWheeler !== undefined">
+            <span class="label">4 wheeler</span>
+            <span class="price">₹{{ parkingFourWheeler }}</span>
+          </div>
+          <div class="extra-row" *ngIf="unitCamera !== undefined">
+            <span class="label">camera</span>
+            <span class="price">₹{{ unitCamera }}</span>
           </div>
         </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('adults')">−</button>
-          <span>{{ adults }}</span>
-          <button type="button" (click)="inc('adults')">＋</button>
+      </div>
+    </div>
+    <div class="row">
+      <!-- Left Column: Images -->
+      <div class="col-md-6">
+        <!-- Header moved here to be shown on the top-left above images -->
+        <header class="header header-left">
+          <h3 class="title">{{ name }}<span class="sep">,</span> <span class="loc">{{ location }}</span></h3>
+          <div class="sub" *ngIf="type">{{ type }}</div>
+        </header>
+
+        <div class="image-grid-horizontal" *ngIf="images?.length">
+          <div class="grid-item" *ngFor="let img of images; let i = index">
+            <img [src]="img" [alt]="name" (click)="openLightbox(i)" style="cursor: pointer;" />
+          </div>
         </div>
-        <!-- Stock Indicator (moved to below the controls to display under the - 0 +) -->
-        <div class="stock-indicator">
-          <ng-container *ngIf="isSoldOut; else available">
-            <span class="text-danger">❌ Tickets sold out for today</span>
-          </ng-container>
-          <ng-template #available>
-            <span *ngIf="ticketsLeftToday !== undefined" class="text-success">
-              ✔ {{ ticketsLeftToday }} tickets left today
+      </div>
+
+        <!-- Right Column: Details & Pricing (header relocated to left column) -->
+      <div class="col-md-6">
+
+        <!-- Info & Pricing Section -->
+        <div class="info-pricing-section mt-3">
+          
+          <!-- Difficulty, Distance, Elevation -->
+          <div class="spot-details d-flex flex-wrap gap-3 mb-3" *ngIf="difficulty || distance || elevationGain">
+            <span class="badge bg-light text-dark border" *ngIf="difficulty">
+              <strong>Difficulty:</strong> {{ difficulty }}
             </span>
+            <span class="badge bg-light text-dark border" *ngIf="distance">
+              <strong>Distance:</strong> {{ distance }} km
+            </span>
+            <span class="badge bg-light text-dark border" *ngIf="elevationGain">
+              <strong>Elevation Gain:</strong> {{ elevationGain }} m
+            </span>
+          </div>
+
+
+        </div>
+
+        <!-- Actions (bottom-right) -->
+        <div class="actions actions-right actions-bottom-right mt-3">
+          <button class="btn add" [disabled]="isSoldOut" (click)="onAddToBooking()">
+            {{ isSoldOut ? '[Sold Out]' : 'Add to Booking' }}
+          </button>
+          
+          <ng-container *ngIf="openInNewTab; else inlineLink">
+            <a [href]="detailsHref" class="btn details" target="_blank" rel="noopener noreferrer">View Details →</a>
+          </ng-container>
+          <ng-template #inlineLink>
+            <a [routerLink]="detailsLink" [fragment]="detailsFragment" class="btn details">View Details →</a>
           </ng-template>
         </div>
       </div>
-      <!-- Top Left: 2-Wheeler -->
-      <div class="grid-card" *ngIf="parkingTwoWheeler !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-motorcycle"></i></div>
-          <div class="info">
-            <div class="label">2-Wheeler</div>
-            <div class="value">₹{{ parkingTwoWheeler }}</div>
-          </div>
-        </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('twoWheelers')">−</button>
-          <span>{{ twoWheelers }}</span>
-          <button type="button" (click)="inc('twoWheelers')">＋</button>
-        </div>
-      </div>
-
-      <!-- Top Right: 4-Wheeler -->
-      <div class="grid-card" *ngIf="parkingFourWheeler !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-car-side"></i></div>
-          <div class="info">
-            <div class="label">4-Wheeler</div>
-            <div class="value">₹{{ parkingFourWheeler }}</div>
-          </div>
-        </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('fourWheelers')">−</button>
-          <span>{{ fourWheelers }}</span>
-          <button type="button" (click)="inc('fourWheelers')">＋</button>
-        </div>
-      </div>
-
-      
-
-      <!-- Bottom Right: Camera -->
-      <div class="grid-card" *ngIf="unitCamera !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-camera"></i></div>
-          <div class="info">
-            <div class="label">Camera</div>
-            <div class="value">₹{{ unitCamera }}</div>
-          </div>
-        </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('cameras')">−</button>
-          <span>{{ cameras }}</span>
-          <button type="button" (click)="inc('cameras')">＋</button>
-        </div>
-      </div>
-
-      <!-- Fallback: Generic parking if split not available -->
-      <div class="grid-card" *ngIf="(parkingTwoWheeler === undefined || parkingFourWheeler === undefined) && unitParking !== undefined">
-        <div class="card-header">
-          <div class="icon"><i class="fa-solid fa-square-parking"></i></div>
-          <div class="info">
-            <div class="label">Parking</div>
-            <div class="value">₹{{ unitParking }}</div>
-          </div>
-        </div>
-        <div class="ctrl">
-          <button type="button" (click)="dec('vehicles')">−</button>
-          <span>{{ vehicles }}</span>
-          <button type="button" (click)="inc('vehicles')">＋</button>
-        </div>
-      </div>
     </div>
   </div>
-
-  <!-- Add-ons removed: optional services are not displayed in the booking cards -->
-
-  <!-- Actions (right aligned) -->
-  <div class="actions actions-right">
-    <button class="btn add" [disabled]="adults < 1 || isSoldOut" (click)="onAddToBooking()">
-      {{ isSoldOut ? '[Sold Out]' : 'Add to Booking' }}
-    </button>
-    <ng-container *ngIf="openInNewTab; else inlineLink">
-      <a [href]="detailsHref" class="btn details" target="_blank" rel="noopener noreferrer">View Details →</a>
-    </ng-container>
-    <ng-template #inlineLink>
-      <a [routerLink]="detailsLink" [fragment]="detailsFragment" class="btn details">View Details →</a>
-    </ng-template>
-  </div>
-    </div>
-  <!-- </div> -->
 </div>

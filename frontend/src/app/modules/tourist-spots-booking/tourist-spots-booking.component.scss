@@ -5,7 +5,7 @@
 
 .page-banner {
   color: white;
-  padding: 0; /* slideshow will control padding */
+  padding: 0;
   margin-bottom: 0;
 }
 
@@ -13,9 +13,8 @@
 .hero-slideshow {
   position: relative;
   width: 100%;
-  /* Cover full viewport height but account for the header/top padding set on .main (80px) */
   height: calc(100vh - 30px);
-  min-height: 360px; /* sensible minimum for small viewports */
+  min-height: 360px;
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -59,7 +58,7 @@
 .hero-overlay h1 {
   margin: 0;
   color: #fff;
-  text-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
 .hero-dots {
@@ -76,7 +75,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   border: none;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
@@ -93,34 +92,42 @@
 .tourist-spots-list {
   .tourist-spot-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    
+
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
     }
+  }
+
+  /* Category header / section title styling in the booking list */
+  h2.h4 {
+    color: #0b5a2b;
+    font-weight: 700;
+    font-size: 1.25rem;
   }
 }
 
 .booking-summary-card {
   position: sticky;
   top: 100px;
+
   .card {
     border: none;
     border-radius: 15px;
     overflow: hidden;
   }
-  
+
   .card-header {
     background: linear-gradient(135deg, hsl(90, 100%, 30%) 0%, hsl(90, 100%, 20%) 100%) !important;
     border: none;
     padding: 1.25rem;
     user-select: none;
     transition: background 0.2s ease;
-    
+
     &:hover {
       background: linear-gradient(135deg, hsl(90, 100%, 20%) 0%, hsl(90, 100%, 30%) 100%) !important;
     }
-    
+
     h5 {
       font-weight: 600;
     }
@@ -134,7 +141,7 @@
       }
     }
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
@@ -159,38 +166,36 @@
   border: 1px solid #e9ecef !important;
   border-radius: 10px;
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: hsl(90, 100%, 30%) !important;
     box-shadow: 0 2px 8px rgba(77, 153, 0, 0.08);
   }
-  
+
   h6 {
-    color: hsl(90, 100%, 20%); /* dark green matching resort */
+    color: hsl(90, 100%, 20%);
     font-weight: 600;
   }
-  
+
   .fee-breakdown {
     color: #6c757d;
-    
-    /* Keep each fee row left-right aligned and prevent stacking on small screens */
-    > div.d-flex {
+
+    >div.d-flex {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 0.75rem;
 
-      /* Ensure left side can truncate while right side stays visible */
-      & > span:first-child {
-        flex: 1 1 auto; /* grow/shrink */
-        min-width: 0; /* allow truncation */
+      &>span:first-child {
+        flex: 1 1 auto;
+        min-width: 0;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
 
-      & > span:last-child {
-        flex: 0 0 auto; /* keep size for amount */
+      &>span:last-child {
+        flex: 0 0 auto;
         margin-left: 1rem;
         white-space: nowrap;
       }
@@ -199,6 +204,26 @@
     .fw-bold {
       color: #212529;
     }
+
+    .stepper-control {
+      min-width: 80px;
+      justify-content: space-between;
+
+      button {
+        font-size: 1.2rem;
+        line-height: 1;
+
+        &:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+
+        &:hover:not(:disabled) {
+          background-color: #e9ecef;
+          border-radius: 4px;
+        }
+      }
+    }
   }
 }
 
@@ -206,24 +231,25 @@
   background: linear-gradient(135deg, hsl(89, 100%, 92%) 0%, hsl(90, 100%, 85%) 100%);
   border-radius: 10px;
   padding: 1.25rem;
-  
-  h5, h4 {
+
+  h5,
+  h4 {
     font-weight: 700;
   }
-  
+
   .btn-success {
-    background: linear-gradient(135deg, hsl(90,100%,30%) 0%, hsl(90,100%,40%) 100%);
+    background: linear-gradient(135deg, hsl(90, 100%, 30%) 0%, hsl(90, 100%, 40%) 100%);
     border: none;
     border-radius: 10px;
     padding: 0.75rem 1.5rem;
     font-weight: 600;
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(77,153,0,0.22);
+      box-shadow: 0 4px 15px rgba(77, 153, 0, 0.22);
     }
-    
+
     &:disabled {
       opacity: 0.6;
       transform: none;
@@ -240,7 +266,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     background-color: #dc3545;
     border-color: #dc3545;
@@ -254,7 +280,7 @@
     border-radius: 15px;
     overflow: hidden;
   }
-  
+
   .card-header {
     background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
     border: none;
@@ -265,7 +291,7 @@
     &:hover {
       background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%) !important;
     }
-    
+
     h5 {
       font-weight: 600;
     }
@@ -291,7 +317,7 @@
       }
     }
   }
-  
+
   .card-body {
     padding: 1.5rem;
   }
@@ -358,48 +384,42 @@
 
 // Responsive adjustments
 @media (max-width: 991.98px) {
-  /* Keep filters static on small screens but keep booking summary sticky
-     so users can always see their booking as they scroll. */
   .filters-card {
     position: static !important;
     margin-top: 1rem;
   }
 
   .booking-summary-card {
-    /* On small screens, make the booking summary fixed under the navbar
-       so it remains visible while the user scrolls the list. */
     position: fixed !important;
-    top: 80px !important; /* adjust to match your navbar height */
+    top: 80px !important;
     right: 1rem !important;
     left: 1rem !important;
     margin: 0 !important;
-  z-index: 900; /* below overlays/lightboxes (e.g., Angular Material ~1000), above page content */
-    max-height: calc(100vh - 96px); /* leave space for navbar + small gap */
-    overflow: auto; /* allow internal scrolling of the summary card */
-  }
-
-  /* Mobile: the booking summary uses a Material accordion */
-  .col-md-4 mat-accordion {
-    position: fixed !important;
-    top: 80px !important; /* align with navbar */
-    right: 1rem !important;
-    left: 1rem !important;
-    margin: 0 !important;
-    z-index: 900; /* ensure lightboxes/modals sit above */
+    z-index: 900;
     max-height: calc(100vh - 96px);
     overflow: auto;
   }
 
-  /* Add spacing between booking summary and tourist spots content on mobile */
+  .col-md-4 mat-accordion {
+    position: fixed !important;
+    top: 80px !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    margin: 0 !important;
+    z-index: 900;
+    max-height: calc(100vh - 96px);
+    overflow: auto;
+  }
+
   .tourist-spots-list {
     margin-top: 100px !important;
   }
 
-  /* Slightly smaller top offset on very small devices */
   @media (max-width: 575.98px) {
     .booking-summary-card {
       top: 70px !important;
     }
+
     .col-md-4 mat-accordion {
       top: 70px !important;
     }
@@ -416,22 +436,13 @@
     transform: translate(-50%, -100%);
     opacity: 0;
   }
+
   to {
     transform: translate(-50%, 0);
     opacity: 1;
   }
 }
 
-/* Category header / section title styling in the booking list */
-.tourist-spots-list {
-  h2.h4 {
-    color: #0b5a2b; /* full dark green for category titles */
-    font-weight: 700;
-    font-size: 1.25rem; /* slightly larger */
-  }
-}
-
-/* Slight adjustment for sticky offsets on large screens when filter column is narrower */
 @media (min-width: 992px) {
   .filters-card.sticky-top {
     top: 90px !important;
@@ -442,13 +453,13 @@
   }
 }
 
-// Booking summary bar styles (matching resort pages)
+// Booking summary bar styles
 .booking-summary-bar {
   background: hsl(90, 100%, 90%);
   padding: 20px;
   z-index: unset;
   position: sticky;
-  top: 100px; /* stick just below the navbar on desktop */
+  top: 100px;
 
   &--title {
     position: relative;
@@ -458,7 +469,7 @@
       content: "\f0f3";
       font-family: "Font Awesome 6 Free";
       font-size: 18px;
-      color: hsl(90,100%,30%);
+      color: hsl(90, 100%, 30%);
       top: 50%;
       transform: translateY(-50%);
       right: -22%;
@@ -470,4 +481,3 @@
   height: 50dvh;
   overflow-y: scroll;
 }
-  
