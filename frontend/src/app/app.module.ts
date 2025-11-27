@@ -90,6 +90,7 @@ import { PageNotFoundPageComponentComponent } from './modules/page-not-found-pag
 import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/tourist-spots-booking.component';
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
+import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
 
 
 
@@ -129,7 +130,7 @@ import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/to
     ForgotPasswordComponent,
     ResetPasswordComponent,
     TestRoomComponent,
-  BookTentComponent,
+    BookTentComponent,
     CancelRequestComponent,
     TestBookingsComponent,
     CancelStatusComponent,
@@ -137,7 +138,8 @@ import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/to
     PageNotFoundPageComponentComponent,
     TouristSpotsBookingComponent,
     TouristSpotsCheckoutComponent,
-    TouristSpotsSuccessComponent
+    TouristSpotsSuccessComponent,
+    TentCheckoutComponent
 
   ],
   imports: [

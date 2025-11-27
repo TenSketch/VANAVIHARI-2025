@@ -38,6 +38,17 @@
           <span>{{ adults }}</span>
           <button type="button" (click)="inc('adults')">＋</button>
         </div>
+        <!-- Stock Indicator (moved to below the controls to display under the - 0 +) -->
+        <div class="stock-indicator">
+          <ng-container *ngIf="isSoldOut; else available">
+            <span class="text-danger">❌ Tickets sold out for today</span>
+          </ng-container>
+          <ng-template #available>
+            <span *ngIf="ticketsLeftToday !== undefined" class="text-success">
+              ✔ {{ ticketsLeftToday }} tickets left today
+            </span>
+          </ng-template>
+        </div>
       </div>
       <!-- Top Left: 2-Wheeler -->
       <div class="grid-card" *ngIf="parkingTwoWheeler !== undefined">
@@ -111,7 +122,9 @@
 
   <!-- Actions (right aligned) -->
   <div class="actions actions-right">
-    <button class="btn add" [disabled]="adults < 1" (click)="onAddToBooking()">Add to Booking</button>
+    <button class="btn add" [disabled]="adults < 1 || isSoldOut" (click)="onAddToBooking()">
+      {{ isSoldOut ? '[Sold Out]' : 'Add to Booking' }}
+    </button>
     <ng-container *ngIf="openInNewTab; else inlineLink">
       <a [href]="detailsHref" class="btn details" target="_blank" rel="noopener noreferrer">View Details →</a>
     </ng-container>

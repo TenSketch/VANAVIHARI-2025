@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import type { ReactNode } from "react";
 
 export type ViewType = "resort" | "tent" | "tourist-spot";
@@ -32,6 +32,7 @@ const getViewTypeFromPath = (pathname: string): ViewType => {
 
 export const ViewTypeProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Initialize state from localStorage or default to "resort"
   const [viewType, setViewTypeState] = useState<ViewType>(() => {
@@ -53,6 +54,19 @@ export const ViewTypeProvider = ({ children }: { children: ReactNode }) => {
   const setViewType = (type: ViewType) => {
     setViewTypeState(type);
     localStorage.setItem("admin-view-type", type);
+
+    // Navigate to the module-specific booking/reservation page
+    switch (type) {
+      case "resort":
+        navigate('/reservation/all');
+        break;
+      case "tent":
+        navigate('/tentbookings/allbookings');
+        break;
+      case "tourist-spot":
+        navigate('/tourist/bookings');
+        break;
+    }
   };
 
   return (

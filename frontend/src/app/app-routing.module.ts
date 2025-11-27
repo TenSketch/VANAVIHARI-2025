@@ -39,6 +39,7 @@ import { CancelRequestManualComponent } from './modules/cancel-request-manual/ca
 import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/tourist-spots-booking.component';
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
+import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
 
 
 // const routes: Routes = [
@@ -162,6 +163,7 @@ const routes: Routes = [
   { path: 'tourist-destination', component: TouristPlacesComponent },
   { path: 'tourist-places', component: TouristSpotsBookingComponent },
   { path: 'tourist-spots-checkout', component: TouristSpotsCheckoutComponent },
+  { path: 'tent-checkout', component: TentCheckoutComponent },
   { path: 'tourist-spots-success', component: TouristSpotsSuccessComponent },
   { path: 'vanavihari/book-tent', component: BookTentComponent },
   { path: 'karthikavanm/book-tent', component: BookTentComponent },
@@ -180,24 +182,24 @@ const routes: Routes = [
     component: ForgotPasswordComponent,
   },
   {
-    path:'reset-password',
+    path: 'reset-password',
     component: ResetPasswordComponent,
   },
   {
-    path:'cancel-request',
+    path: 'cancel-request',
     component: CancelRequestComponent,
   },
   {
-    path:'cancel-request-manual',
+    path: 'cancel-request-manual',
     component: CancelRequestManualComponent,
   },
   {
-    path:'test-bookings',
+    path: 'test-bookings',
     component: TestBookingsComponent,
   },
   {
-    path:'cancel-status',
-    component:CancelStatusComponent
+    path: 'cancel-status',
+    component: CancelStatusComponent
   },
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: '**', redirectTo: '/home' },
@@ -207,4 +209,4 @@ const routes: Routes = [
   imports: [RouterModule.forRoot(routes, { useHash: true })],
   exports: [RouterModule],
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }

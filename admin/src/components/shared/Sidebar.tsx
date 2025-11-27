@@ -182,8 +182,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Binoculars,
       viewTypes: ["tourist-spot"] as ViewType[],
       children: [
-        { label: "All Spots", path: "/touristspots/all", icon: Binoculars },
         { label: "Add Spot", path: "/touristspots/add", icon: Plus },
+        { label: "All Spots", path: "/touristspots/all", icon: Binoculars },
       ],
     },
     {
@@ -201,6 +201,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Calendar,
       viewTypes: ["tourist-spot"] as ViewType[],
       children: [
+        { label: "Add Booking", path: "/tourist/bookings/add", icon: Plus },
         { label: "All Bookings", path: "/tourist/bookings", icon: Calendar },
       ],
     },

@@ -1,5 +1,5 @@
 
-import { Menu, User, LogOut, Building2, Tent, MapPin, Check, ChevronDown } from "lucide-react";
+import { Menu, User, LogOut, Building2, Tent, MapPin, Check, ChevronDown, Globe, Users, FileText, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation, useNavigate } from "react-router";
 import Breadcrumb from "./Breadcrumb";
@@ -83,20 +83,8 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   };
 
   const handleViewTypeChange = (newViewType: ViewType) => {
+    // setViewType will now navigate to the module-specific booking/reservation
     setViewType(newViewType);
-    
-    // Navigate to the appropriate dashboard for the selected view type
-    switch (newViewType) {
-      case "resort":
-        navigate('/dashboard/report');
-        break;
-      case "tent":
-        navigate('/tent/dashboard');
-        break;
-      case "tourist-spot":
-        navigate('/tourist/dashboard');
-        break;
-    }
   };
 
   const viewTypeOptions: { value: ViewType; label: string; icon: typeof Building2 }[] = [
@@ -108,77 +96,75 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
   const currentViewOption = viewTypeOptions.find(option => option.value === viewType);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
-      <div className="flex items-center justify-between flex-nowrap">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-2 sm:px-4 py-2 sm:py-3">
+      <div className="flex items-center justify-between flex-nowrap gap-1 sm:gap-2">
         {/* Left side */}
-        <div className="flex items-center space-x-4 flex-nowrap overflow-hidden min-w-0">
+        <div className="flex items-center space-x-2 sm:space-x-4 flex-nowrap overflow-hidden min-w-0">
           <Button
             variant="ghost"
             size="sm"
             onClick={onMenuClick}
-            className="lg:hidden"
+            className="lg:hidden p-1 sm:p-2"
           >
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="flex items-center space-x-2 shrink-0">
-            <span className="text-xl font-semibold text-gray-800 hidden sm:block">
+          <div className="flex items-center shrink-0">
+            <span className="text-lg sm:text-xl font-semibold text-gray-800 hidden sm:block">
               Vanavihari Admin
             </span>
-            <span className="text-lg font-semibold text-gray-800 sm:hidden">
+            <span className="text-sm font-semibold text-gray-800 sm:hidden">
               Vana
             </span>
           </div>
 
-          {/* (view dropdown moved to right side) */}
-
-          {/* Breadcrumb */}
-          <div className="truncate whitespace-nowrap overflow-hidden min-w-0">
+          {/* Breadcrumb - hidden on very small screens */}
+          <div className="hidden xs:block truncate whitespace-nowrap overflow-hidden min-w-0">
             <Breadcrumb
               items={breadcrumbs}
-              className="text-gray-600 truncate"
+              className="text-gray-600 truncate text-xs sm:text-sm"
             />
           </div>
         </div>
 
-        {/* Right side */}
-        <div className="flex items-center items-stretch space-x-1 sm:space-x-2">
-          {/* View Type Dropdown (moved next to notifications) */}
-          <div className="flex items-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center justify-between min-w-32 sm:min-w-36 h-9 px-2 sm:px-3">
-                  <div className="flex items-center space-x-2">
-                    {currentViewOption && <currentViewOption.icon className="h-3 w-3 sm:h-4 sm:w-4" />}
-                    <span className="text-xs sm:text-sm whitespace-nowrap">{currentViewOption?.label}</span>
-                  </div>
-                  <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                {viewTypeOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => handleViewTypeChange(option.value)}
-                    className="flex items-center justify-between cursor-pointer"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <option.icon className="h-4 w-4" />
-                      <span>{option.label}</span>
-                    </div>
-                    {viewType === option.value && <Check className="h-4 w-4" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <NotificationDropdown/>
-          {/* Global top-bar menu (Guests, Logs, Settings) */}
+        {/* Right side - reduced spacing for mobile */}
+        <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
+          {/* View Type Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-1 px-2 sm:px-3">
+              <Button variant="outline" className="flex items-center justify-between h-8 sm:h-9 px-1.5 sm:px-2 md:px-3 min-w-0">
+                <div className="flex items-center gap-1 sm:gap-2">
+                  {currentViewOption && <currentViewOption.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                  <span className="hidden sm:inline text-xs sm:text-sm whitespace-nowrap">{currentViewOption?.label}</span>
+                </div>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-0.5 sm:ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {viewTypeOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => handleViewTypeChange(option.value)}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center space-x-2">
+                    <option.icon className="h-4 w-4" />
+                    <span>{option.label}</span>
+                  </div>
+                  {viewType === option.value && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <NotificationDropdown/>
+
+          {/* Global top-bar menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex items-center h-8 sm:h-9 px-1.5 sm:px-2">
                 <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-                <span className="hidden md:inline text-sm">Global</span>
+                <span className="hidden md:inline text-sm ml-1">Global</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -197,13 +183,15 @@ const Navbar = ({ onMenuClick }: NavbarProps) => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Account dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-1 px-2 sm:px-3">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Button variant="ghost" size="sm" className="flex items-center h-8 sm:h-9 px-1.5 sm:px-2">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-gray-300 rounded-full flex items-center justify-center">
+                  <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                 </div>
-                <span className="hidden lg:block text-sm">Account</span>
+                <span className="hidden lg:block text-sm ml-1">Account</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">

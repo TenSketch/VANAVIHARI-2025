@@ -1,51 +1,85 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, Renderer2, ViewChild, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { environment } from 'src/environments/environment';
+import { AuthService } from '../../auth.service';
+import { UserService } from '../../user.service';
+import { EnvService } from 'src/app/env.service';
 
 @Component({
   selector: 'app-tourist-spots-checkout',
   templateUrl: './tourist-spots-checkout.component.html',
   styleUrls: ['./tourist-spots-checkout.component.scss']
 })
-export class TouristSpotsCheckoutComponent implements OnInit {
+export class TouristSpotsCheckoutComponent implements OnInit, OnDestroy {
   bookingData: any = null;
-  customerForm: FormGroup;
-  selectedPaymentMethod: string = 'upi';
-  
+  form: FormGroup;
+  showLoader = false;
+  api_url = environment.API_URL;
+
+  // Timer properties
+  @ViewChild('minutes', { static: true }) minutes: ElementRef;
+  @ViewChild('seconds', { static: true }) seconds: ElementRef;
+  intervalId: any;
+  targetTime: any;
+  now: any;
+  difference: number;
+
+  // User details
+  getFullUser: string;
+
+  // Payment details
+  billdeskkey: string;
+  billdesksecurityid: any;
+  billdeskmerchantid: any;
+
+  isInfoModalVisible = false;
+  isModalVisible = false;
+
   constructor(
     private fb: FormBuilder,
-    private router: Router
+    private router: Router,
+    private http: HttpClient,
+    private authService: AuthService,
+    private userService: UserService,
+    private snackBar: MatSnackBar,
+    private envService: EnvService,
+    private renderer: Renderer2
   ) {
-    this.customerForm = this.fb.group({
-      fullName: ['', [Validators.required, Validators.minLength(2)]],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
-      idProof: [''],
-      address: [''],
-      visitDate: ['', Validators.required],
-      specialRequirements: ['']
+    this.form = this.fb.group({
+      gname: ['', Validators.required],
+      gphone: ['', [Validators.required, Validators.pattern(/^[6-9]\d{9}$/)]],
+      gemail: ['', [Validators.required, Validators.email]],
+      gaddress: ['', Validators.required],
+      gcity: ['', Validators.required],
+      gstate: ['', Validators.required],
+      gpincode: ['', Validators.required],
+      gcountry: ['', Validators.required],
+      // Optional fields if needed
+      gstnumber: [''],
+      companyname: ['']
     });
   }
 
   ngOnInit(): void {
     this.loadBookingData();
-    this.setMinVisitDate();
+    this.startTimer();
+    this.fetchEnvVars();
+    this.renderer.setProperty(document.documentElement, 'scrollTop', 0);
+
+    if (this.userService.isLoggedIn()) {
+      this.getFullUser = this.userService.getFullUser();
+      this.getUserDetails();
+    } else {
+      // Optional: Redirect to login or show notification
+      // this.router.navigate(['/sign-in'], { queryParams: { returnUrl: '/tourist-spots-checkout' } });
+    }
   }
 
-  get serviceCharges(): number {
-    if (!this.bookingData) return 0;
-    return Math.round(this.bookingData.total * 0.05); // 5% service charges
-  }
-
-  get gstAmount(): number {
-    if (!this.bookingData) return 0;
-    const taxableAmount = this.bookingData.total + this.serviceCharges;
-    return Math.round(taxableAmount * 0.18); // 18% GST
-  }
-
-  get finalTotal(): number {
-    if (!this.bookingData) return 0;
-    return this.bookingData.total + this.serviceCharges + this.gstAmount;
+  ngOnDestroy() {
+    clearInterval(this.intervalId);
   }
 
   private loadBookingData(): void {
@@ -53,102 +87,180 @@ export class TouristSpotsCheckoutComponent implements OnInit {
     if (storedData) {
       this.bookingData = JSON.parse(storedData);
     } else {
-      // Redirect to booking page if no data found
       this.router.navigate(['/tourist-places']);
     }
   }
 
-  private setMinVisitDate(): void {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const minDate = tomorrow.toISOString().split('T')[0];
-    this.customerForm.get('visitDate')?.setValue('');
-    
-    // Set min date attribute on the input
-    setTimeout(() => {
-      const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
-      if (dateInput) {
-        dateInput.min = minDate;
+  private startTimer() {
+    this.targetTime = new Date();
+    this.targetTime.setMinutes(this.targetTime.getMinutes() + 5);
+    let redirectDone = false;
+
+    this.intervalId = setInterval(() => {
+      this.now = new Date().getTime();
+      this.difference = this.targetTime - this.now;
+
+      const minutesLeft = Math.floor((this.difference % (1000 * 60 * 60)) / (1000 * 60));
+      const secondsLeft = Math.floor((this.difference % (1000 * 60)) / 1000);
+
+      if (this.difference <= 0 && !redirectDone) {
+        redirectDone = true;
+        clearInterval(this.intervalId);
+        this.router.navigate(['/tourist-places']);
       }
-    }, 100);
+
+      if (this.minutes && this.seconds) {
+        this.minutes.nativeElement.innerText = minutesLeft < 10 ? `0${minutesLeft}` : minutesLeft;
+        this.seconds.nativeElement.innerText = secondsLeft < 10 ? `0${secondsLeft}` : secondsLeft;
+      }
+    }, 1000);
   }
 
-  proceedToPayment(): void {
-    if (!this.customerForm.valid || !this.selectedPaymentMethod) {
-      this.markFormGroupTouched();
-      return;
-    }
+  private fetchEnvVars() {
+    this.envService.getEnvVars().subscribe(
+      (envVars) => {
+        this.billdeskkey = envVars.billdeskkey;
+        this.billdesksecurityid = envVars.billdesksecurityid;
+        this.billdeskmerchantid = envVars.billdeskmerchantid;
+      },
+      (error) => console.error('Error fetching environment variables:', error)
+    );
+  }
 
-    const paymentData = {
-      booking: this.bookingData,
-      customer: this.customerForm.value,
-      payment: {
-        method: this.selectedPaymentMethod,
-        amount: this.finalTotal,
-        breakdown: {
-          subtotal: this.bookingData.total,
-          serviceCharges: this.serviceCharges,
-          gst: this.gstAmount,
-          total: this.finalTotal
+  getUserDetails() {
+    this.showLoader = true;
+    const headers = { token: this.authService.getAccessToken() ?? '' };
+
+    this.http.get<any>(`${this.api_url}/api/user/profile`, { headers }).subscribe({
+      next: (response) => {
+        this.showLoader = false;
+        if (response.code == 3000 && response.result.status == 'success') {
+          const result = response.result;
+          this.form.patchValue({
+            gname: result.name || '',
+            gphone: result.phone || '',
+            gemail: result.email || '',
+            gaddress: result.address1 || '',
+            gcity: result.city || '',
+            gstate: result.state || '',
+            gpincode: result.pincode || '',
+            gcountry: result.country || ''
+          });
         }
       },
-      timestamp: new Date().toISOString()
-    };
-
-    // Store payment data for processing
-    localStorage.setItem('touristSpotsPayment', JSON.stringify(paymentData));
-
-    // Simulate payment gateway redirect
-    this.simulatePaymentProcess(paymentData);
-  }
-
-  private simulatePaymentProcess(paymentData: any): void {
-    // In a real implementation, you would redirect to a payment gateway
-    // For now, we'll simulate the process
-    
-    console.log('Processing payment...', paymentData);
-    
-    // Show loading state
-    const payButton = document.querySelector('.btn-success') as HTMLButtonElement;
-    if (payButton) {
-      payButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i>Processing...';
-      payButton.disabled = true;
-    }
-
-    // Simulate payment processing time
-    setTimeout(() => {
-      // Generate a fake transaction ID
-      const transactionId = 'TST' + Date.now().toString().slice(-8);
-      
-      // Store transaction result
-      const transactionResult = {
-        ...paymentData,
-        transactionId,
-        status: 'success',
-        paymentDate: new Date().toISOString()
-      };
-      
-      localStorage.setItem('touristSpotsTransaction', JSON.stringify(transactionResult));
-      
-      // Clear booking data
-      localStorage.removeItem('touristSpotsBooking');
-      localStorage.removeItem('touristSpotsPayment');
-      
-      // Redirect to success page
-      this.router.navigate(['/tourist-spots-success'], {
-        queryParams: { transactionId }
-      });
-    }, 3000);
-  }
-
-  private markFormGroupTouched(): void {
-    Object.keys(this.customerForm.controls).forEach(key => {
-      const control = this.customerForm.get(key);
-      control?.markAsTouched();
+      error: (err) => {
+        this.showLoader = false;
+        console.error('Profile fetch error:', err);
+      }
     });
   }
 
-  goBackToBooking(): void {
-    this.router.navigate(['/tourist-places']);
+  isLoggedIn(): boolean {
+    return this.userService.isLoggedIn();
   }
+
+  gotToLogin() {
+    this.router.navigate(['/sign-in'], { queryParams: { returnUrl: '/tourist-spots-checkout' } });
+  }
+
+  triggerInfoModal() {
+    if (this.form.valid) {
+      this.isInfoModalVisible = true;
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  onCancel() {
+    this.isInfoModalVisible = false;
+    this.isModalVisible = false;
+  }
+
+  onOk() {
+    this.isInfoModalVisible = false;
+    this.submitBooking();
+  }
+
+  submitBooking() {
+    this.showLoader = true;
+
+    // Prepare booking payload
+    const bookingPayload = {
+      ...this.bookingData,
+      customer: this.form.value,
+      bookingDate: new Date().toISOString()
+    };
+
+    const headers = { token: this.authService.getAccessToken() ?? '' };
+
+    // Use the tourist spot booking API endpoint
+    this.http.post<any>(`${this.api_url}/api/tourist-booking/book`, bookingPayload, { headers }).subscribe({
+      next: (response) => {
+        if (response.success && response.bookingId) {
+          this.initiatePayment(response.bookingId);
+        } else {
+          this.showLoader = false;
+          this.showSnackBarAlert('Failed to create booking. Please try again.');
+        }
+      },
+      error: (err) => {
+        console.error('Booking error:', err);
+        this.showLoader = false;
+        this.showSnackBarAlert('An error occurred while processing your booking.');
+      }
+    });
+  }
+
+  initiatePayment(bookingId: string) {
+    const headers = { token: this.authService.getAccessToken() ?? '' };
+
+    this.http.post<any>(`${this.api_url}/api/payment/initiate`, { bookingId, type: 'tourist-spot' }, { headers }).subscribe({
+      next: (response) => {
+        if (response.success && response.paymentData) {
+          localStorage.removeItem('touristSpotsBooking');
+          this.submitPaymentForm(response.paymentData);
+        } else {
+          this.showLoader = false;
+          this.showSnackBarAlert('Failed to initiate payment.');
+        }
+      },
+      error: (err) => {
+        console.error('Payment initiation error:', err);
+        this.showLoader = false;
+        this.showSnackBarAlert('Payment initiation failed.');
+      }
+    });
+  }
+
+  submitPaymentForm(paymentData: any) {
+    // Create and submit form dynamically
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = paymentData.action || 'https://pgi.billdesk.com/pgidsk/PGIMerchantPayment'; // Default or from response
+
+    Object.keys(paymentData).forEach(key => {
+      if (key !== 'action') {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = paymentData[key];
+        form.appendChild(input);
+      }
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  showSnackBarAlert(message: string) {
+    this.snackBar.open(message, 'Close', {
+      duration: 5000,
+      verticalPosition: 'top',
+      horizontalPosition: 'center',
+      panelClass: ['error-snackbar'] // Ensure this class exists or use default
+    });
+  }
+
+  // Helper to get form controls for template
+  get f() { return this.form.controls; }
 }

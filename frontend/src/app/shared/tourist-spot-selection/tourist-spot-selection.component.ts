@@ -42,6 +42,8 @@ export class TouristSpotSelectionComponent {
   @Input() parkingFee?: string | number;
   @Input() cameraFee?: string | number;
   @Input() fees?: { entryPerPerson?: number; parkingPerVehicle?: number; cameraPerCamera?: number; parkingTwoWheeler?: number; parkingFourWheeler?: number };
+  @Input() ticketsLeftToday?: number;
+  @Input() isSoldOut = false;
 
   // Add-ons
   @Input() addOns: TouristAddOn[] = [];
@@ -72,7 +74,7 @@ export class TouristSpotSelectionComponent {
     public gallery: Gallery,
     private router: Router,
     private locationSvc: Location
-  ) {}
+  ) { }
 
   private toNumber(val: unknown): number | undefined {
     if (typeof val === 'number' && !isNaN(val)) return val;
@@ -112,9 +114,9 @@ export class TouristSpotSelectionComponent {
   get estimatedTotal(): number | undefined {
     const e = this.unitEntry, p = this.unitParking, c = this.unitCamera;
     const p2 = this.parkingTwoWheeler, p4 = this.parkingFourWheeler;
-    
+
     if (e === undefined && p === undefined && c === undefined && p2 === undefined && p4 === undefined && this.addOnsTotal === 0) return undefined;
-    
+
     let parkingTotal = 0;
     if (p2 !== undefined && p4 !== undefined) {
       // Use split parking
@@ -123,13 +125,13 @@ export class TouristSpotSelectionComponent {
       // Use generic parking
       parkingTotal = (p || 0) * (this.vehicles || 0);
     }
-    
+
     const base = (e || 0) * this.peopleCount + parkingTotal + (c || 0) * (this.cameras || 0);
     return base + this.addOnsTotal;
   }
 
-  inc(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
-  dec(field: 'adults'|'children'|'vehicles'|'cameras'|'twoWheelers'|'fourWheelers') {
+  inc(field: 'adults' | 'children' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') { (this as any)[field] = ((this as any)[field] || 0) + 1; }
+  dec(field: 'adults' | 'children' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') {
     const next = Math.max(0, ((this as any)[field] || 0) - 1);
     // allow adults to go to zero; the template will disable add-to-booking until adults >= 1
     (this as any)[field] = next;

@@ -51,7 +51,7 @@ export class BookTentComponent implements OnInit {
     private tentService: TentService,
     private router: Router,
     private breakpointObserver: BreakpointObserver
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     const path = this.route.snapshot.routeConfig?.path || '';
@@ -71,7 +71,7 @@ export class BookTentComponent implements OnInit {
     this.tentService.getTents(this.resortKey).subscribe({
       next: (data) => {
         // enrich tents with full images array: if image is present, generate 4 variants or reuse same
-          this.tents = (data || []).map((t: any) => {
+        this.tents = (data || []).map((t: any) => {
           const base = t.image || '';
           // if base contains 'tent1' or 'tent2' we'll also include tent3,tent4 from same folder
           let images: string[] = [];
@@ -111,7 +111,7 @@ export class BookTentComponent implements OnInit {
             ];
             images = [...images, ...sharedImgs4.filter(s => !images.includes(s))];
           }
-          return { 
+          return {
             ...t,
             images,
             price: t.price,
@@ -142,7 +142,7 @@ export class BookTentComponent implements OnInit {
 
   ngOnDestroy(): void {
     // cleanup listener
-    try { window.removeEventListener('resize', this.updateBookingSummaryTop); } catch {}
+    try { window.removeEventListener('resize', this.updateBookingSummaryTop); } catch { }
   }
 
   /**
@@ -214,7 +214,7 @@ export class BookTentComponent implements OnInit {
     localStorage.setItem('tentsBooking', JSON.stringify({ tents: this.bookedTents, total: this.grandTotal, timestamp: new Date().toISOString() }));
     // navigate to a checkout page if exists; fallback to console.log
     try {
-      this.router.navigate(['/booking-summary']);
+      this.router.navigate(['/tent-checkout']);
     } catch (e) {
       console.log('Proceeding to checkout', this.bookedTents, this.grandTotal);
     }
@@ -253,7 +253,7 @@ export class BookTentComponent implements OnInit {
   }
 
   // Booking summary logic removed (booking state handled elsewhere now)
-  
+
   /**
    * Build a list of amenity items for display with icons.
    * The count for some items is based on the tent's capacity.
