@@ -50,12 +50,12 @@
       </ul>
 
       <!-- Right Side User Actions (Desktop & Mobile) -->
-      <ul class="navbar-nav d-flex flex-row align-items-center gap-2 mb-0">
+      <ul class="navbar-nav d-flex flex-row align-items-center gap-2 mb-0 ms-auto">
         <li class="nav-item" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-in" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-arrow-right-to-bracket me-2"></i>Sign in</a>
         </li>
-        <li class="nav-item" *ngIf="!isLoggedIn()">
+        <li class="nav-item d-none d-lg-flex" *ngIf="!isLoggedIn()">
           <a class="nav-link" routerLink="/sign-up" routerLinkActive="active" ariaCurrentWhenActive="page">
             <i class="fa-solid fa-user-plus me-2"></i>Sign up</a>
         </li>
@@ -72,7 +72,7 @@
             <a class="dropdown-item" (click)="goToMyBookings()">
               <i class="fa-regular fa-calendar-check me-3"></i><span>My Bookings</span>
             </a>
-            <a class="dropdown-item" (click)="triggerModal()">
+            <a class="dropdown-item d-none d-lg-flex" (click)="triggerModal()">
               <i class="fa-solid fa-power-off me-3"></i><span>Sign out</span>
             </a>
           </div>
@@ -310,10 +310,20 @@
     </div>
   </div>
 </footer>
-<!-- WhatsApp Floating Button -->
-<a href="https://wa.me/7382151617" target="_blank" class="whatsapp-float">
-  <i class="fab fa-whatsapp"></i>
-</a>
+<!-- WhatsApp Floating Button (with support options) -->
+<div class="whatsapp-wrapper" (click)="$event.stopPropagation()">
+  <button class="whatsapp-float" (click)="toggleWhatsappOptions($event)" aria-haspopup="true" [attr.aria-expanded]="isWhatsappOptionsOpen">
+    <i class="fab fa-whatsapp" aria-hidden="true"></i>
+  </button>
+  <div class="whatsapp-options" *ngIf="isWhatsappOptionsOpen" role="menu" aria-label="WhatsApp support options">
+    <button class="wa-option" type="button" (click)="openWhatsapp('7382151617')" role="menuitem">
+      <i class="fa fa-headset me-2" aria-hidden="true"></i> Resort Support
+    </button>
+    <button class="wa-option" type="button" (click)="openWhatsapp('9840167444')" role="menuitem">
+      <i class="fa fa-tools me-2" aria-hidden="true"></i> Technical Support
+    </button>
+  </div>
+</div>
 <div class="modal" tabindex="-1" *ngIf="isModalVisible" style="display: block">
   <div class="modal-overlay" [ngClass]="{'dark-overlay': isDarkMode}"></div> <!-- Light/Dark overlay -->
   <div class="modal-dialog">

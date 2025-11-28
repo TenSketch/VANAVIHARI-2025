@@ -297,11 +297,24 @@
 }
 
 // WhatsApp Floating Button
-.whatsapp-float {
+.whatsapp-wrapper {
   position: fixed;
   right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 20px;
+  z-index: 1200;
+  display: flex;
+  flex-direction: row-reverse; /* visual order: button to right, options to left */
+  align-items: center;
+  gap: 8px;
+}
+
+.whatsapp-float {
+  position: relative;
+  background-color: #25d366;
+  color: white;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
   background-color: #25d366;
   color: white;
   border-radius: 50%;
@@ -313,11 +326,59 @@
   font-size: 24px;
   text-decoration: none;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-  z-index: 1000;
+  z-index: 1201;
   transition: all 0.3s ease;
 }
 
 .whatsapp-float:hover {
   background-color: #128c7e;
-  transform: translateY(-50%) scale(1.1);
+  transform: scale(1.08);
+}
+
+.whatsapp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end; /* align options flush to the button */
+  transform-origin: right center;
+  transition: all 0.12s ease-in-out;
+}
+
+.wa-option {
+  background: #fff;
+  color: $clr-primary-dark;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 0.5rem 0.75rem;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.wa-option i {
+  font-size: 1rem;
+}
+
+.wa-option:active, .wa-option:focus {
+  outline: none;
+  transform: translateY(0.5px);
+}
+
+/* Small screens: reduce width and change layout if necessary */
+@media (max-width: 480px) {
+  .whatsapp-wrapper {
+    right: 12px;
+    bottom: 12px;
+    gap: 6px;
+  }
+  .wa-option {
+    min-width: 140px;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+  }
 }

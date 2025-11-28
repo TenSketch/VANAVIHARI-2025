@@ -26,6 +26,8 @@ export class LayoutComponent implements OnInit {
   showLoader = false;
   isMobileOrTablet: boolean = false;
   isModalVisible = false
+  // WhatsApp floating button state
+  isWhatsappOptionsOpen = false;
 
   constructor(
     private router: Router,
@@ -134,6 +136,10 @@ export class LayoutComponent implements OnInit {
       this.isBookResortOpen = false;
       this.isBookTentsOpen = false;
     }
+    // Close whatsapp options when clicking outside
+    if (!targetElement.closest('.whatsapp-wrapper')) {
+      this.isWhatsappOptionsOpen = false;
+    }
   }
 
   closeSidebar() {
@@ -191,6 +197,30 @@ export class LayoutComponent implements OnInit {
   onConfirm(){
     this.isModalVisible = false;
     this.logout()
+  }
+
+  toggleWhatsappOptions(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isWhatsappOptionsOpen = !this.isWhatsappOptionsOpen;
+  }
+
+  openWhatsapp(number: string) {
+    // Normalize the number to digits only
+    let digits = number.replace(/[^0-9]/g, '');
+    // If the number is 10 digits, assume India and prefix 91
+    if (digits.length === 10) {
+      digits = '91' + digits;
+    }
+    // If the number has length 12 and starts with 91, keep it
+    if (digits.length === 12 && digits.startsWith('91')) {
+      // OK
+    }
+    // Build and open the wa.me url
+    const url = `https://wa.me/${digits}`;
+    window.open(url, '_blank');
+    // Close the options after opening
+    this.isWhatsappOptionsOpen = false;
   }
 
   goToJungleStar() {

@@ -51,7 +51,7 @@ interface TimeFilter {
   templateUrl: './tourist-spots-booking.component.html',
   styleUrls: ['./tourist-spots-booking.component.scss']
 })
-export class TouristSpotsBookingComponent {
+export class TouristSpotsBookingComponent implements AfterViewInit, OnDestroy {
   bookedSpots: BookedTouristSpot[] = [];
   categories: TouristSpotCategory[] = TOURIST_SPOT_CATEGORIES;
   filteredCategories: TouristSpotCategory[] = [];
@@ -190,23 +190,23 @@ export class TouristSpotsBookingComponent {
   onAddTouristBooking(selection: TouristBookingSelection, spotId: string) {
     // Check if spot already exists
     const existingIndex = this.bookedSpots.findIndex(spot => spot.id === spotId);
-    
+
     // Define unit prices for each spot
     const spotPrices = this.getSpotPrices(spotId);
-    
+
     const peopleCount = selection.counts.adults + selection.counts.children;
-    
+
     // Calculate parking based on split or generic
     let parkingTotal = 0;
     if (spotPrices.parkingTwoWheeler !== undefined && spotPrices.parkingFourWheeler !== undefined) {
       // Use split parking calculation
-      parkingTotal = (spotPrices.parkingTwoWheeler * (selection.counts.twoWheelers || 0)) + 
-                     (spotPrices.parkingFourWheeler * (selection.counts.fourWheelers || 0));
+      parkingTotal = (spotPrices.parkingTwoWheeler * (selection.counts.twoWheelers || 0)) +
+        (spotPrices.parkingFourWheeler * (selection.counts.fourWheelers || 0));
     } else {
       // Use generic parking calculation
       parkingTotal = spotPrices.parking * selection.counts.vehicles;
     }
-    
+
     // Calculate breakdown
     const breakdown = {
       entry: spotPrices.entry * peopleCount,
@@ -246,9 +246,85 @@ export class TouristSpotsBookingComponent {
     this.persist();
   }
 
+  incrementSpotCount(index: number, field: 'adults' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') {
+    const spot = this.bookedSpots[index];
+    let currentValue = 0;
+
+    if (field === 'adults') currentValue = spot.counts.adults;
+    else if (field === 'vehicles') currentValue = spot.counts.vehicles;
+    else if (field === 'cameras') currentValue = spot.counts.cameras;
+    else if (field === 'twoWheelers') currentValue = spot.counts.twoWheelers || 0;
+    else if (field === 'fourWheelers') currentValue = spot.counts.fourWheelers || 0;
+
+    this.updateSpotCount(index, field, currentValue + 1);
+  }
+
+  decrementSpotCount(index: number, field: 'adults' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers') {
+    const spot = this.bookedSpots[index];
+    let currentValue = 0;
+
+    if (field === 'adults') currentValue = spot.counts.adults;
+    else if (field === 'vehicles') currentValue = spot.counts.vehicles;
+    else if (field === 'cameras') currentValue = spot.counts.cameras;
+    else if (field === 'twoWheelers') currentValue = spot.counts.twoWheelers || 0;
+    else if (field === 'fourWheelers') currentValue = spot.counts.fourWheelers || 0;
+
+    // Prevent going below 1 for adults, 0 for others
+    if (field === 'adults' && currentValue <= 1) return;
+    if (currentValue <= 0) return;
+
+    this.updateSpotCount(index, field, currentValue - 1);
+  }
+
+  updateSpotCount(index: number, field: 'adults' | 'vehicles' | 'cameras' | 'twoWheelers' | 'fourWheelers', value: number) {
+    if (value < 0) return;
+
+    const spot = this.bookedSpots[index];
+
+    // Update the specific field
+    if (field === 'adults') {
+      // For adults, we update the main count. 
+      // Note: children are kept as is, but total people count will update
+      spot.counts.adults = value;
+      spot.peopleCount = spot.counts.adults + spot.counts.children;
+    } else if (field === 'vehicles') {
+      spot.counts.vehicles = value;
+    } else if (field === 'cameras') {
+      spot.counts.cameras = value;
+    } else if (field === 'twoWheelers') {
+      spot.counts.twoWheelers = value;
+    } else if (field === 'fourWheelers') {
+      spot.counts.fourWheelers = value;
+    }
+
+    // Recalculate totals
+    this.recalculateSpotTotal(spot);
+    this.persist();
+  }
+
+  private recalculateSpotTotal(spot: BookedTouristSpot) {
+    const spotPrices = spot.unitPrices;
+
+    // Calculate parking
+    let parkingTotal = 0;
+    if (spotPrices.parkingTwoWheeler !== undefined && spotPrices.parkingFourWheeler !== undefined) {
+      parkingTotal = (spotPrices.parkingTwoWheeler * (spot.counts.twoWheelers || 0)) +
+        (spotPrices.parkingFourWheeler * (spot.counts.fourWheelers || 0));
+    } else {
+      parkingTotal = spotPrices.parking * spot.counts.vehicles;
+    }
+
+    // Update breakdown
+    spot.breakdown.entry = spotPrices.entry * spot.peopleCount;
+    spot.breakdown.parking = parkingTotal;
+    spot.breakdown.camera = spotPrices.camera * spot.counts.cameras;
+
+    spot.total = spot.breakdown.entry + spot.breakdown.parking + spot.breakdown.camera + spot.breakdown.addOns;
+  }
+
   proceedToCheckout() {
     if (this.bookedSpots.length === 0) return;
-    
+
     // Store booking data for checkout
     localStorage.setItem('touristSpotsBooking', JSON.stringify({
       spots: this.bookedSpots,
@@ -264,9 +340,9 @@ export class TouristSpotsBookingComponent {
     const cfg = this.spotMap[spotId];
     if (!cfg) return { entry: 0, parking: 0, camera: 0 };
     const { entryPerPerson, parkingPerVehicle, cameraPerCamera, parkingTwoWheeler, parkingFourWheeler } = cfg.fees;
-    return { 
-      entry: entryPerPerson, 
-      parking: parkingPerVehicle, 
+    return {
+      entry: entryPerPerson,
+      parking: parkingPerVehicle,
       camera: cameraPerCamera,
       parkingTwoWheeler,
       parkingFourWheeler
@@ -310,7 +386,7 @@ export class TouristSpotsBookingComponent {
       let filteredSpots = category.spots;
 
       if (shouldFilterByCategory) {
-        filteredSpots = filteredSpots.filter(spot => 
+        filteredSpots = filteredSpots.filter(spot =>
           selectedCategories.includes(spot.category)
         );
       }

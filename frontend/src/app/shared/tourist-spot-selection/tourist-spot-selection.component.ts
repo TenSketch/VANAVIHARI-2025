@@ -45,6 +45,11 @@ export class TouristSpotSelectionComponent {
   @Input() ticketsLeftToday?: number;
   @Input() isSoldOut = false;
 
+  // New fields
+  @Input() difficulty?: string;
+  @Input() distance?: string | number;
+  @Input() elevationGain?: string | number;
+
   // Add-ons
   @Input() addOns: TouristAddOn[] = [];
 
@@ -58,7 +63,7 @@ export class TouristSpotSelectionComponent {
 
   // Form state
   // Start adults at 0 per request; Add-to-booking will remain guarded until at least 1 adult
-  adults = 0;
+  adults = 1;
   children = 0;
   vehicles = 0;
   cameras = 0;

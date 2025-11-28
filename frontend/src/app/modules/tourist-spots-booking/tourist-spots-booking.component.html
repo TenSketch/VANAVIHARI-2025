@@ -57,43 +57,99 @@
                   </div>
 
                   <div class="fee-breakdown small">
-                    <div
-                      class="d-flex justify-content-between"
-                      *ngIf="spot.breakdown.entry > 0"
-                    >
-                      <span
-                        >Entry Fee: ₹{{ spot.unitPrices.entry }} ×
-                        {{ spot.peopleCount }} people</span
-                      >
+                    <!-- Entry Fee -->
+                    <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="spot.breakdown.entry > 0">
+                      <div class="d-flex align-items-center gap-2">
+                        <span>Entry Fee: ₹{{ spot.unitPrices.entry }} ×</span>
+                        <div class="stepper-control d-flex align-items-center border rounded bg-white">
+                          <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                  (click)="decrementSpotCount(i, 'adults')"
+                                  [disabled]="spot.counts.adults <= 1">-</button>
+                          <span class="px-2 font-weight-bold">{{ spot.counts.adults }}</span>
+                          <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                  (click)="incrementSpotCount(i, 'adults')">+</button>
+                        </div>
+                        <span>people</span>
+                      </div>
                       <span>₹{{ spot.breakdown.entry }}</span>
                     </div>
-                    <div
-                      class="d-flex justify-content-between"
-                      *ngIf="spot.breakdown.parking > 0"
-                    >
-                      <span
-                        >Parking: ₹{{ spot.unitPrices.parking }} ×
-                        {{ spot.counts.vehicles }} vehicles</span
-                      >
-                      <span>₹{{ spot.breakdown.parking }}</span>
-                    </div>
-                    <div
-                      class="d-flex justify-content-between"
-                      *ngIf="spot.breakdown.camera > 0"
-                    >
-                      <span
-                        >Camera: ₹{{ spot.unitPrices.camera }} ×
-                        {{ spot.counts.cameras }} cameras</span
-                      >
+
+                    <!-- Parking -->
+                    <ng-container *ngIf="spot.breakdown.parking > 0 || spot.unitPrices.parking > 0 || spot.unitPrices.parkingTwoWheeler !== undefined">
+                      <!-- Split Parking: 2 Wheeler -->
+                      <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="spot.unitPrices.parkingTwoWheeler !== undefined">
+                        <div class="d-flex align-items-center gap-2">
+                          <span>2 Wheeler: ₹{{ spot.unitPrices.parkingTwoWheeler }} ×</span>
+                          <div class="stepper-control d-flex align-items-center border rounded bg-white">
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="decrementSpotCount(i, 'twoWheelers')"
+                                    [disabled]="!spot.counts.twoWheelers || spot.counts.twoWheelers <= 0">-</button>
+                            <span class="px-2 font-weight-bold">{{ spot.counts.twoWheelers || 0 }}</span>
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="incrementSpotCount(i, 'twoWheelers')">+</button>
+                          </div>
+                        </div>
+                        <span>₹{{ (spot.unitPrices.parkingTwoWheeler || 0) * (spot.counts.twoWheelers || 0) }}</span>
+                      </div>
+
+                      <!-- Split Parking: 4 Wheeler -->
+                      <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="spot.unitPrices.parkingFourWheeler !== undefined">
+                        <div class="d-flex align-items-center gap-2">
+                          <span>4 Wheeler: ₹{{ spot.unitPrices.parkingFourWheeler }} ×</span>
+                          <div class="stepper-control d-flex align-items-center border rounded bg-white">
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="decrementSpotCount(i, 'fourWheelers')"
+                                    [disabled]="!spot.counts.fourWheelers || spot.counts.fourWheelers <= 0">-</button>
+                            <span class="px-2 font-weight-bold">{{ spot.counts.fourWheelers || 0 }}</span>
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="incrementSpotCount(i, 'fourWheelers')">+</button>
+                          </div>
+                        </div>
+                        <span>₹{{ (spot.unitPrices.parkingFourWheeler || 0) * (spot.counts.fourWheelers || 0) }}</span>
+                      </div>
+
+                      <!-- Generic Parking -->
+                      <div class="d-flex justify-content-between align-items-center mb-2" 
+                           *ngIf="spot.unitPrices.parkingTwoWheeler === undefined && spot.unitPrices.parking > 0">
+                        <div class="d-flex align-items-center gap-2">
+                          <span>Parking: ₹{{ spot.unitPrices.parking }} ×</span>
+                          <div class="stepper-control d-flex align-items-center border rounded bg-white">
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="decrementSpotCount(i, 'vehicles')"
+                                    [disabled]="spot.counts.vehicles <= 0">-</button>
+                            <span class="px-2 font-weight-bold">{{ spot.counts.vehicles }}</span>
+                            <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                    (click)="incrementSpotCount(i, 'vehicles')">+</button>
+                          </div>
+                          <span>vehicles</span>
+                        </div>
+                        <span>₹{{ spot.breakdown.parking }}</span>
+                      </div>
+                    </ng-container>
+
+                    <!-- Camera -->
+                    <div class="d-flex justify-content-between align-items-center mb-2" *ngIf="spot.unitPrices.camera > 0">
+                      <div class="d-flex align-items-center gap-2">
+                        <span>Camera: ₹{{ spot.unitPrices.camera }} ×</span>
+                        <div class="stepper-control d-flex align-items-center border rounded bg-white">
+                          <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                  (click)="decrementSpotCount(i, 'cameras')"
+                                  [disabled]="spot.counts.cameras <= 0">-</button>
+                          <span class="px-2 font-weight-bold">{{ spot.counts.cameras }}</span>
+                          <button class="btn btn-sm btn-link text-decoration-none px-2 py-0 text-dark" 
+                                  (click)="incrementSpotCount(i, 'cameras')">+</button>
+                        </div>
+                        <span>cameras</span>
+                      </div>
                       <span>₹{{ spot.breakdown.camera }}</span>
                     </div>
-                    <div
-                      class="d-flex justify-content-between"
-                      *ngIf="spot.breakdown.addOns > 0"
-                    >
+
+                    <!-- Add-ons -->
+                    <div class="d-flex justify-content-between" *ngIf="spot.breakdown.addOns > 0">
                       <span>Add-ons</span>
                       <span>₹{{ spot.breakdown.addOns }}</span>
                     </div>
+
                     <hr class="my-2" />
                     <div class="d-flex justify-content-between fw-bold">
                       <span>Spot Total:</span>
@@ -125,9 +181,10 @@
           <!-- Desktop Layout -->
           <div
             *ngIf="!isMobile"
-            class="booking-summary-bar text-dark rounded-3"
+            class="booking-summary-bar text-dark rounded-3 p-3"
+            style="background-color: #e6ffcc;"
           >
-            <h4 class="mt-2 mb-0 pb-1 font-weight-bold">Booking Summary</h4>
+            <h4 class="m-0 pb-1 font-weight-bold">Booking Summary</h4>
             <ng-container
               *ngTemplateOutlet="bookingSummaryContent"
             ></ng-container>
@@ -161,7 +218,7 @@
               class="d-flex my-2 p-3 align-items-center justify-content-around"
             >
               <i class="fa fa-plus" aria-hidden="true"></i>
-              <p class="m-0">Add your preferred rooms</p>
+              <p class="m-0">Add your preferred tourist spot</p>
             </div>
           </ng-template>
         </div>
@@ -212,6 +269,9 @@
                       [openInNewTab]="true"
                       [ticketsLeftToday]="spot.ticketsLeftToday"
                       [isSoldOut]="spot.ticketsLeftToday === 0"
+                      [difficulty]="spot.difficulty"
+                      [distance]="spot.distanceKm"
+                      [elevationGain]="spot.elevationGainM"
                       (addToBooking)="onAddTouristBooking($event, spot.id)"
                     >
                     </app-tourist-spot-selection>
@@ -219,15 +279,6 @@
                       *ngIf="spot.category === 'Trek'"
                       class="small text-muted mt-2 d-flex flex-wrap gap-3"
                     >
-                      <span *ngIf="spot.difficulty"
-                        >Difficulty: {{ spot.difficulty }}</span
-                      >
-                      <span *ngIf="spot.distanceKm"
-                        >Distance: {{ spot.distanceKm }} km</span
-                      >
-                      <span *ngIf="spot.elevationGainM"
-                        >Elevation Gain: {{ spot.elevationGainM }} m</span
-                      >
                     </div>
                   </div>
                 </div>

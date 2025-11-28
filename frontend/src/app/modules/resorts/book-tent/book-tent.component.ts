@@ -261,15 +261,12 @@ export class BookTentComponent implements OnInit {
   getAmenityItems(tent: Tent): { icon?: string; img?: string; text: string }[] {
     const cap = Number(tent.capacity) || 2;
     return [
-      { icon: 'fas fa-bed', text: `${cap} Beds` },
-      { icon: 'fas fa-head-side-cough', text: `${cap} Pillows` },
-      { icon: 'fas fa-bed', text: `${cap} Bed sheets` },
-      // use a small SVG asset for comforters (fallback to icon if image not available)
-      { img: '/assets/icons/comforter.svg', icon: 'fas fa-blanket', text: `${cap} Comforters` },
-      { icon: 'fas fa-lightbulb', text: 'Hanging light' },
-      { icon: 'fas fa-bath', text: `${cap} Towels` },
-      { icon: 'fas fa-chair', text: `${cap} Chairs` },
-      { icon: 'fas fa-table', text: 'Center table' },
+      { icon: 'fas fa-bed', text: 'Beds' },
+      { icon: 'fas fa-head-side-cough', text: 'Pillows' },
+      { icon: 'fas fa-bed', text: 'Bed sheets' },
+      { img: '/assets/icons/comforter.svg', icon: 'fas fa-blanket', text: 'Comforters' },
+      { icon: 'fas fa-bath', text: 'Towels' },
+      { icon: 'fas fa-chair', text: 'Chairs' }
     ];
   }
 }

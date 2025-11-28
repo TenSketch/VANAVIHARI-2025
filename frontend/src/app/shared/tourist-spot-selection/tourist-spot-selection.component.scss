@@ -1,314 +1,336 @@
-.tourist-spot {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* Full-width section wrapper spacing (works with .container-fluid > .container) */
 .tourist-spot-section {
-  padding: 1.25rem 0;
+    padding: 1rem 0;
 }
 
-.header .title {
-  margin: 0;
-  font-weight: 700;
-  color: hsl(90, 100%, 20%); /* dark green matching resort pages */
-}
-.header .title { font-size: 1.3rem; }
-.header .sub {
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-/* Two-column layout: Gallery on left, Info cards on right */
-.gallery-and-info {
-  display: grid;
-  grid-template-columns: 4fr 6fr; /* 40% - 60% split */
-  gap: 1.5rem;
-  align-items: start;
+.tourist-spot {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1.25rem 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    position: relative;
+    /* needed for absolute children (entry-badge and actions) */
+    padding-bottom: 4.5rem;
+    /* add extra bottom padding to accommodate actions */
 }
 
-.gallery {
-  overflow-x: visible;
-}
-.gallery .rail {
-  display: flex;
-  flex-direction: column; /* desktop: vertical stack */
-  gap: 0.75rem;
-}
-.gallery img {
-  height: 200px; /* Increased height for better aspect ratio with wider width */
-  width: 100%; /* Fill the 40% column */
-  border-radius: 8px;
-  object-fit: cover; /* zoom to fill the thumbnail canvas */
-  cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+.header {
+    margin-bottom: 1rem;
+
+    .title {
+        font-size: 1.75rem;
+        /* larger title */
+        font-weight: 600;
+        margin: 0;
+        color: #333;
+
+        .sep {
+            color: #999;
+        }
+
+        .loc {
+            color: #666;
+            font-weight: 400;
+            font-size: 1.1rem;
+        }
+    }
+
+    .sub {
+        font-size: 1.05rem;
+        /* larger subtitle */
+    }
+
+    .pricing-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .pricing-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            font-size: 0.95rem;
+
+            .label {
+                font-weight: 500;
+                color: #555;
+                flex: 1;
+            }
+
+            .price {
+                font-weight: 600;
+                color: #333;
+                margin-right: 1rem;
+            }
+
+            .quantity {
+                color: #777;
+                font-size: 0.85rem;
+                min-width: 80px;
+                text-align: right;
+            }
+        }
+    }
 }
 
-.gallery img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* Right side: 2x2 Grid with inline controls */
-.quick-info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.6rem; /* reduced from 0.75rem */
-  grid-auto-rows: minmax(92px, auto); /* ensures consistently tall cards for readability */
-}
-
-.grid-card {
-  background: #ffffff; /* solid white background */
-  border: 1px solid hsl(90, 50%, 85%);
-  border-radius: 10px;
-  padding: 0.9rem; /* slightly increased to give breathing room */
-  min-height: 92px; /* increased for clarity */
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.18s ease;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.grid-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: hsl(90, 100%, 30%); /* solid accent bar */
-}
-
-.grid-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  border-color: hsl(90, 100%, 30%);
-}
-
-.grid-card .card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  justify-content: center; /* centers icon + info horizontally */
-  text-align: center; /* make nested texts centered */
-}
-
-.grid-card .icon {
-  font-size: 2.1rem; /* larger icon */
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.grid-card .icon i {
-  font-size: 2.1rem; /* larger icon */
-  color: hsl(90, 100%, 20%);
-  vertical-align: middle;
-}
-
-.grid-card .info {
-  flex: 1;
-  display: flex;
-  flex-direction: column; /* stack label and value for better centered layout */
-  align-items: center; /* center label/value under icon */
-  justify-content: center;
-  gap: 0.25rem;
-}
-
-.grid-card .label {
-  color: #495057;
-  font-size: 0.82rem; /* slightly larger for readability on mobile */
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.35px;
-  line-height: 1.05;
-  text-align: center; /* center the label text */
-}
-
-.grid-card .label .required {
-  color: #dc3545; /* red star for required */
-  margin-left: 0.25rem;
-  font-weight: 700;
-}
-
-.grid-card .value {
-  font-weight: 700;
-  font-size: 1.06rem; /* slightly toned down to avoid overflow on narrow cards */
-  color: hsl(90, 100%, 20%);
-  line-height: 1.1;
-  text-align: center; /* center the numeric value */
-}
-
-.grid-card .ctrl {
-  display: flex;
-  align-items: center;
-  justify-content: center; /* center controls horizontally */
-  gap: 0.5rem;
-}
-
-.grid-card .ctrl button {
-  width: 36px; /* slightly reduced to save horizontal real estate on mobile */
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid #ced4da;
-  background: #f8f9fa;
-  font-size: 1.05rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.grid-card .ctrl button:hover {
-  background: hsl(90, 100%, 95%);
-  border-color: hsl(90, 100%, 30%);
-}
-
-.grid-card .ctrl span {
-  min-width: 2ch;
-  text-align: center;
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: #212529;
-}
-
-/* Small note area indicating tickets left or sold out; align under the controls */
-.grid-card .stock-indicator {
-  text-align: center;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  padding: 0 12px 8px;
-}
-
-/* Right side: Booking inputs (vertically stacked) */
-.booking-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.booking-inputs .row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-.stepper { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.6rem; display: grid; gap: 0.4rem; }
-.stepper { background: #fff; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.7rem; display: grid; gap: 0.4rem; }
-.stepper .lbl { font-weight: 700; font-size: 0.95rem; }
-.stepper .ctrl { display: inline-flex; align-items: center; gap: 0.6rem; }
-.stepper .ctrl button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid #ced4da; background: #f8f9fa; font-size: 1.05rem; }
-.stepper .ctrl span { min-width: 2ch; text-align: center; font-weight: 700; font-size: 1rem; }
-.addons {
-  display: grid;
-  gap: 0.25rem;
-}
-.addon label { font-weight: 500; }
-.muted { color: #6c757d; }
-
-.actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-.actions-right { justify-content: flex-end; }
-.btn.add:disabled {
-  background: #e9ecef;
-  color: #6c757d;
-  border-color: #dee2e6;
-  cursor: not-allowed;
-  opacity: 0.9;
-}
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  text-decoration: none;
-}
-.btn.add { background: hsl(90, 100%, 30%); color: #fff; border: 1px solid hsl(90, 100%, 20%); } /* resort primary green */
-.btn.details { background: #f8f9fa; color: #0d6efd; border: 1px solid #e9ecef; }
-
-@media (max-width: 768px) {
-  .gallery-and-info {
-    grid-template-columns: 1fr;
-    gap: 10px; 
-  }
-  /* mobile: quick info becomes 2x2 grid */
-  .quick-info-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.8rem; /* slightly bigger spacing on mobile for breathing room */
-    grid-auto-rows: minmax(96px, auto);
-  }
-  .grid-card {
-    padding: 0.85rem;
-    min-height: 96px;
-  }
-  .grid-card .icon {
-    font-size: 1.85rem;
-  }
-  .grid-card .card-header {
+.actions {
     display: flex;
-    flex-direction: column; /* stack icon, label & value on narrow screens to reduce horizontal crowding */
-    align-items: center; /* better visual balance - icon and labels centered in small cards */
-    gap: 0.45rem;
-  }
-  .grid-card .info {
-    flex-direction: column;
-    align-items: center; /* center label & value under icon */
-    gap: 0.2rem;
-  }
-  .grid-card .value { font-size: 1rem; }
-  .grid-card .label { font-size: 0.78rem; }
-  .grid-card .ctrl {
+    justify-content: flex-end;
+    gap: 1rem;
+
+    .btn {
+        padding: 0.5rem 1.5rem;
+        font-size: 1.05rem;
+        border-radius: 4px;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &.add {
+            background-color: #28a745;
+            color: white;
+            border: none;
+
+            &:hover:not(:disabled) {
+                background-color: #218838;
+            }
+
+            &:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+            }
+        }
+
+        &.details {
+            background-color: transparent;
+            color: #007bff;
+            border: 1px solid #007bff;
+
+            &:hover {
+                background-color: #007bff;
+                color: white;
+            }
+        }
+    }
+}
+
+.header-left {
+    text-align: left;
+    margin-bottom: 0.5rem;
+}
+
+.image-grid-horizontal {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 1rem;
+    scrollbar-width: thin;
+}
+
+.image-grid-horizontal::-webkit-scrollbar {
+    height: 6px;
+}
+
+.image-grid-horizontal::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 3px;
+}
+
+.image-grid-horizontal .grid-item {
+    /* larger cards so images are more prominent */
+    flex: 0 0 300px;
+    /* bigger thumbnails */
+    height: 420px;
+    /* larger visible height */
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.image-grid-horizontal .grid-item img {
     width: 100%;
-    justify-content: center; /* center controls under the card to avoid side congestion */
-    gap: 0.6rem;
-  }
-  .grid-card .ctrl button { width: 36px; height: 36px; }
-  /* mobile: make gallery horizontal scrollable */
-  .gallery {
-    overflow-x: auto;
-  }
-  .gallery .rail {
-    flex-direction: row;
-    gap: 0.5rem;
-  }
-  .gallery img { height: 120px; width: 180px; }
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
 }
 
-/* Very small devices (tiny phones): optimize proportions further */
-@media (max-width: 420px) {
-  .quick-info-grid { gap: 0.85rem; }
-  .grid-card { padding: 0.75rem; min-height: 92px; }
-  .grid-card .icon { font-size: 1.6rem; }
-  .grid-card .label { font-size: 0.72rem; }
-  .grid-card .value { font-size: 0.95rem; }
-  .grid-card .ctrl button { width: 32px; height: 32px; }
-  .grid-card .ctrl span { font-size: 0.95rem; }
+.image-grid-horizontal .grid-item img:hover {
+    transform: scale(1.05);
 }
 
-/* tablet breakpoint: horizontal gallery */
-@media (max-width: 1024px) and (min-width: 769px) {
-  /* tablet: provide more space between gallery and info cards */
-  .gallery-and-info {
-    gap: 2rem;
-  }
-  .gallery {
-    overflow-x: auto;
-  }
-  .gallery .rail {
-    flex-direction: row;
-    gap: 0.6rem;
-  }
-  .gallery img { height: 130px; width: 200px; }
-  /* tablet: quick info 2x2 layout */
-  .quick-info-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.6rem;
-  }
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .image-grid-horizontal .grid-item {
+        flex: 0 0 180px;
+        height: 280px;
+        /* medium size on mobile */
+    }
 }
 
-/* Make photos in the photos grid uniform and zoom-to-fill their boxes */
-.row img.rounded {
-  width: 100%;
-  height: 160px;
-  object-fit: cover; /* crop/zoom to fill */
-  border-radius: 8px;
+@media (min-width: 768px) and (max-width: 1199px) {
+    .image-grid-horizontal .grid-item {
+        flex: 0 0 240px;
+        height: 340px;
+        /* larger for tablets */
+    }
+}
+
+/* Ticket Badge Styles */
+.ticket-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    min-width: 150px;
+    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+}
+
+.ticket-main {
+    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+    padding: 12px 16px;
+    text-align: right;
+    position: relative;
+}
+
+/* Zig-zag border effect at the bottom of the main section */
+.ticket-main::after {
+    content: "";
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 8px;
+    background: radial-gradient(circle, transparent 4px, #fff 4px);
+    background-size: 12px 12px;
+    background-position: center bottom;
+    transform: rotate(180deg);
+    z-index: 2;
+}
+
+.ticket-price-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 4px;
+    color: #5d4037;
+    line-height: 1;
+}
+
+.ticket-price-row .currency {
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.ticket-price-row .amount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.ticket-sub {
+    font-size: 0.85rem;
+    color: #795548;
+    margin-top: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ticket-divider {
+    height: 1px;
+    border-top: 2px dashed #d7ccc8;
+    margin: 4px 12px 0;
+    opacity: 0.6;
+}
+
+.ticket-extras {
+    background-color: #fff;
+    padding: 12px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.extra-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #5d4037;
+}
+
+.extra-row .label {
+    font-weight: 500;
+    color: #8d6e63;
+}
+
+.extra-row .price {
+    font-weight: 700;
+    color: #4e342e;
+}
+
+@media (max-width: 575px) {
+    .ticket-badge {
+        top: 8px;
+        right: 8px;
+        min-width: 120px;
+    }
+
+    .ticket-main {
+        padding: 10px 12px;
+    }
+
+    .ticket-extras {
+        padding: 10px 12px 12px;
+    }
+
+    .ticket-price-row .amount {
+        font-size: 1.4rem;
+    }
+
+    .extra-row {
+        font-size: 0.85rem;
+    }
+}
+
+/* place horizontal actions to bottom-right on larger screens */
+.actions.actions-bottom-right {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 4;
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* On small screens, keep actions in normal document flow so they don't overlap content */
+@media (max-width: 767px) {
+    .actions.actions-bottom-right {
+        position: static;
+        bottom: auto;
+        right: auto;
+        margin-top: 1rem;
+        justify-content: flex-end;
+    }
+
+    .tourist-spot {
+        padding-bottom: 1rem
+    }
 }

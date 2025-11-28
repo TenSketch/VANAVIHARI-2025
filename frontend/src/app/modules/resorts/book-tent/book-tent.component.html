@@ -59,7 +59,7 @@
         <div class="col-md-3">
           <h4 class="">Common Amenities:</h4>
           <ul>
-            <li>1 DECATLON TENT</li>
+
             <li>1-HANING LIGHT led</li>
             <li>1-CENTER TABLE</li>
           </ul>
@@ -104,8 +104,8 @@
             <button mat-raised-button color="primary" class="w-100 mt-3" *ngIf="bookedTents.length > 0" (click)="proceedToCheckout()">Proceed</button>
           </ng-template>
 
-          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3">
-            <h4 class="mt-2 mb-0 pb-1 font-weight-bold">Booking Summary</h4>
+          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3 p-3" style="background-color: #e6ffcc;">
+            <h4 class="m-0 pb-1 font-weight-bold">Booking Summary</h4>
             <ng-container *ngTemplateOutlet="bookingSummaryContent"></ng-container>
           </div>
 
@@ -127,7 +127,7 @@
           <ng-template #noBookings>
             <div class="d-flex my-2 p-3 align-items-center justify-content-around">
               <i class="fa fa-plus" aria-hidden="true"></i>
-              <p class="m-0">Add your preferred tents</p>
+              <p class="m-0">Add your preferred tent</p>
             </div>
           </ng-template>
         </aside>
@@ -187,7 +187,7 @@
                     </div>
                     <!-- Amenities: show counts based on tent.capacity (default 2) -->
                     <div class="tent-amenities mt-2">
-                      <h6 class="m-0 mb-1">Amenities</h6>
+                      <h6 class="m-0 mb-1">Amenities ({{ tent.capacity || 2 }} each of)</h6>
                       <div class="amenities-list">
                         <span *ngFor="let item of getAmenityItems(tent)" class="amenity-item">
                           <ng-container *ngIf="item.img; else faIcon">
