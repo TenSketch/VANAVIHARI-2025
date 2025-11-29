@@ -137,14 +137,28 @@ export const getUserBookings = async (req, res) => {
           }
         }
         
-        // Fetch room details
+        // Fetch room details with cottage type populated
         let roomsData = []
         if (reservation.rooms && Array.isArray(reservation.rooms)) {
           const validRoomIds = reservation.rooms.filter(id => mongoose.Types.ObjectId.isValid(id))
           if (validRoomIds.length > 0) {
-            roomsData = await Room.find({ 
+            const rooms = await Room.find({ 
               _id: { $in: validRoomIds } 
-            }).select('roomNumber roomId roomName').lean()
+            }).select('roomNumber roomId roomName cottageType').lean()
+            
+            // Populate cottageType for each room
+            roomsData = await Promise.all(
+              rooms.map(async (room) => {
+                let cottageTypeData = null
+                if (room.cottageType && mongoose.Types.ObjectId.isValid(room.cottageType)) {
+                  cottageTypeData = await CottageType.findById(room.cottageType).select('name description').lean()
+                }
+                return {
+                  ...room,
+                  cottageType: cottageTypeData
+                }
+              })
+            )
           }
         }
         
