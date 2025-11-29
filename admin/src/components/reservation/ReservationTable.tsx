@@ -33,6 +33,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +89,16 @@ interface Reservation {
   extraBedCharges: number;
   totalPayable: number;
   existingGuest: string;
+  reservedFrom: string;
+  foodPreference: string;
+  paymentTransactionId: string;
+  paymentTransactionDateTime: string;
+  cancelBookingReason: string;
+  cancellationMessage: string;
+  refundRequestedDateTime: string;
+  refundableAmount: number;
+  amountRefunded: number;
+  dateOfRefund: string;
 }
 
 
@@ -436,6 +453,16 @@ export default function ReservationTable() {
             extraBedCharges: Number(r.extraBedCharges) || 0,
             totalPayable: Number(r.totalPayable) || 0,
             existingGuest: r.existingGuest || '',
+            reservedFrom: r.reservedFrom || r.rawSource?.reservedFrom || '',
+            foodPreference: r.foodPreference || r.rawSource?.foodPreference || '',
+            paymentTransactionId: r.paymentTransactionId || r.rawSource?.transactionId || '',
+            paymentTransactionDateTime: r.paymentTransactionDateTime || r.createdAt ? new Date(r.createdAt).toISOString() : '',
+            cancelBookingReason: r.cancelBookingReason || '',
+            cancellationMessage: r.cancellationMessage || '',
+            refundRequestedDateTime: r.refundRequestedDateTime || '',
+            refundableAmount: Number(r.refundableAmount) || 0,
+            amountRefunded: Number(r.amountRefunded) || 0,
+            dateOfRefund: r.dateOfRefund || '',
           };
         });
 
@@ -626,6 +653,56 @@ export default function ReservationTable() {
     },
     { data: "paymentStatus", title: "Payment" },
     { data: "status", title: "Status" },
+    { 
+      data: "reservedFrom", 
+      title: "Reserved From",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "foodPreference", 
+      title: "Food Preference",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "paymentTransactionId", 
+      title: "Transaction ID",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "paymentTransactionDateTime", 
+      title: "Transaction Date",
+      render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
+    },
+    { 
+      data: "cancelBookingReason", 
+      title: "Cancel Reason",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "cancellationMessage", 
+      title: "Cancellation Message",
+      render: (data: string) => data || 'N/A'
+    },
+    { 
+      data: "refundRequestedDateTime", 
+      title: "Refund Requested",
+      render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
+    },
+    {
+      data: "refundableAmount",
+      title: "Refundable Amount",
+      render: (data: number) => data ? `₹${data}` : 'N/A'
+    },
+    {
+      data: "amountRefunded",
+      title: "Amount Refunded",
+      render: (data: number) => data ? `₹${data}` : 'N/A'
+    },
+    { 
+      data: "dateOfRefund", 
+      title: "Refund Date",
+      render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
+    },
     {
       data: null,
       title: "Actions",
@@ -633,7 +710,7 @@ export default function ReservationTable() {
       searchable: false,
       render: (_data: any, _type: any, row: Reservation) => {
         return `
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
             ${perms.canEdit ? `
             <button 
               class="edit-btn" 
@@ -655,29 +732,6 @@ export default function ReservationTable() {
               onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
             >
               Edit
-            </button>
-            ` : ''}
-            ${perms.canDisable ? `
-            <button 
-              class="delete-btn" 
-              data-id="${row.id}" 
-              title="Delete Reservation"
-              style="
-                background: #dc2626;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.2s ease;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-              "
-              onmouseover="this.style.background='#b91c1c'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 2px 6px rgba(0, 0, 0, 0.15)'"
-              onmouseout="this.style.background='#dc2626'; this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(0, 0, 0, 0.1)'"
-            >
-              Delete
             </button>
             ` : ''}
           </div>
@@ -957,44 +1011,44 @@ export default function ReservationTable() {
                   {/* Guest Details */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Guest Details</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Guests</Label>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Guests</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.guests ?? 0)} onChange={(e) => handleEditChange('guests', parseInt(e.target.value) || 0)} />
+                          <Input className="h-12 text-center text-base font-medium" type="number" value={String(editForm?.guests ?? 0)} onChange={(e) => handleEditChange('guests', parseInt(e.target.value) || 0)} />
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.guests}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.guests}</span>
                           </div>
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Children</Label>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Children</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.children ?? 0)} onChange={(e) => handleEditChange('children', parseInt(e.target.value) || 0)} />
+                          <Input className="h-12 text-center text-base font-medium" type="number" value={String(editForm?.children ?? 0)} onChange={(e) => handleEditChange('children', parseInt(e.target.value) || 0)} />
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.children}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.children}</span>
                           </div>
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Extra Guests</Label>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Extra Guests</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e) => handleEditChange('extraGuests', parseInt(e.target.value) || 0)} />
+                          <Input className="h-12 text-center text-base font-medium" type="number" value={String(editForm?.extraGuests ?? 0)} onChange={(e) => handleEditChange('extraGuests', parseInt(e.target.value) || 0)} />
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.extraGuests}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.extraGuests}</span>
                           </div>
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Total Guests</Label>
-                        <div className="mt-1 p-3 bg-blue-50 rounded-md border border-blue-200 text-center">
-                          <span className="text-lg font-bold text-blue-900">{(Number(editForm?.guests || 0) + Number(editForm?.children || 0) + Number(editForm?.extraGuests || 0))}</span>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Total Guests</Label>
+                        <div className="h-12 flex items-center justify-center bg-blue-50 rounded-md border border-blue-200">
+                          <span className="text-xl font-bold text-blue-900">{(Number(editForm?.guests || 0) + Number(editForm?.children || 0) + Number(editForm?.extraGuests || 0))}</span>
                         </div>
                       </div>
                     </div>
@@ -1003,14 +1057,14 @@ export default function ReservationTable() {
                   {/* Room Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Room Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Number of Rooms</Label>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex flex-col max-w-xs">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Number of Rooms</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1 text-center" type="number" value={String(editForm?.numberOfRooms ?? 0)} onChange={(e) => handleEditChange('numberOfRooms', parseInt(e.target.value) || 0)} />
+                          <Input className="h-12 text-center text-base font-medium" type="number" value={String(editForm?.numberOfRooms ?? 0)} onChange={(e) => handleEditChange('numberOfRooms', parseInt(e.target.value) || 0)} />
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border text-center">
-                            <span className="text-sm text-gray-900">{selectedReservation.numberOfRooms}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.numberOfRooms}</span>
                           </div>
                         )}
                       </div>
@@ -1020,25 +1074,25 @@ export default function ReservationTable() {
                   {/* Pricing Information */}
                   <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Pricing Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Room Price</Label>
-                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                          <span className="text-sm text-gray-900">₹{selectedReservation.roomPrice.toLocaleString()}</span>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Room Price</Label>
+                        <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                          <span className="text-base font-semibold text-gray-900">₹{selectedReservation.roomPrice.toLocaleString()}</span>
                         </div>
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Extra Bed Charges</Label>
-                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                          <span className="text-sm text-gray-900">₹{selectedReservation.extraBedCharges.toLocaleString()}</span>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Extra Bed Charges</Label>
+                        <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                          <span className="text-base font-semibold text-gray-900">₹{selectedReservation.extraBedCharges.toLocaleString()}</span>
                         </div>
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Total Payable</Label>
-                        <div className="mt-1 p-3 bg-green-50 rounded-md border border-green-200">
-                          <span className="text-lg font-bold text-green-900">₹{selectedReservation.totalPayable.toLocaleString()}</span>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Total Payable</Label>
+                        <div className="h-12 flex items-center justify-center bg-green-50 rounded-md border border-green-200">
+                          <span className="text-xl font-bold text-green-900">₹{selectedReservation.totalPayable.toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -1047,51 +1101,56 @@ export default function ReservationTable() {
                   {/* Status Information */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Status Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Reservation Status</Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Reservation Status</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.status || ''} onChange={(e) => handleEditChange('status', e.target.value)} />
+                          <Select value={editForm?.status || ''} onValueChange={(value) => handleEditChange('status', value)}>
+                            <SelectTrigger className="h-12 text-base font-medium">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Reserved">Reserved</SelectItem>
+                              <SelectItem value="Pending">Pending</SelectItem>
+                              <SelectItem value="Not Reserved">Not Reserved</SelectItem>
+                              <SelectItem value="Canceled">Canceled</SelectItem>
+                            </SelectContent>
+                          </Select>
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.status}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.status}</span>
                           </div>
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Payment Status</Label>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Payment Status</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" value={editForm?.paymentStatus || ''} onChange={(e) => handleEditChange('paymentStatus', e.target.value)} />
+                          <Select value={editForm?.paymentStatus || ''} onValueChange={(value) => handleEditChange('paymentStatus', value)}>
+                            <SelectTrigger className="h-12 text-base font-medium">
+                              <SelectValue placeholder="Select payment status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="paid">Paid</SelectItem>
+                              <SelectItem value="unpaid">Unpaid</SelectItem>
+                            </SelectContent>
+                          </Select>
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.paymentStatus}</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.paymentStatus}</span>
                           </div>
                         )}
                       </div>
 
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Refund Percentage</Label>
+                      <div className="flex flex-col">
+                        <Label className="text-xs font-medium text-gray-600 mb-1.5">Refund Percentage</Label>
                         {sheetMode === 'edit' ? (
-                          <Input className="mt-1" type="number" value={String(editForm?.refundPercentage ?? 0)} onChange={(e) => handleEditChange('refundPercentage', parseFloat(e.target.value) || 0)} />
+                          <Input className="h-12 text-center text-base font-medium" type="number" value={String(editForm?.refundPercentage ?? 0)} onChange={(e) => handleEditChange('refundPercentage', parseFloat(e.target.value) || 0)} />
                         ) : (
-                          <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                            <span className="text-sm text-gray-900">{selectedReservation.refundPercentage}%</span>
+                          <div className="h-12 flex items-center justify-center bg-gray-50 rounded-md border">
+                            <span className="text-base font-medium text-gray-900">{selectedReservation.refundPercentage}%</span>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Additional Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Additional Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-700">Existing Guest ID</Label>
-                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                          <span className="text-sm text-gray-900">{selectedReservation.existingGuest || 'N/A'}</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1114,19 +1173,7 @@ export default function ReservationTable() {
                     >
                       Edit Reservation
                     </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => {
-                        if (!perms.canDisable) return
-                        setIsDetailSheetOpen(false)
-                        setDisablingReservation(selectedReservation)
-                        setIsConfirmDisableOpen(true)
-                      }}
-                      disabled={!perms.canDisable}
-                      title={!perms.canDisable ? 'You do not have permission to delete' : undefined}
-                    >
-                      Delete
-                    </Button>
+
                   </>
                 ) : (
                   <>

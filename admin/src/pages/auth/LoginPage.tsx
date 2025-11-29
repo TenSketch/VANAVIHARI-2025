@@ -14,7 +14,7 @@ const LoginPage = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { isAuthenticated, loading: authLoading } = useAdmin()
+  const { isAuthenticated, loading: authLoading, refresh } = useAdmin()
 
   const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000'
 
@@ -53,9 +53,14 @@ const LoginPage = () => {
 
       if (!res.ok) throw new Error(data.error || 'Login failed')
 
-      // store token and redirect
+      // store token and refresh auth state
       localStorage.setItem('admin_token', data.token)
-      navigate('/dashboard/report')
+      
+      // Trigger auth state update
+      await refresh()
+      
+      // Navigate to dashboard
+      navigate('/dashboard/report', { replace: true })
     } catch (err: any) {
       console.error('Login error', err)
       setError(err.message || 'Login failed')
