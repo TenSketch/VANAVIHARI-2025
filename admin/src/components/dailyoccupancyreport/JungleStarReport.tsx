@@ -37,7 +37,7 @@ export default function DailyOccupancyReport() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${apiUrl}/api/reports/daily-occupancy/slug/junglestar`);
+        const response = await fetch(`${apiUrl}/api/reports/daily-occupancy/slug/jungle-star`);
         const result = await response.json();
         
         if (result.success) {
