@@ -123,192 +123,183 @@
     margin-bottom: 0.5rem;
 }
 
-.image-grid-horizontal {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    margin-bottom: 1rem;
-    scrollbar-width: thin;
-}
-
-.image-grid-horizontal::-webkit-scrollbar {
-    height: 6px;
-}
-
-.image-grid-horizontal::-webkit-scrollbar-thumb {
-    background-color: #ccc;
-    border-radius: 3px;
-}
-
-.image-grid-horizontal .grid-item {
-    /* larger cards so images are more prominent */
-    flex: 0 0 300px;
-    /* bigger thumbnails */
-    height: 420px;
-    /* larger visible height */
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.image-grid-horizontal .grid-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.2s;
-}
-
-.image-grid-horizontal .grid-item img:hover {
-    transform: scale(1.05);
-}
-
-/* Responsive adjustments */
-@media (max-width: 767px) {
-    .image-grid-horizontal .grid-item {
-        flex: 0 0 180px;
-        height: 280px;
-        /* medium size on mobile */
-    }
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-    .image-grid-horizontal .grid-item {
-        flex: 0 0 240px;
-        height: 340px;
-        /* larger for tablets */
-    }
-}
-
-/* Ticket Badge Styles */
-.ticket-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 5;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
-    min-width: 150px;
-    overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    border: 1px solid rgba(0, 0, 0, 0.04);
-    transition: transform 0.2s ease;
-
-    &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-    }
-}
-
-.ticket-main {
-    background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-    padding: 12px 16px;
-    text-align: right;
+/* gallery styles to match resort rooms slider */
+.containerg {
     position: relative;
+
+    .card-containerg {
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        align-items: center;
+        position: relative;
+        scroll-behavior: smooth;
+        scroll-snap-type: x mandatory;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        .card {
+            flex: 1 0 auto;
+            border: 0;
+            box-shadow: unset;
+            padding-left: 0;
+
+            img {
+                width: 280px;
+                height: 280px;
+                object-fit: cover;
+                border-radius: 12px;
+                scroll-snap-align: center;
+                cursor: pointer;
+            }
+        }
+    }
+
+    .scroll-icon {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 28px;
+        cursor: pointer;
+        opacity: 1;
+        transition: opacity 0.3s ease-in-out;
+        color: yellow;
+
+        &.left {
+            left: 8px;
+        }
+
+        &.right {
+            right: 8px;
+        }
+    }
 }
 
-/* Zig-zag border effect at the bottom of the main section */
-.ticket-main::after {
-    content: "";
-    position: absolute;
-    bottom: -4px;
+.full-image-overlay {
+    position: fixed;
+    top: 0;
     left: 0;
     width: 100%;
-    height: 8px;
-    background: radial-gradient(circle, transparent 4px, #fff 4px);
-    background-size: 12px 12px;
-    background-position: center bottom;
-    transform: rotate(180deg);
-    z-index: 2;
-}
-
-.ticket-price-row {
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
     display: flex;
-    justify-content: flex-end;
-    align-items: baseline;
-    gap: 4px;
-    color: #5d4037;
-    line-height: 1;
-}
-
-.ticket-price-row .currency {
-    font-size: 0.9rem;
-    font-weight: 600;
-    opacity: 0.8;
-}
-
-.ticket-price-row .amount {
-    font-size: 1.75rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-}
-
-.ticket-sub {
-    font-size: 0.85rem;
-    color: #795548;
-    margin-top: 4px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.ticket-divider {
-    height: 1px;
-    border-top: 2px dashed #d7ccc8;
-    margin: 4px 12px 0;
-    opacity: 0.6;
-}
-
-.ticket-extras {
-    background-color: #fff;
-    padding: 12px 16px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.extra-row {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    font-size: 0.95rem;
-    color: #5d4037;
+    justify-content: center;
+    z-index: 9999;
 }
 
-.extra-row .label {
-    font-weight: 500;
-    color: #8d6e63;
+.full-image-container {
+    max-width: 90%;
+    max-height: 90%;
 }
 
-.extra-row .price {
+.full-image {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 6px;
+}
+
+.overlay-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}
+
+.download-button,
+.close-button {
+    background-color: #ffffff;
+    color: #333333;
+    border: none;
+    padding: 8px 16px;
+    margin-right: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.download-button:hover,
+.close-button:hover {
+    background-color: #f0f0f0;
+}
+
+/* Larger, reworked badges for spot details and fees */
+.spot-details .fee-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    padding: 0.55rem 1rem;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #f6fbff 100%);
+    color: #04263a;
+    border: 1px solid #d7eaf6;
     font-weight: 700;
-    color: #4e342e;
+    box-shadow: 0 6px 18px rgba(13, 42, 61, 0.06);
 }
 
-@media (max-width: 575px) {
-    .ticket-badge {
-        top: 8px;
-        right: 8px;
-        min-width: 120px;
+/* Make fee badges stand out on small screens by stacking */
+@media (max-width: 767px) {
+    .spot-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
     }
 
-    .ticket-main {
-        padding: 10px 12px;
-    }
-
-    .ticket-extras {
-        padding: 10px 12px 12px;
-    }
-
-    .ticket-price-row .amount {
-        font-size: 1.4rem;
-    }
-
-    .extra-row {
-        font-size: 0.85rem;
+    .spot-details .fee-badge,
+    .spot-details .meta-badge {
+        font-size: 0.95rem;
+        padding: 0.5rem 0.9rem;
+        flex: 0 0 auto;
     }
 }
+
+/* Desktop (PC) view: stack fee badges vertically and improve layout */
+@media (min-width: 992px) {
+
+    /* Anchor the fee badges to the right-hand side of the card and improve readability */
+    .spot-details {
+        float: right;
+        width: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+        padding-top: 0.35rem;
+        margin-left: 1rem;
+    }
+
+    /* Make fee badges a neat two-column grid: label | value */
+    .spot-details .fee-badge {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        font-size: 1.05rem;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(13, 42, 61, 0.06);
+        box-shadow: 0 10px 30px rgba(13, 42, 61, 0.04);
+    }
+
+    .spot-details .fee-badge strong {
+        display: block;
+        font-weight: 700;
+        color: #04263a;
+    }
+
+    /* Value column: right aligned and emphasized */
+    .spot-details .fee-badge span:last-child,
+    .spot-details .fee-badge .price-value {
+        justify-self: end;
+        font-weight: 800;
+        color: #072238;
+    }
+}
+
+/* Ticket badge styles removed — ticket design no longer used on tourist spot pages */
 
 /* place horizontal actions to bottom-right on larger screens */
 .actions.actions-bottom-right {

@@ -1,35 +1,7 @@
 <div class="container tourist-spot-section">
   <div class="tourist-spot">
     <!-- Entry fee badge shown on top-right if fee exists -->
-    <!-- Ticket-style pricing badge -->
-    <div class="ticket-badge" *ngIf="unitEntry !== undefined">
-      <div class="ticket-content">
-        <div class="ticket-main">
-          <div class="ticket-price-row">
-            <span class="currency">INR</span>
-            <span class="amount">₹{{ (unitEntry * peopleCount) | number:'1.0-0' }}</span>
-          </div>
-          <div class="ticket-sub">{{ peopleCount }} x guest</div>
-        </div>
-        
-        <div class="ticket-divider" *ngIf="parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined || unitCamera !== undefined"></div>
-
-        <div class="ticket-extras" *ngIf="parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined || unitCamera !== undefined">
-          <div class="extra-row" *ngIf="parkingTwoWheeler !== undefined">
-            <span class="label">2 wheeler</span>
-            <span class="price">₹{{ parkingTwoWheeler }}</span>
-          </div>
-          <div class="extra-row" *ngIf="parkingFourWheeler !== undefined">
-            <span class="label">4 wheeler</span>
-            <span class="price">₹{{ parkingFourWheeler }}</span>
-          </div>
-          <div class="extra-row" *ngIf="unitCamera !== undefined">
-            <span class="label">camera</span>
-            <span class="price">₹{{ unitCamera }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Ticket-style pricing badge removed per request -->
     <div class="row">
       <!-- Left Column: Images -->
       <div class="col-md-6">
@@ -39,9 +11,28 @@
           <div class="sub" *ngIf="type">{{ type }}</div>
         </header>
 
-        <div class="image-grid-horizontal" *ngIf="images?.length">
-          <div class="grid-item" *ngFor="let img of images; let i = index">
-            <img [src]="img" [alt]="name" (click)="openLightbox(i)" style="cursor: pointer;" />
+        <div class="containerg" *ngIf="images?.length">
+          <div class="card-containerg" #cardContainer>
+            <div class="card py-0" *ngFor="let img of images; let i = index">
+              <img class="img-responsive" [src]="img" [alt]="name" (click)="openFullImage(img)" />
+            </div>
+          </div>
+          
+          <div class="full-image-overlay" *ngIf="isFullImageVisible" (click)="closeFullImage()">
+            <div class="full-image-container">
+              <img class="full-image" [src]="fullImageSrc" [alt]="name" />
+              <div class="overlay-controls">
+                <button class="close-button" (click)="closeFullImage()">
+                  <i class="fas fa-window-close" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="scroll-icon left" (click)="scrollLeft()">
+            <i class="fas fa-chevron-left"></i>
+          </div>
+          <div class="scroll-icon right" (click)="scrollRight()">
+            <i class="fas fa-chevron-right"></i>
           </div>
         </div>
       </div>
@@ -53,15 +44,32 @@
         <div class="info-pricing-section mt-3">
           
           <!-- Difficulty, Distance, Elevation -->
-          <div class="spot-details d-flex flex-wrap gap-3 mb-3" *ngIf="difficulty || distance || elevationGain">
-            <span class="badge bg-light text-dark border" *ngIf="difficulty">
-              <strong>Difficulty:</strong> {{ difficulty }}
+          <!-- Only show fee badges (Entry, Parking, Camera) -->
+          <div class="spot-details d-flex flex-wrap gap-3 mb-3" *ngIf="unitEntry !== undefined || unitParking !== undefined || parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined || unitCamera !== undefined">
+            <span class="badge fee-badge" *ngIf="unitEntry !== undefined">
+              <strong>Entry:</strong> ₹{{ unitEntry | number:'1.0-0' }}
             </span>
-            <span class="badge bg-light text-dark border" *ngIf="distance">
-              <strong>Distance:</strong> {{ distance }} km
+            <span class="badge fee-badge" *ngIf="unitEntry === undefined && entryFee">
+              <strong>Entry:</strong> {{ entryFee }}
             </span>
-            <span class="badge bg-light text-dark border" *ngIf="elevationGain">
-              <strong>Elevation Gain:</strong> {{ elevationGain }} m
+
+            <ng-container *ngIf="parkingTwoWheeler !== undefined || parkingFourWheeler !== undefined">
+              <span class="badge fee-badge" *ngIf="parkingTwoWheeler !== undefined">
+                <strong>Parking 2W:</strong> ₹{{ parkingTwoWheeler }}
+              </span>
+              <span class="badge fee-badge" *ngIf="parkingFourWheeler !== undefined">
+                <strong>Parking 4W:</strong> ₹{{ parkingFourWheeler }}
+              </span>
+            </ng-container>
+            <span class="badge fee-badge" *ngIf="parkingTwoWheeler === undefined && parkingFourWheeler === undefined && unitParking !== undefined">
+              <strong>Parking:</strong> ₹{{ unitParking | number:'1.0-0' }}
+            </span>
+
+            <span class="badge fee-badge" *ngIf="unitCamera !== undefined">
+              <strong>Camera:</strong> ₹{{ unitCamera | number:'1.0-0' }}
+            </span>
+            <span class="badge fee-badge" *ngIf="unitCamera === undefined && cameraFee">
+              <strong>Camera:</strong> {{ cameraFee }}
             </span>
           </div>
 
