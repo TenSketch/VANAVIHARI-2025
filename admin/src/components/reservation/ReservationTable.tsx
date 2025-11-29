@@ -184,7 +184,7 @@ export default function ReservationTable() {
       // update with server response if provided
       const server = parsed?.reservation || parsed
       if (server) {
-        const mapped = {
+        const mapped: Reservation = {
           id: String(server._id || server.id || selectedReservation.id),
           fullName: server.fullName || updatedLocal.fullName,
           phone: server.phone || updatedLocal.phone,
@@ -218,6 +218,16 @@ export default function ReservationTable() {
           postalCode: server.postalCode || updatedLocal.postalCode,
           country: server.country || updatedLocal.country,
           existingGuest: server.existingGuest || updatedLocal.existingGuest,
+          reservedFrom: server.reservedFrom || server.rawSource?.reservedFrom || updatedLocal.reservedFrom,
+          foodPreference: server.foodPreference || server.rawSource?.foodPreference || updatedLocal.foodPreference,
+          paymentTransactionId: server.paymentTransactionId || server.rawSource?.transactionId || updatedLocal.paymentTransactionId,
+          paymentTransactionDateTime: server.paymentTransactionDateTime || server.createdAt || updatedLocal.paymentTransactionDateTime,
+          cancelBookingReason: server.cancelBookingReason || updatedLocal.cancelBookingReason,
+          cancellationMessage: server.cancellationMessage || updatedLocal.cancellationMessage,
+          refundRequestedDateTime: server.refundRequestedDateTime || updatedLocal.refundRequestedDateTime,
+          refundableAmount: Number(server.refundableAmount) || updatedLocal.refundableAmount,
+          amountRefunded: Number(server.amountRefunded) || updatedLocal.amountRefunded,
+          dateOfRefund: server.dateOfRefund || updatedLocal.dateOfRefund,
         }
 
         setReservations(prev => prev.map(r => r.id === mapped.id ? mapped : r))

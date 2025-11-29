@@ -13,6 +13,7 @@ import paymentRouter from './routes/paymentRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 import tentSpotRouter from './routes/tentSpotRoutes.js'
 import tentRouter from './routes/tentRoutes.js'
+import reportsRouter from './routes/reportsRoute.js'
 import { expirePendingReservations } from './controllers/reservationController.js'
 
 //App config
@@ -55,6 +56,7 @@ app.use('/api/logs', logRouter)
 app.use('/api/payment', paymentRouter)
 app.use('/api/tent-spots', tentSpotRouter)
 app.use('/api/tent-types', tentRouter)
+app.use('/api/reports', reportsRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'
