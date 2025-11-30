@@ -104,7 +104,7 @@
             <button mat-raised-button color="primary" class="w-100 mt-3" *ngIf="bookedTents.length > 0" (click)="proceedToCheckout()">Proceed</button>
           </ng-template>
 
-          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3 p-3" style="background-color: #e6ffcc;">
+          <div *ngIf="!isMobile" class="booking-summary-bar text-dark rounded-3 p-3">
             <h4 class="m-0 pb-1 font-weight-bold">Booking Summary</h4>
             <ng-container *ngTemplateOutlet="bookingSummaryContent"></ng-container>
           </div>

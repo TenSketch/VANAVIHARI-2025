@@ -389,38 +389,29 @@
     margin-top: 1rem;
   }
 
-  .booking-summary-card {
-    position: fixed !important;
-    top: 80px !important;
-    right: 1rem !important;
-    left: 1rem !important;
-    margin: 0 !important;
+  .booking-summary-col {
+    position: sticky !important;
+    top: 80px !important; // Adjust based on navbar height
     z-index: 900;
-    max-height: calc(100vh - 96px);
-    overflow: auto;
+    background: white; // Ensure background covers content behind it
+    padding-bottom: 10px; // Add some padding
   }
 
+  .booking-summary-card,
   .col-md-4 mat-accordion {
-    position: fixed !important;
-    top: 80px !important;
-    right: 1rem !important;
-    left: 1rem !important;
+    position: static !important;
     margin: 0 !important;
-    z-index: 900;
+    width: 100%;
     max-height: calc(100vh - 96px);
     overflow: auto;
   }
 
   .tourist-spots-list {
-    margin-top: 100px !important;
+    margin-top: 1rem !important;
   }
 
   @media (max-width: 575.98px) {
-    .booking-summary-card {
-      top: 70px !important;
-    }
-
-    .col-md-4 mat-accordion {
+    .booking-summary-col {
       top: 70px !important;
     }
   }

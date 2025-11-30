@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { Lightbox } from 'ng-gallery/lightbox';
@@ -73,6 +73,11 @@ export class TouristSpotSelectionComponent {
 
   // Lightbox items
   items: GalleryItem[] = [];
+
+  // Carousel state
+  isFullImageVisible = false;
+  fullImageSrc: string | null = null;
+  @ViewChild('cardContainer') cardContainer!: ElementRef;
 
   constructor(
     public lightbox: Lightbox,
@@ -197,5 +202,32 @@ export class TouristSpotSelectionComponent {
 
   openLightbox(index: number) {
     this.setGalleryData(index);
+  }
+
+  // Carousel methods
+  openFullImage(src: string) {
+    this.fullImageSrc = src;
+    this.isFullImageVisible = true;
+  }
+
+  closeFullImage() {
+    this.isFullImageVisible = false;
+    this.fullImageSrc = null;
+  }
+
+  scrollLeft() {
+    if (this.cardContainer && this.cardContainer.nativeElement) {
+      const container = this.cardContainer.nativeElement as HTMLElement;
+      const offset = Math.round(container.clientWidth * 0.7) || 200;
+      container.scrollTo({ left: container.scrollLeft - offset, behavior: 'smooth' });
+    }
+  }
+
+  scrollRight() {
+    if (this.cardContainer && this.cardContainer.nativeElement) {
+      const container = this.cardContainer.nativeElement as HTMLElement;
+      const offset = Math.round(container.clientWidth * 0.7) || 200;
+      container.scrollTo({ left: container.scrollLeft + offset, behavior: 'smooth' });
+    }
   }
 }
