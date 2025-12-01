@@ -44,36 +44,51 @@ const AddSpots = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Prevent double submission
     if (isSubmitting) return;
 
-    // Basic validation (keep same required fields as the UI)
-    if (!formData.spotName || !formData.location || !formData.contactPerson || !formData.contactNo || !formData.email) {
+    // Basic validation
+    if (!formData.spotName || !formData.location || !formData.contactPerson || 
+        !formData.contactNo || !formData.email || !formData.accommodation || 
+        !formData.foodAvailable || !formData.kidsStay || !formData.womenStay || 
+        !formData.checkIn || !formData.checkOut) {
       alert('Please fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
 
-    const submitData = {
-      id: `spot-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      ...formData,
-      createdAt: new Date().toISOString(),
-    };
-
     try {
-      const existing = JSON.parse(localStorage.getItem('tentSpotsDemo') || '[]');
-      existing.push(submitData);
-      localStorage.setItem('tentSpotsDemo', JSON.stringify(existing));
-      console.log('Saved tent spot (frontend-only):', submitData);
-      alert('Tent spot saved locally (frontend-only).');
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('admin_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${apiBase}/api/tent-spots`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to create tent spot (status ${response.status})`);
+      }
+
+      alert('Tent spot created successfully!');
       handleReset();
-    } catch (err) {
-      console.error('Failed to save locally', err);
-      alert('Failed to save locally: ' + String(err));
+    } catch (err: any) {
+      console.error('Failed to create tent spot:', err);
+      alert('Failed to create tent spot: ' + (err.message || String(err)));
     } finally {
       setIsSubmitting(false);
     }

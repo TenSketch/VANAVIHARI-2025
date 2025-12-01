@@ -190,15 +190,43 @@ export default function AllTentSpotsTable() {
     setSheetMode('edit')
   };
 
-  const toggleActiveStatus = (spot: TentSpot) => {
+  const toggleActiveStatus = async (spot: TentSpot) => {
     if (!permsRef.current.canDisable) return
-    setTentSpots((prev) =>
-      prev.map((t) =>
-        t.id === spot.id ? { ...t, isActive: !t.isActive } : t
-      )
-    );
-    if (selectedSpot && selectedSpot.id === spot.id) {
-      setSelectedSpot({ ...spot, isActive: !spot.isActive });
+    
+    try {
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('admin_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${apiBase}/api/tent-spots/${spot.id}/toggle-status`, {
+        method: 'PATCH',
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle status');
+      }
+
+      // Update local state
+      setTentSpots((prev) =>
+        prev.map((t) =>
+          t.id === spot.id ? { ...t, isActive: !t.isActive } : t
+        )
+      );
+      if (selectedSpot && selectedSpot.id === spot.id) {
+        setSelectedSpot({ ...spot, isActive: !spot.isActive });
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle status:', err);
+      alert('Failed to toggle status: ' + (err.message || String(err)));
     }
   };
 
@@ -552,31 +580,62 @@ export default function AllTentSpotsTable() {
                   <>
                     <Button variant="outline" onClick={() => setSheetMode('view')}>Cancel</Button>
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!perms.canEdit) return
-                        setTentSpots((prev) =>
-                          prev.map((t) =>
-                            t.id === selectedSpot.id
-                              ? {
-                                  ...t,
-                                  spotName: editSpotName,
-                                  location: editLocation,
-                                  contactPerson: editContactPerson,
-                                  contactNo: editContactNo,
-                                  email: editEmail,
-                                  rules: editRules,
-                                  accommodation: editAccommodation,
-                                  foodAvailable: editFoodAvailable,
-                                  kidsStay: editKidsStay,
-                                  womenStay: editWomenStay,
-                                  checkIn: editCheckIn,
-                                  checkOut: editCheckOut,
-                                }
-                              : t
-                          )
-                        );
-                        setSheetMode('view')
-                        setIsDetailSheetOpen(false);
+                        
+                        try {
+                          const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+                          const token = localStorage.getItem('admin_token');
+                          
+                          const updateData = {
+                            spotName: editSpotName,
+                            location: editLocation,
+                            contactPerson: editContactPerson,
+                            contactNo: editContactNo,
+                            email: editEmail,
+                            rules: editRules,
+                            accommodation: editAccommodation,
+                            foodAvailable: editFoodAvailable,
+                            kidsStay: editKidsStay,
+                            womenStay: editWomenStay,
+                            checkIn: editCheckIn,
+                            checkOut: editCheckOut,
+                          };
+
+                          const headers: Record<string, string> = {
+                            'Content-Type': 'application/json',
+                          };
+                          if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                          }
+
+                          const response = await fetch(`${apiBase}/api/tent-spots/${selectedSpot.id}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify(updateData),
+                          });
+
+                          const data = await response.json();
+
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Failed to update tent spot');
+                          }
+
+                          // Update local state
+                          setTentSpots((prev) =>
+                            prev.map((t) =>
+                              t.id === selectedSpot.id
+                                ? { ...t, ...updateData }
+                                : t
+                            )
+                          );
+                          setSheetMode('view')
+                          setIsDetailSheetOpen(false);
+                          alert('Tent spot updated successfully!');
+                        } catch (err: any) {
+                          console.error('Failed to update tent spot:', err);
+                          alert('Failed to update tent spot: ' + (err.message || String(err)));
+                        }
                       }}
                       disabled={!perms.canEdit}
                       title={!perms.canEdit ? 'You do not have permission to save' : undefined}

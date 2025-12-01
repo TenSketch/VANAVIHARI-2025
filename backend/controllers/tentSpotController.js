@@ -1,84 +1,193 @@
-import TentSpot from '../models/tentSpotModel.js'
+import TentSpot from '../models/tentSpotModel.js';
 
-const createTentSpot = async (req, res) => {
+// Create a new tent spot
+export const createTentSpot = async (req, res) => {
   try {
-    const body = req.body || {}
-    const v = (key) => {
-      const val = body[key]
-      if (Array.isArray(val)) return val[0]
-      return val
+    const {
+      spotName,
+      location,
+      contactPerson,
+      contactNo,
+      email,
+      rules,
+      accommodation,
+      foodAvailable,
+      kidsStay,
+      womenStay,
+      checkIn,
+      checkOut,
+    } = req.body;
+
+    // Validation
+    if (!spotName || !location || !contactPerson || !contactNo || !email || 
+        !accommodation || !foodAvailable || !kidsStay || !womenStay || 
+        !checkIn || !checkOut) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'All required fields must be provided' 
+      });
     }
 
-    const spotData = {
-      spotName: v('spotName'),
-      location: v('location'),
-      contactPerson: v('contactPerson'),
-      contactNo: v('contactNo'),
-      email: v('email'),
-      rules: v('rules'),
-      accommodation: v('accommodation'),
-      foodAvailable: v('foodAvailable'),
-      kidsStay: v('kidsStay'),
-      womenStay: v('womenStay'),
-      checkIn: v('checkIn'),
-      checkOut: v('checkOut'),
+    const tentSpot = new TentSpot({
+      spotName,
+      location,
+      contactPerson,
+      contactNo,
+      email,
+      rules: rules || "",
+      accommodation,
+      foodAvailable,
+      kidsStay,
+      womenStay,
+      checkIn,
+      checkOut,
+    });
+
+    await tentSpot.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Tent spot created successfully',
+      tentSpot,
+    });
+  } catch (error) {
+    console.error('Error creating tent spot:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to create tent spot' 
+    });
+  }
+};
+
+// Get all tent spots
+export const getAllTentSpots = async (req, res) => {
+  try {
+    const tentSpots = await TentSpot.find().sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      tentSpots,
+    });
+  } catch (error) {
+    console.error('Error fetching tent spots:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch tent spots' 
+    });
+  }
+};
+
+// Get a single tent spot by ID
+export const getTentSpotById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tentSpot = await TentSpot.findById(id);
+
+    if (!tentSpot) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Tent spot not found' 
+      });
     }
 
-    if (v('resort')) spotData.resort = v('resort')
-
-    const ts = new TentSpot(spotData)
-    await ts.save()
-    res.status(201).json({ tentSpot: ts })
+    res.status(200).json({
+      success: true,
+      tentSpot,
+    });
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: error.message })
+    console.error('Error fetching tent spot:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch tent spot' 
+    });
   }
-}
+};
 
-const listTentSpots = async (req, res) => {
+// Update a tent spot
+export const updateTentSpot = async (req, res) => {
   try {
-    const list = await TentSpot.find().sort({ createdAt: -1 }).populate('resort')
-    res.json({ tentSpots: list })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
+    const { id } = req.params;
+    const updateData = req.body;
 
-const getTentSpot = async (req, res) => {
+    const tentSpot = await TentSpot.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!tentSpot) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Tent spot not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Tent spot updated successfully',
+      tentSpot,
+    });
+  } catch (error) {
+    console.error('Error updating tent spot:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to update tent spot' 
+    });
+  }
+};
+
+// Toggle tent spot status (activate/deactivate)
+export const toggleTentSpotStatus = async (req, res) => {
   try {
-    const ts = await TentSpot.findById(req.params.id).populate('resort')
-    if (!ts) return res.status(404).json({ error: 'Not found' })
-    res.json({ tentSpot: ts })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
+    const { id } = req.params;
+    const tentSpot = await TentSpot.findById(id);
 
-const updateTentSpot = async (req, res) => {
+    if (!tentSpot) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Tent spot not found' 
+      });
+    }
+
+    tentSpot.isDisabled = !tentSpot.isDisabled;
+    await tentSpot.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Tent spot ${tentSpot.isDisabled ? 'deactivated' : 'activated'} successfully`,
+      tentSpot,
+    });
+  } catch (error) {
+    console.error('Error toggling tent spot status:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to toggle tent spot status' 
+    });
+  }
+};
+
+// Delete a tent spot (hard delete)
+export const deleteTentSpot = async (req, res) => {
   try {
-    const updates = req.body || {}
-    const allowed = ['spotName','location','contactPerson','contactNo','email','rules','accommodation','foodAvailable','kidsStay','womenStay','checkIn','checkOut','resort']
-    const toSet = {}
-    for (const k of allowed) if (updates[k] !== undefined) toSet[k] = updates[k]
+    const { id } = req.params;
+    const tentSpot = await TentSpot.findByIdAndDelete(id);
 
-    const ts = await TentSpot.findByIdAndUpdate(req.params.id, { $set: toSet }, { new: true }).populate('resort')
-    if (!ts) return res.status(404).json({ error: 'Not found' })
-    res.json({ tentSpot: ts })
+    if (!tentSpot) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Tent spot not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Tent spot deleted successfully',
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Error deleting tent spot:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to delete tent spot' 
+    });
   }
-}
-
-const toggleDisableTentSpot = async (req, res) => {
-  try {
-    const { isDisabled } = req.body
-    if (typeof isDisabled !== 'boolean') return res.status(400).json({ error: 'isDisabled boolean required' })
-    const ts = await TentSpot.findByIdAndUpdate(req.params.id, { $set: { isDisabled } }, { new: true })
-    if (!ts) return res.status(404).json({ error: 'Not found' })
-    res.json({ tentSpot: ts })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
-export { createTentSpot, listTentSpots, getTentSpot, updateTentSpot, toggleDisableTentSpot }
+};
