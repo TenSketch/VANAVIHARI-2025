@@ -7,14 +7,26 @@ import { Label } from "@/components/ui/label";
 const AddTentTypes = () => {
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   
+  // Available amenities options
+  const availableAmenities = [
+    "Beds",
+    "Pillows",
+    "Bed sheets",
+    "Comforters",
+    "Towels",
+    "Chairs"
+  ];
+
   // Single-item add form (admin can add multiple tent types one by one)
   const [form, setForm] = useState({
-    tentType: "2 person tent",
-    dimensions: "approx. 205 cm × 145 cm, height 110 cm",
-    brand: "Decathlon",
-    features: `- Waterproof and dustproof\n- Raised concrete base for added comfort and safety`,
-    price: "1500",
-    amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
+    tentType: "",
+    accommodationType: "",
+    tentBase: "",
+    dimensions: "",
+    brand: "",
+    features: "",
+    price: "",
+    amenities: [] as string[],
   });
 
   const [added, setAdded] = useState<Array<any>>([]);
@@ -31,21 +43,35 @@ const AddTentTypes = () => {
     setSuccess(null);
 
     try {
+      // Validation
+      if (!form.tentType || !form.accommodationType || !form.tentBase || !form.price) {
+        throw new Error('Please fill in all required fields');
+      }
+
       // Prepare the data for submission
       const tentData = {
         tentType: form.tentType,
+        accommodationType: form.accommodationType,
+        tentBase: form.tentBase,
         dimensions: form.dimensions,
         brand: form.brand,
         features: form.features,
-        price: Number(form.price),
-        amenities: form.amenities.split(',').map(a => a.trim()).filter(Boolean),
+        pricePerDay: Number(form.price),
+        amenities: form.amenities,
       };
+
+      const token = localStorage.getItem('admin_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
       const response = await fetch(`${apiBase}/api/tent-types/add`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(tentData),
       });
 
@@ -63,6 +89,8 @@ const AddTentTypes = () => {
         {
           _id: savedTent._id,
           tentType: savedTent.tentType,
+          accommodationType: savedTent.accommodationType,
+          tentBase: savedTent.tentBase,
           dimensions: savedTent.dimensions,
           brand: savedTent.brand,
           features: savedTent.features,
@@ -77,12 +105,14 @@ const AddTentTypes = () => {
 
       // Reset form to defaults after add
       setForm({
-        tentType: "2 person tent",
-        dimensions: "approx. 205 cm × 145 cm, height 110 cm",
-        brand: "Decathlon",
-        features: `- Waterproof and dustproof\n- Raised concrete base for added comfort and safety`,
-        price: "1500",
-        amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
+        tentType: "",
+        accommodationType: "",
+        tentBase: "",
+        dimensions: "",
+        brand: "",
+        features: "",
+        price: "",
+        amenities: [],
       });
     } catch (err: any) {
       setError(err.message || 'Failed to add tent type');
@@ -94,14 +124,27 @@ const AddTentTypes = () => {
 
   const handleReset = () => {
     setForm({
-      tentType: "2 person tent",
-      dimensions: "approx. 205 cm × 145 cm, height 110 cm",
-      brand: "Decathlon",
-      features: `- Waterproof and dustproof\n- Raised concrete base for added comfort and safety`,
-      price: "1500",
-      amenities: "Common toilet, Bed, bedsheets, blankets, and pillows provided",
+      tentType: "",
+      accommodationType: "",
+      tentBase: "",
+      dimensions: "",
+      brand: "",
+      features: "",
+      price: "",
+      amenities: [],
     });
     setAdded([]);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const toggleAmenity = (amenity: string) => {
+    setForm((s) => ({
+      ...s,
+      amenities: s.amenities.includes(amenity)
+        ? s.amenities.filter((a) => a !== amenity)
+        : [...s.amenities, amenity],
+    }));
   };
 
   return (
@@ -136,11 +179,34 @@ const AddTentTypes = () => {
             <div className="p-4 bg-transparent">
               <div className="space-y-3">
                 <div>
-                  <Label className="text-sm font-medium">Tent type</Label>
+                  <Label className="text-sm font-medium">Tent type <span className="text-red-500">*</span></Label>
                   <Input
                     value={form.tentType}
                     onChange={(e) => setForm((s) => ({ ...s, tentType: e.target.value }))}
                     className="w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Accommodation Type <span className="text-red-500">*</span></Label>
+                  <Input
+                    value={form.accommodationType}
+                    onChange={(e) => setForm((s) => ({ ...s, accommodationType: e.target.value }))}
+                    placeholder="e.g., Camping, Glamping, Family"
+                    className="w-full"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Tent Base <span className="text-red-500">*</span></Label>
+                  <Input
+                    value={form.tentBase}
+                    onChange={(e) => setForm((s) => ({ ...s, tentBase: e.target.value }))}
+                    placeholder="e.g., Concrete, Wooden, Ground"
+                    className="w-full"
+                    required
                   />
                 </div>
 
@@ -173,23 +239,39 @@ const AddTentTypes = () => {
                 </div>
 
                 <div>
-                  <Label className="text-sm font-medium">Price (per day)</Label>
+                  <Label className="text-sm font-medium">Price (per day) <span className="text-red-500">*</span></Label>
                   <Input
                     type="number"
                     value={form.price}
                     onChange={(e) => setForm((s) => ({ ...s, price: e.target.value }))}
                     className="w-full"
+                    required
                   />
                 </div>
 
                 <div>
                   <Label className="text-sm font-medium">Amenities</Label>
-                  <textarea
-                    value={form.amenities}
-                    onChange={(e) => setForm((s) => ({ ...s, amenities: e.target.value }))}
-                    rows={3}
-                    className="w-full px-3 py-2 border rounded-md bg-slate-50"
-                  />
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {availableAmenities.map((amenity) => (
+                      <label
+                        key={amenity}
+                        className="flex items-center space-x-2 cursor-pointer p-2 border rounded-md hover:bg-slate-50 transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.amenities.includes(amenity)}
+                          onChange={() => toggleAmenity(amenity)}
+                          className="w-4 h-4 text-slate-800 border-gray-300 rounded focus:ring-slate-500"
+                        />
+                        <span className="text-sm">{amenity}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {form.amenities.length > 0 && (
+                    <div className="mt-2 text-sm text-slate-600">
+                      Selected: {form.amenities.join(', ')}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -224,6 +306,8 @@ const AddTentTypes = () => {
                   <div key={i} className="p-3 border rounded bg-white">
                     <div className="font-medium">{t.tentType} — ₹{t.pricePerDay}</div>
                     <div className="text-sm text-slate-600">{t.dimensions}</div>
+                    <div className="text-sm">Accommodation Type: {t.accommodationType}</div>
+                    <div className="text-sm">Tent Base: {t.tentBase}</div>
                     <div className="text-sm">Brand: {t.brand}</div>
                     <div className="whitespace-pre-wrap text-sm">Features: {t.features}</div>
                     <div className="text-sm">Amenities: {t.amenities}</div>
