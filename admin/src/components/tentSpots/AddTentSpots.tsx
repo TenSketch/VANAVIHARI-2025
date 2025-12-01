@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 // Interfaces
 interface TentSpotFormData {
   spotName: string;
+  tentIdPrefix: string;
   location: string;
+  slugUrl: string;
   contactPerson: string;
   contactNo: string;
   email: string;
@@ -22,7 +24,9 @@ interface TentSpotFormData {
 const AddSpots = () => {
   const [formData, setFormData] = useState<TentSpotFormData>({
     spotName: "",
+    tentIdPrefix: "",
     location: "",
+    slugUrl: "",
     contactPerson: "",
     contactNo: "",
     email: "",
@@ -37,11 +41,31 @@ const AddSpots = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const generateSlug = (spotName: string, location: string) => {
+    return `${spotName}-${location}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      
+      // Auto-generate slug when spotName or location changes
+      if (name === 'spotName' || name === 'location') {
+        const spotName = name === 'spotName' ? value : prev.spotName;
+        const location = name === 'location' ? value : prev.location;
+        if (spotName && location) {
+          updated.slugUrl = generateSlug(spotName, location);
+        }
+      }
+      
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +75,7 @@ const AddSpots = () => {
     if (isSubmitting) return;
 
     // Basic validation
-    if (!formData.spotName || !formData.location || !formData.contactPerson || 
+    if (!formData.spotName || !formData.tentIdPrefix || !formData.location || !formData.contactPerson || 
         !formData.contactNo || !formData.email || !formData.accommodation || 
         !formData.foodAvailable || !formData.kidsStay || !formData.womenStay || 
         !formData.checkIn || !formData.checkOut) {
@@ -97,7 +121,9 @@ const AddSpots = () => {
   const handleReset = () => {
     setFormData({
       spotName: "",
+      tentIdPrefix: "",
       location: "",
+      slugUrl: "",
       contactPerson: "",
       contactNo: "",
       email: "",
@@ -137,6 +163,20 @@ const AddSpots = () => {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="tentIdPrefix" className="text-sm font-medium text-slate-700">Tent ID Prefix <span className="text-red-500">*</span></Label>
+              <Input
+                id="tentIdPrefix"
+                name="tentIdPrefix"
+                value={formData.tentIdPrefix}
+                onChange={handleChange}
+                required
+                placeholder="e.g., VM, VH"
+                maxLength={5}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+              <p className="text-xs text-slate-500">This will be used to generate tent IDs (e.g., VM-T-01)</p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="location" className="text-sm font-medium text-slate-700">Location <span className="text-red-500">*</span></Label>
               <Input
                 id="location"
@@ -147,6 +187,18 @@ const AddSpots = () => {
                 placeholder="e.g., Himachal Pradesh"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="slugUrl" className="text-sm font-medium text-slate-700">Slug URL</Label>
+              <Input
+                id="slugUrl"
+                name="slugUrl"
+                value={formData.slugUrl}
+                onChange={handleChange}
+                placeholder="Auto-generated from spot name and location"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
+              />
+              <p className="text-xs text-slate-500">Auto-generated but can be edited (e.g., vanavihari-marudemalli)</p>
             </div>
           </div>
 

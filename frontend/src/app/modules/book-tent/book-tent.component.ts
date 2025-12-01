@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChildren, QueryList, ElementRef, AfterViewInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TentService } from '../../../services/tent.service';
+import { TentService } from '../../services/tent.service';
+import { TentSpotService } from '../../services/tent-spot.service';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 interface Tent {
@@ -33,6 +34,11 @@ export class BookTentComponent implements OnInit {
   resortTitle: string = '';
   tents: Tent[] = [];
   selectedResortInfo: ResortInfo | null = null;
+  selectedTentSpotId: string = '';
+  selectedTentSpotName: string = '';
+  searchCriteria: any = null;
+  isSearchPerformed: boolean = false;
+  isLoadingTents: boolean = false;
   // mimic test-room flags
   isMobile: boolean = false;
   bookedTents: any[] = [];
@@ -49,81 +55,23 @@ export class BookTentComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private tentService: TentService,
+    private tentSpotService: TentSpotService,
     private router: Router,
     private breakpointObserver: BreakpointObserver
   ) { }
 
   ngOnInit(): void {
-    const path = this.route.snapshot.routeConfig?.path || '';
-    if (path.startsWith('vanavihari')) {
-      this.resortKey = 'vanavihari';
-      this.resortTitle = 'vanavihari';
-      this.selectedResortInfo = {
-        title: 'vanavihari',
-        about: 'Vanavihari, Maredumilli is situated in the serene landscapes of Maredumilli, beckoning eco-tourism aficionados with its abundance of bamboo trees. This guesthouse, committed to community well-being, offers a serene retreat amidst natural surroundings. With its snug cottages and rooms, it conveniently lies close to Amruthadhara Waterfalls, promising guests a peaceful ambiance. Nearby street food eateries present the opportunity to savor the distinctive flavor of bamboo biriyani. Stepping out for a night or morning stroll unveils a heavenly experience for visitors.'
-      };
-    } else if (path.startsWith('karthikavanm')) {
-      this.resortKey = 'karthikavanm';
-      this.resortTitle = 'karthikavanm';
-      this.selectedResortInfo = { title: 'karthikavanm', about: 'Karthikavanm tented area offers eco-friendly tent stays with access to nearby nature attractions.' };
+    // Get slug from route parameter
+    const slug = this.route.snapshot.paramMap.get('slug') || '';
+    
+    // Load tent spot by slug and auto-select it
+    if (slug) {
+      this.loadTentSpotBySlug(slug);
     }
 
-    this.tentService.getTents(this.resortKey).subscribe({
-      next: (data) => {
-        // enrich tents with full images array: if image is present, generate 4 variants or reuse same
-        this.tents = (data || []).map((t: any) => {
-          const base = t.image || '';
-          // if base contains 'tent1' or 'tent2' we'll also include tent3,tent4 from same folder
-          let images: string[] = [];
-          let folder = '';
-          if (base) {
-            folder = base.substring(0, base.lastIndexOf('/') + 1);
-          } else {
-            // fallback to resort-specific folder under assets
-            folder = `/assets/img/tent/${this.resortKey}/`;
-          }
-          images = [
-            `${folder}tent1.jpg`,
-            `${folder}tent2.jpg`,
-            `${folder}tent3.jpg`,
-            `${folder}tent4.jpg`,
-          ];
-          // If this is the 2-person tent, append the extra generated images from the shared folder
-          const isTwoPerson = (t.name || '').toLowerCase().includes('2 person') || (t.id || '').toLowerCase().includes('2p');
-          if (isTwoPerson) {
-            const sharedFolder = `/assets/images/Tent/2 person/`;
-            const sharedImgs = [
-              `${sharedFolder}Gemini_Generated_Image_93fsiz93fsiz93fs.png`,
-              `${sharedFolder}Screenshot 2025-10-07 202154.png`,
-              `${sharedFolder}Screenshot 2025-10-07 202203.png`,
-            ];
-            // Avoid duplicates
-            images = [...images, ...sharedImgs.filter(s => !images.includes(s))];
-          }
-          // Also support 4-person tent shared images
-          const isFourPerson = (t.name || '').toLowerCase().includes('4 person') || (t.id || '').toLowerCase().includes('4p');
-          if (isFourPerson) {
-            const sharedFolder4 = `/assets/images/Tent/4 person/`;
-            const sharedImgs4 = [
-              `${sharedFolder4}Screenshot 2025-10-07 203154.png`,
-              `${sharedFolder4}Screenshot 2025-10-07 203158.png`,
-              `${sharedFolder4}Screenshot 2025-10-07 203202.png`,
-            ];
-            images = [...images, ...sharedImgs4.filter(s => !images.includes(s))];
-          }
-          return {
-            ...t,
-            images,
-            price: t.price,
-            accommodationType: t.accommodationType || 'Camping Tent',
-            brand: t.brand || 'Decathlon',
-            tentBase: t.tentBase || 'Concrete',
-            amenities: t.amenities || [],
-          } as Tent;
-        });
-      },
-      error: (err) => console.error('Failed to load tents', err),
-    });
+    // Don't load tents initially - wait for search
+    this.tents = [];
+    
     // load persisted booking (if any)
     this.loadBookingSummary();
 
@@ -138,6 +86,52 @@ export class BookTentComponent implements OnInit {
     this.updateBookingSummaryTop();
     // recalc on resize to handle responsive navbar height
     window.addEventListener('resize', this.updateBookingSummaryTop);
+  }
+
+  private loadTentSpotBySlug(slug: string): void {
+    this.tentSpotService.getTentSpotBySlug(slug).subscribe({
+      next: (response) => {
+        if (response.success && response.tentSpot) {
+          const spot = response.tentSpot;
+          this.selectedTentSpotId = spot._id;
+          this.selectedTentSpotName = spot.spotName;
+          this.resortKey = slug;
+          this.resortTitle = spot.spotName;
+          this.selectedResortInfo = {
+            title: spot.spotName,
+            about: spot.rules || `${spot.spotName} offers eco-friendly tent stays in ${spot.location}.`
+          };
+          
+          // Load all tents for this spot (without date filtering)
+          this.loadAllTentsForSpot(spot._id);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load tent spot by slug', err);
+        // Fallback to default
+        this.selectedResortInfo = {
+          title: 'Tent Booking',
+          about: 'Select a tent spot to view available tents.'
+        };
+      }
+    });
+  }
+
+  private loadAllTentsForSpot(tentSpotId: string): void {
+    this.isLoadingTents = true;
+    this.tentService.getTentsBySpot(tentSpotId).subscribe({
+      next: (response) => {
+        this.isLoadingTents = false;
+        if (response.success) {
+          this.tents = (response.tents || []).map((t: any) => this.enrichTentWithImages(t));
+        }
+      },
+      error: (err) => {
+        this.isLoadingTents = false;
+        console.error('Failed to load tents for spot', err);
+        this.tents = [];
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -181,14 +175,121 @@ export class BookTentComponent implements OnInit {
     }
   }
 
+  onSearchSubmitted(criteria: { tentSpotId: string; checkinDate: string; checkoutDate: string }): void {
+    this.searchCriteria = criteria;
+    this.selectedTentSpotId = criteria.tentSpotId;
+    this.isSearchPerformed = true;
+    this.isLoadingTents = true;
+
+    // Get tent spot details
+    this.tentSpotService.getTentSpotById(criteria.tentSpotId).subscribe({
+      next: (response) => {
+        if (response.success && response.tentSpot) {
+          this.selectedTentSpotName = response.tentSpot.spotName;
+        }
+      },
+      error: (err) => console.error('Failed to load tent spot details', err)
+    });
+
+    // Load available tents
+    this.tentService.getAvailableTents(
+      criteria.tentSpotId,
+      criteria.checkinDate,
+      criteria.checkoutDate
+    ).subscribe({
+      next: (response) => {
+        this.isLoadingTents = false;
+        if (response.success) {
+          this.tents = (response.tents || []).map((t: any) => this.enrichTentWithImages(t));
+        }
+      },
+      error: (err) => {
+        this.isLoadingTents = false;
+        console.error('Failed to load available tents', err);
+        this.tents = [];
+      }
+    });
+  }
+
+  private enrichTentWithImages(tent: any): Tent {
+    let images: string[] = [];
+    
+    // Check if tent has images array from Cloudinary
+    if (tent.images && Array.isArray(tent.images) && tent.images.length > 0) {
+      images = tent.images.map((img: any) => img.url || img).filter((url: string) => url);
+    }
+    
+    // Fallback to old image structure if no Cloudinary images
+    if (images.length === 0) {
+      const base = tent.image || '';
+      let folder = '';
+      
+      if (base) {
+        folder = base.substring(0, base.lastIndexOf('/') + 1);
+      } else {
+        folder = `/assets/img/tent/${this.resortKey}/`;
+      }
+      
+      images = [
+        `${folder}tent1.jpg`,
+        `${folder}tent2.jpg`,
+        `${folder}tent3.jpg`,
+        `${folder}tent4.jpg`,
+      ];
+    }
+    
+    // Add default placeholder images based on tent type if still no images
+    if (images.length === 0) {
+      const isTwoPerson = (tent.tentType?.tentType || tent.name || '').toLowerCase().includes('2 person');
+      const isFourPerson = (tent.tentType?.tentType || tent.name || '').toLowerCase().includes('4 person');
+      
+      if (isTwoPerson) {
+        const sharedFolder = `/assets/images/Tent/2 person/`;
+        images = [
+          `${sharedFolder}Gemini_Generated_Image_93fsiz93fsiz93fs.png`,
+          `${sharedFolder}Screenshot 2025-10-07 202154.png`,
+          `${sharedFolder}Screenshot 2025-10-07 202203.png`,
+        ];
+      } else if (isFourPerson) {
+        const sharedFolder4 = `/assets/images/Tent/4 person/`;
+        images = [
+          `${sharedFolder4}Screenshot 2025-10-07 203154.png`,
+          `${sharedFolder4}Screenshot 2025-10-07 203158.png`,
+          `${sharedFolder4}Screenshot 2025-10-07 203202.png`,
+        ];
+      }
+    }
+    
+    return {
+      id: tent._id,
+      name: tent.tentType?.tentType || tent.tentId || 'Tent',
+      capacity: tent.noOfGuests || 2,
+      images,
+      price: tent.rate,
+      accommodationType: tent.tentType?.accommodationType || 'Camping Tent',
+      brand: tent.tentType?.brand || 'Decathlon',
+      tentBase: tent.tentType?.tentBase || 'Concrete',
+      amenities: tent.tentType?.amenities || [],
+    } as Tent;
+  }
+
   addTentToBooking(tent: any) {
+    if (!this.isSearchPerformed) {
+      alert('Please select a tent spot and dates first');
+      return;
+    }
+
     const existing = this.bookedTents.findIndex((b: any) => b.id === tent.id);
     const booked = {
       id: tent.id,
       name: tent.name || 'Tent',
       capacity: tent.capacity || 2,
       price: Number(tent.price) || 0,
-      total: Number(tent.price) || 0
+      total: Number(tent.price) || 0,
+      tentSpotId: this.selectedTentSpotId,
+      tentSpotName: this.selectedTentSpotName,
+      checkinDate: this.searchCriteria.checkinDate,
+      checkoutDate: this.searchCriteria.checkoutDate
     };
     if (existing >= 0) {
       this.bookedTents.splice(existing, 1, booked);

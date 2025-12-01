@@ -5,7 +5,9 @@ export const createTentSpot = async (req, res) => {
   try {
     const {
       spotName,
+      tentIdPrefix,
       location,
+      slugUrl,
       contactPerson,
       contactNo,
       email,
@@ -19,7 +21,7 @@ export const createTentSpot = async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!spotName || !location || !contactPerson || !contactNo || !email || 
+    if (!spotName || !tentIdPrefix || !location || !contactPerson || !contactNo || !email || 
         !accommodation || !foodAvailable || !kidsStay || !womenStay || 
         !checkIn || !checkOut) {
       return res.status(400).json({ 
@@ -30,7 +32,9 @@ export const createTentSpot = async (req, res) => {
 
     const tentSpot = new TentSpot({
       spotName,
+      tentIdPrefix,
       location,
+      slugUrl, // Will be auto-generated if not provided
       contactPerson,
       contactNo,
       email,
@@ -96,6 +100,32 @@ export const getTentSpotById = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching tent spot:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to fetch tent spot' 
+    });
+  }
+};
+
+// Get a single tent spot by slug
+export const getTentSpotBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const tentSpot = await TentSpot.findOne({ slugUrl: slug });
+
+    if (!tentSpot) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Tent spot not found' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      tentSpot,
+    });
+  } catch (error) {
+    console.error('Error fetching tent spot by slug:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message || 'Failed to fetch tent spot' 

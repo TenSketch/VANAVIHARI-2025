@@ -12,9 +12,12 @@ import logRouter from './routes/logRoutes.js'
 import paymentRouter from './routes/paymentRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 import reportsRouter from './routes/reportsRoute.js'
-import tentRouter from './routes/tentRoute.js'
-import tentTypeRouter from './routes/tentTypeRoute.js'
+import tentSpotRouter from './routes/tentSpotRoutes.js'
+import tentTypeRouter from './routes/tentTypeRoutes.js'
+import tentRouter from './routes/tentRoutes.js'
+import tentReservationRouter from './routes/tentReservationRoutes.js'
 import { expirePendingReservations } from './controllers/reservationController.js'
+import { expirePendingTentReservations } from './controllers/tentReservationController.js'
 
 //App config
 const app = express()
@@ -24,10 +27,12 @@ connectDB()
 // Run expiry check every minute
 setInterval(async () => {
   await expirePendingReservations()
+  await expirePendingTentReservations()
 }, 60000) // 60000ms = 1 minute
 
 // Run once on startup
 expirePendingReservations()
+expirePendingTentReservations()
 
 
 //middleware
@@ -55,8 +60,10 @@ app.use('/api/reservations', reservationRouter)
 app.use('/api/logs', logRouter)
 app.use('/api/payment', paymentRouter)
 app.use('/api/reports', reportsRouter)
-app.use('/api/tent-spots', tentRouter)
+app.use('/api/tent-spots', tentSpotRouter)
 app.use('/api/tent-types', tentTypeRouter)
+app.use('/api/tents', tentRouter)
+app.use('/api/tent-reservations', tentReservationRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'

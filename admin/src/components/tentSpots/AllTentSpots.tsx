@@ -30,7 +30,9 @@ interface TentSpot {
   id: string;
   sno: number;
   spotName: string;
+  tentIdPrefix: string;
   location: string;
+  slugUrl: string;
   contactPerson: string;
   contactNo: string;
   email: string;
@@ -58,7 +60,9 @@ export default function AllTentSpotsTable() {
 
   // Editable fields
   const [editSpotName, setEditSpotName] = useState("");
+  const [editTentIdPrefix, setEditTentIdPrefix] = useState("");
   const [editLocation, setEditLocation] = useState("");
+  const [editSlugUrl, setEditSlugUrl] = useState("");
   const [editContactPerson, setEditContactPerson] = useState("");
   const [editContactNo, setEditContactNo] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -88,7 +92,9 @@ export default function AllTentSpotsTable() {
           id: t._id,
           sno: idx + 1,
           spotName: t.spotName || '',
+          tentIdPrefix: t.tentIdPrefix || '',
           location: t.location || '',
+          slugUrl: t.slugUrl || '',
           contactPerson: t.contactPerson || '',
           contactNo: t.contactNo || '',
           email: t.email || '',
@@ -120,7 +126,9 @@ export default function AllTentSpotsTable() {
     const headers = [
       "S.No",
       "Tent Spot Name",
+      "Tent ID Prefix",
       "Location & Map",
+      "Slug URL",
       "Contact Person",
       "Contact No.",
       "Email",
@@ -140,7 +148,9 @@ export default function AllTentSpotsTable() {
         return [
           spot.sno,
           `"${spot.spotName.replace(/"/g, '""')}"`,
+          `"${spot.tentIdPrefix}"`,
           `"${spot.location.replace(/"/g, '""')}"`,
+          `"${spot.slugUrl}"`,
           `"${spot.contactPerson.replace(/"/g, '""')}"`,
           `"${spot.contactNo}"`,
           `"${spot.email}"`,
@@ -169,7 +179,9 @@ export default function AllTentSpotsTable() {
   const openForView = (spot: TentSpot) => {
     setSelectedSpot(spot);
     setEditSpotName(spot.spotName);
+    setEditTentIdPrefix(spot.tentIdPrefix);
     setEditLocation(spot.location);
+    setEditSlugUrl(spot.slugUrl);
     setEditContactPerson(spot.contactPerson);
     setEditContactNo(spot.contactNo);
     setEditEmail(spot.email);
@@ -233,10 +245,16 @@ export default function AllTentSpotsTable() {
   const columns = [
     { data: "sno", title: "S.No" },
     { data: "spotName", title: "Tent Spot Name" },
+    { data: "tentIdPrefix", title: "Tent ID Prefix" },
     {
       data: "location",
       title: "Location & Map",
       render: (data: string) => `<div class="dt-ellipsis" title="${data}">${data}</div>`,
+    },
+    {
+      data: "slugUrl",
+      title: "Slug URL",
+      render: (data: string) => `<div class="dt-ellipsis font-mono text-blue-600" title="${data}">${data}</div>`,
     },
     { data: "contactPerson", title: "Contact Person" },
     { data: "contactNo", title: "Contact No." },
@@ -394,19 +412,21 @@ export default function AllTentSpotsTable() {
             columnDefs: [
               { targets: 0, width: '50px', className: 'dt-center' }, // S.No
               { targets: 1, width: '180px' }, // Spot Name
-              { targets: 2, width: '260px' }, // Location
-              { targets: 3, width: '140px' }, // Contact Person
-              { targets: 4, width: '120px' }, // Contact No
-              { targets: 5, width: '180px' }, // Email
-              { targets: 6, width: '320px' }, // Rules
-              { targets: 7, width: '160px' }, // Accommodation
-              { targets: 8, width: '80px' }, // Food
-              { targets: 9, width: '90px' }, // Kids
-              { targets: 10, width: '110px' }, // Women
-              { targets: 11, width: '110px' }, // Check-in
-              { targets: 12, width: '110px' }, // Check-out
-              { targets: 13, width: '100px' }, // Status
-              { targets: 14, width: '180px', orderable: false, searchable: false }, // Actions
+              { targets: 2, width: '100px' }, // Tent ID Prefix
+              { targets: 3, width: '260px' }, // Location
+              { targets: 4, width: '200px' }, // Slug URL
+              { targets: 5, width: '140px' }, // Contact Person
+              { targets: 6, width: '120px' }, // Contact No
+              { targets: 7, width: '180px' }, // Email
+              { targets: 8, width: '320px' }, // Rules
+              { targets: 9, width: '160px' }, // Accommodation
+              { targets: 10, width: '80px' }, // Food
+              { targets: 11, width: '90px' }, // Kids
+              { targets: 12, width: '110px' }, // Women
+              { targets: 13, width: '110px' }, // Check-in
+              { targets: 14, width: '110px' }, // Check-out
+              { targets: 15, width: '100px' }, // Status
+              { targets: 16, width: '180px', orderable: false, searchable: false }, // Actions
               { targets: '_all', visible: true },
             ],
           }}
@@ -447,12 +467,41 @@ export default function AllTentSpotsTable() {
                 </div>
 
                 <div>
+                  <Label>Tent ID Prefix</Label>
+                  {sheetMode === 'edit' ? (
+                    <Input 
+                      value={editTentIdPrefix} 
+                      onChange={(e) => setEditTentIdPrefix(e.target.value)} 
+                      maxLength={5}
+                      placeholder="e.g., VM, VH"
+                    />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border font-mono text-blue-600">{selectedSpot.tentIdPrefix}</div>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1">Used to generate tent IDs (e.g., {selectedSpot.tentIdPrefix}-T-01)</p>
+                </div>
+
+                <div>
                   <Label>Location & Map</Label>
                   {sheetMode === 'edit' ? (
                     <Input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
                   ) : (
                     <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedSpot.location}</div>
                   )}
+                </div>
+
+                <div>
+                  <Label>Slug URL</Label>
+                  {sheetMode === 'edit' ? (
+                    <Input 
+                      value={editSlugUrl} 
+                      onChange={(e) => setEditSlugUrl(e.target.value)}
+                      placeholder="e.g., vanavihari-marudemalli"
+                    />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border font-mono text-blue-600">{selectedSpot.slugUrl}</div>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1">Used for URL-friendly identification</p>
                 </div>
 
                 <div>
@@ -589,7 +638,9 @@ export default function AllTentSpotsTable() {
                           
                           const updateData = {
                             spotName: editSpotName,
+                            tentIdPrefix: editTentIdPrefix,
                             location: editLocation,
+                            slugUrl: editSlugUrl,
                             contactPerson: editContactPerson,
                             contactNo: editContactNo,
                             email: editEmail,
