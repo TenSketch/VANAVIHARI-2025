@@ -18,26 +18,48 @@
     margin-bottom: 1rem;
 
     .title {
-        font-size: 1.75rem;
-        /* larger title */
+        /* smaller, responsive title to fit long spot names in the same line */
+        font-size: clamp(1.05rem, 1.6vw, 1.25rem);
         font-weight: 600;
         margin: 0;
         color: #333;
+        display:inline-block;
+        white-space: nowrap; /* prefer single-line */
+        overflow: hidden;
+        text-overflow: ellipsis;
 
         .sep {
             color: #999;
+            margin: 0 0.12rem;
         }
 
         .loc {
             color: #666;
             font-weight: 400;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.25rem;
+            white-space: nowrap;
         }
     }
 
+    /* Show the 'sub' (type text) inline next to title on wider screens */
     .sub {
-        font-size: 1.05rem;
-        /* larger subtitle */
+        display: inline-block;
+        margin-left: 0.6rem;
+        vertical-align: middle;
+        font-weight: 500;
+        color: rgba(0,0,0,0.55);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+
+    .sub {
+        font-size: 0.95rem; /* slightly smaller to save horizontal real estate */
+        color: rgba(0,0,0,0.7);
+        margin-top: 0.25rem;
     }
 
     .pricing-grid {
@@ -80,6 +102,13 @@
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
+
+    // Style for Angular Material buttons to match resort page
+    button[mat-raised-button],
+    a[mat-raised-button] {
+        text-decoration: none;
+        color: #fff !important; /* Ensure button text (including anchor buttons) is white */
+    }
 
     .btn {
         padding: 0.5rem 1.5rem;
@@ -323,5 +352,17 @@
 
     .tourist-spot {
         padding-bottom: 1rem
+    }
+}
+
+/* Make titles wrap on smaller screens so they are readable */
+@media (max-width: 991px) {
+    .header .title {
+        white-space: normal;
+        overflow: visible;
+    }
+    .header .title .loc {
+        display:block;
+        margin-left: 0;
     }
 }
