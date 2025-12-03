@@ -78,15 +78,15 @@
 
         <!-- Actions (bottom-right) -->
         <div class="actions actions-right actions-bottom-right mt-3">
-          <button class="btn add" [disabled]="isSoldOut" (click)="onAddToBooking()">
-            {{ isSoldOut ? '[Sold Out]' : 'Add to Booking' }}
+          <button mat-raised-button color="primary" [disabled]="isSoldOut" (click)="onAddToBooking()">
+            {{ isSoldOut ? 'Sold Out' : 'Add spot' }}
           </button>
           
           <ng-container *ngIf="openInNewTab; else inlineLink">
-            <a [href]="detailsHref" class="btn details" target="_blank" rel="noopener noreferrer">View Details →</a>
+            <a mat-raised-button color="primary" [href]="detailsHref" target="_blank" rel="noopener noreferrer">View details</a>
           </ng-container>
           <ng-template #inlineLink>
-            <a [routerLink]="detailsLink" [fragment]="detailsFragment" class="btn details">View Details →</a>
+            <a mat-raised-button color="primary" [routerLink]="detailsLink" [fragment]="detailsFragment">View details</a>
           </ng-template>
         </div>
       </div>

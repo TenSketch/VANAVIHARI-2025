@@ -162,19 +162,21 @@
 }
 
 .booked-spot {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef !important;
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  /* Remove boxed background to match resort booking summary */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
 
   &:hover {
-    border-color: hsl(90, 100%, 30%) !important;
-    box-shadow: 0 2px 8px rgba(77, 153, 0, 0.08);
+    border-color: transparent !important;
+    box-shadow: none;
   }
 
   h6 {
     color: hsl(90, 100%, 20%);
     font-weight: 600;
+    margin-bottom: 0.25rem;
   }
 
   .fee-breakdown {
@@ -206,22 +208,86 @@
     }
 
     .stepper-control {
-      min-width: 80px;
-      justify-content: space-between;
+      min-width: auto; /* allow content to size naturally */
+      justify-content: flex-start;
+      gap: 0.25rem;
 
       button {
-        font-size: 1.2rem;
+        font-size: 1rem; /* match resort font size */
         line-height: 1;
+        padding: 0 6px;
+        border-radius: 4px;
+        background: transparent !important;
+        color: inherit;
+        border: 0 !important;
 
         &:disabled {
-          opacity: 0.3;
+          opacity: 0.35;
           cursor: not-allowed;
         }
-
         &:hover:not(:disabled) {
-          background-color: #e9ecef;
-          border-radius: 4px;
+          background: transparent; /* keep it flat */
         }
+      }
+      span {
+        padding: 0 0.25rem;
+        font-weight: 600; /* match resort emphasis */
+        color: inherit;
+        background: #fff; /* white bg so ticket number looks like an input field */
+        border-radius: 6px;
+        padding: 0.125rem 0.5rem;
+        font-size: 1.05rem; /* increase font size for ticket number */
+      }
+    }
+  }
+}
+
+/* Style for mat-select dropdowns to look like "No. of Guests*" field */
+.vehicles-select,
+.guests-select {
+  &.mat-mdc-form-field {
+    min-width: 160px;
+    
+    .mdc-text-field--outlined {
+      background: hsl(90, 50%, 92%) !important; /* Light green background like No. of Guests */
+      border-radius: 6px;
+      
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: hsl(90, 30%, 70%) !important;
+      }
+    }
+    
+    .mat-mdc-select-trigger {
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      color: hsl(90, 100%, 20%);
+    }
+    
+    .mat-mdc-floating-label {
+      color: hsl(90, 40%, 35%);
+      font-size: 0.9rem;
+    }
+    
+    .mat-mdc-select-arrow {
+      color: hsl(90, 40%, 35%);
+    }
+  }
+  
+  /* Tablet view adjustments - reduce dropdown width */
+  @media (min-width: 768px) and (max-width: 991.98px) {
+    &.mat-mdc-form-field {
+      min-width: 120px;
+      max-width: 130px;
+      
+      .mat-mdc-select-trigger {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+      }
+      
+      .mat-mdc-floating-label {
+        font-size: 0.8rem;
       }
     }
   }
@@ -417,6 +483,37 @@
   }
 }
 
+/* Tablet view specific fixes for booking summary */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .booked-spot {
+    .fee-breakdown {
+      > div.d-flex {
+        gap: 0.5rem;
+        
+        /* Ensure price text doesn't overflow */
+        > span:last-child {
+          flex-shrink: 0;
+          min-width: 50px;
+          text-align: right;
+          font-size: 0.9rem;
+        }
+        
+        /* Allow dropdown container to shrink */
+        > div.d-flex {
+          flex: 1 1 auto;
+          min-width: 0;
+          max-width: calc(100% - 60px);
+        }
+      }
+    }
+  }
+  
+  .booking-summary-col {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
 // Loading and animation states
 .alert {
   animation: slideInDown 0.3s ease-out;
@@ -444,27 +541,74 @@
   }
 }
 
-// Booking summary bar styles
-.booking-summary-bar {
-  background: hsl(90, 100%, 90%);
-  padding: 20px;
-  z-index: unset;
+// Booking summary column - exact same as resort rooms page
+.booking-summary-col {
   position: sticky;
-  top: 100px;
+  background-color: hsl(89, 100%, 90%); // $clr-primary-lighter
+  padding-bottom: 1rem;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  top: 80px; // nav bar height
 
-  &--title {
-    position: relative;
+  @media (min-width: 991px) {
+    overflow-y: auto;
+    bottom: 0;
+    height: 90vh;
+    padding: 20px;
+    z-index: unset;
+  }
 
-    &::after {
-      position: absolute;
-      content: "\f0f3";
-      font-family: "Font Awesome 6 Free";
-      font-size: 18px;
-      color: hsl(90, 100%, 30%);
-      top: 50%;
-      transform: translateY(-50%);
-      right: -22%;
+  .booking-summary-bar {
+    &--title {
+      position: relative;
+
+      &::after {
+        position: absolute;
+        content: "\f0f3";
+        font-family: "Font Awesome 6 Free";
+        font-size: 18px;
+        color: hsl(90, 100%, 30%);
+        top: 50%;
+        transform: translateY(-50%);
+        right: -22%;
+      }
     }
+  }
+
+  // Fee breakdown styling to match resort page
+  .fee-breakdown {
+    font-size: inherit; // Use parent font size, not small
+    
+    .stepper-control {
+      // No background, no border - transparent like resort page
+      background: transparent;
+      border: none;
+      
+      button {
+        color: hsl(90, 100%, 30%); // Primary green color
+        font-weight: 600;
+        
+        &:disabled {
+          opacity: 0.4;
+        }
+      }
+      
+      span {
+        font-weight: normal;
+      }
+    }
+  }
+  
+  // Booked spot item styling
+  .booked-spot {
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding-bottom: 0.5rem;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+    padding: 0.25rem 0; /* match resort compact entries */
   }
 }
 
