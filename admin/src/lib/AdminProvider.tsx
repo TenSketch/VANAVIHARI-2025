@@ -51,27 +51,47 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return
       }
       
-      // For now, just check if token exists
-      // If you have a /api/admin/me endpoint, uncomment the code below
-      /*
+      // Verify token with backend
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-      const res = await fetch(`${apiBase}/api/admin/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      if (!res.ok) {
-        setAdmin(null)
-        return
-      }
-      const data = await res.json()
-      setAdmin(data?.admin || null)
-      */
       
-      // Simple token-based auth (token exists = authenticated)
-      setAdmin({ username: 'admin', role: 'superadmin' })
+      try {
+        const res = await fetch(`${apiBase}/api/admin/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        
+        if (!res.ok) {
+          // Token is invalid or expired, clear it
+          localStorage.removeItem('admin_token')
+          setAdmin(null)
+          return
+        }
+        
+        const data = await res.json()
+        setAdmin(data?.admin || { username: 'admin', role: 'superadmin' })
+      } catch (fetchError) {
+        // If /api/admin/me doesn't exist, fall back to simple validation
+        // Try a simple authenticated endpoint to verify token
+        const testRes = await fetch(`${apiBase}/api/resorts`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        
+        if (!testRes.ok) {
+          // Token is invalid, clear it
+          localStorage.removeItem('admin_token')
+          setAdmin(null)
+          return
+        }
+        
+        // Token is valid, set default admin
+        setAdmin({ username: 'admin', role: 'superadmin' })
+      }
     } catch (err) {
-      // network or parsing error; keep user logged out gracefully
+      // Network or parsing error; clear invalid token
+      localStorage.removeItem('admin_token')
       setAdmin(null)
     } finally {
       if (isMountedRef.current) setLoading(false)
