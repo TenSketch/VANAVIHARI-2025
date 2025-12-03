@@ -220,7 +220,7 @@ export default function ReservationTable() {
           existingGuest: server.existingGuest || updatedLocal.existingGuest,
           reservedFrom: server.reservedFrom || server.rawSource?.reservedFrom || updatedLocal.reservedFrom,
           foodPreference: server.foodPreference || server.rawSource?.foodPreference || updatedLocal.foodPreference,
-          paymentTransactionId: server.paymentTransactionId || server.rawSource?.transactionId || updatedLocal.paymentTransactionId,
+          paymentTransactionId: server.rawSource?.transactionId || server.paymentTransactionId || updatedLocal.paymentTransactionId,
           paymentTransactionDateTime: server.paymentTransactionDateTime || server.createdAt || updatedLocal.paymentTransactionDateTime,
           cancelBookingReason: server.cancelBookingReason || updatedLocal.cancelBookingReason,
           cancellationMessage: server.cancellationMessage || updatedLocal.cancellationMessage,
@@ -278,40 +278,65 @@ export default function ReservationTable() {
     }
 
     const headers = [
-      "S. No", "Booking ID", "Full Name", "Phone", "Email", "Check In", "Check Out",
-      "Guests", "Children", "Extra Guests", "Total Guests", "No. of Days",
-      "Resort", "Rooms", "Number of Rooms", "Status", "Reservation Date",
-      "Payment Status", "Total Amount", "Refund %"
+      "S No", "Booking ID", "Full Name", "Phone", "Email", "Address", "Resort", 
+      "Cottage Type", "Room name(s)", "No. of rooms", "Reservation Date", "Reserved From",
+      "Check In", "Check Out", "No. of days", "Guests", "Extra Guests", "Children", 
+      "Total guests", "Foods billed", "Food Preference", "Status", "Amount Payable", 
+      "Payment Status", "Amount Paid", "Payment Transaction Id", 
+      "Payment Transaction Date & Time", "Payment Transaction SubBillerId",
+      "Verification Proof Type", "Verification Proof Id", "Cancel Booking Reason",
+      "Cancellation message", "Refund Requested Date & Time", "Refundable Amount",
+      "Amount Refunded", "Date of refund"
     ];
 
     const csvContent = [
       headers.join(","),
-      ...reservationsRef.current.map((row, idx) => [
-        // Serial number as first column (starting at 1)
-        idx + 1,
-        `"${row.bookingId}"`,
-        `"${row.fullName}"`,
-        `"${row.phone}"`,
-        `"${row.email}"`,
-        // Prefix formatted dates with an apostrophe so Excel treats them as text
-        // and doesn't auto-format/overflow them to '#######' when column is narrow
-        `"'${formatDateForExcel(row.checkIn)}"`,
-        `"'${formatDateForExcel(row.checkOut)}"`,
-        row.guests,
-        row.children,
-        row.extraGuests,
-        row.totalGuests,
-        row.noOfDays,
-        `"${row.resortName}"`,
-        `"${row.roomNames.join(', ')}"`,
-        row.numberOfRooms,
-        `"${row.status}"`,
-  // Reservation date also forced to text and formatted as DD-MMM-YY
-  `"'${formatDateForExcel(row.reservationDate)}"`,
-        `"${row.paymentStatus}"`,
-        row.totalPayable,
-        `"${row.refundPercentage}%"`
-      ].join(","))
+      ...reservationsRef.current.map((row, idx) => {
+        const address = [row.address1, row.address2, row.city, row.state, row.postalCode, row.country].filter(Boolean).join(', ');
+        const foodsBilled = (Number(row.guests) || 0) + (Number(row.extraGuests) || 0);
+        
+        return [
+          // Serial number as first column (starting at 1)
+          idx + 1,
+          `"${row.bookingId}"`,
+          `"${row.fullName}"`,
+          `"${row.phone}"`,
+          `"${row.email}"`,
+          `"${address || 'N/A'}"`,
+          `"${row.resortName}"`,
+          `"${row.cottageTypeNames.join(', ') || 'N/A'}"`,
+          `"${row.roomNames.join(', ') || 'N/A'}"`,
+          row.numberOfRooms,
+          `"'${formatDateForExcel(row.reservationDate)}"`,
+          `"${row.reservedFrom || 'N/A'}"`,
+          // Prefix formatted dates with an apostrophe so Excel treats them as text
+          // and doesn't auto-format/overflow them to '#######' when column is narrow
+          `"'${formatDateForExcel(row.checkIn)}"`,
+          `"'${formatDateForExcel(row.checkOut)}"`,
+          row.noOfDays,
+          row.guests,
+          row.extraGuests,
+          row.children,
+          row.totalGuests,
+          foodsBilled,
+          `"${row.foodPreference || 'N/A'}"`,
+          `"${row.status}"`,
+          row.totalPayable,
+          `"${row.paymentStatus}"`,
+          row.totalPayable,
+          `"${row.paymentTransactionId || 'N/A'}"`,
+          `"'${row.paymentTransactionDateTime ? formatDateForExcel(row.paymentTransactionDateTime.slice(0, 10)) : 'N/A'}"`,
+          `"N/A"`,
+          `"N/A"`,
+          `"N/A"`,
+          `"${row.cancelBookingReason || 'N/A'}"`,
+          `"${row.cancellationMessage || 'N/A'}"`,
+          `"'${row.refundRequestedDateTime ? formatDateForExcel(row.refundRequestedDateTime.slice(0, 10)) : 'N/A'}"`,
+          row.refundableAmount || 0,
+          row.amountRefunded || 0,
+          `"'${row.dateOfRefund ? formatDateForExcel(row.dateOfRefund.slice(0, 10)) : 'N/A'}"`
+        ].join(",");
+      })
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -465,7 +490,7 @@ export default function ReservationTable() {
             existingGuest: r.existingGuest || '',
             reservedFrom: r.reservedFrom || r.rawSource?.reservedFrom || '',
             foodPreference: r.foodPreference || r.rawSource?.foodPreference || '',
-            paymentTransactionId: r.paymentTransactionId || r.rawSource?.transactionId || '',
+            paymentTransactionId: r.rawSource?.transactionId || r.paymentTransactionId || '',
             paymentTransactionDateTime: r.paymentTransactionDateTime || r.createdAt ? new Date(r.createdAt).toISOString() : '',
             cancelBookingReason: r.cancelBookingReason || '',
             cancellationMessage: r.cancellationMessage || '',
@@ -626,7 +651,7 @@ export default function ReservationTable() {
 
   const columns = [
     {
-      title: "S.No",
+      title: "S No",
       data: null,
       render: (_data: any, _type: any, _row: any, meta: any) => {
         return meta.row + 1 + meta.settings._iDisplayStart;
@@ -635,14 +660,38 @@ export default function ReservationTable() {
       searchable: false
     },
     { data: "bookingId", title: "Booking ID" },
-    { data: "fullName", title: "Guest Name" },
+    { data: "fullName", title: "Full Name" },
     { data: "phone", title: "Phone" },
     { data: "email", title: "Email" },
+    {
+      data: null,
+      title: "Address",
+      render: (_data: any, _type: any, row: Reservation) => {
+        const parts = [row.address1, row.address2, row.city, row.state, row.postalCode, row.country].filter(Boolean);
+        return parts.length > 0 ? parts.join(', ') : 'N/A';
+      }
+    },
     { data: "resortName", title: "Resort" },
     {
-      data: "roomNames",
-      title: "Rooms",
+      data: "cottageTypeNames",
+      title: "Cottage Type",
       render: (data: string[]) => data.join(", ") || 'N/A',
+    },
+    {
+      data: "roomNames",
+      title: "Room name(s)",
+      render: (data: string[]) => data.join(", ") || 'N/A',
+    },
+    { data: "numberOfRooms", title: "No. of rooms" },
+    { 
+      data: "reservationDate", 
+      title: "Reservation Date",
+      render: (data: string) => formatDateForDisplay(data)
+    },
+    { 
+      data: "reservedFrom", 
+      title: "Reserved From",
+      render: (data: string) => data || 'N/A'
     },
     { 
       data: "checkIn", 
@@ -654,48 +703,73 @@ export default function ReservationTable() {
       title: "Check Out",
       render: (data: string) => formatDateForDisplay(data)
     },
-    { data: "noOfDays", title: "Days" },
-    { data: "totalGuests", title: "Total Guests" },
+    { data: "noOfDays", title: "No. of days" },
+    { data: "guests", title: "Guests" },
+    { data: "extraGuests", title: "Extra Guests" },
+    { data: "children", title: "Children" },
+    { data: "totalGuests", title: "Total guests" },
     {
-      data: "totalPayable",
-      title: "Total Amount",
-      render: (data: number) => `₹${data}`
-    },
-    { data: "paymentStatus", title: "Payment" },
-    { data: "status", title: "Status" },
-    { 
-      data: "reservedFrom", 
-      title: "Reserved From",
-      render: (data: string) => data || 'N/A'
+      data: null,
+      title: "Foods billed",
+      render: (_data: any, _type: any, row: Reservation) => {
+        return (Number(row.guests) || 0) + (Number(row.extraGuests) || 0);
+      }
     },
     { 
       data: "foodPreference", 
       title: "Food Preference",
       render: (data: string) => data || 'N/A'
     },
+    { data: "status", title: "Status" },
+    {
+      data: "totalPayable",
+      title: "Amount Payable",
+      render: (data: number) => `₹${data}`
+    },
+    { data: "paymentStatus", title: "Payment Status" },
+    {
+      data: "totalPayable",
+      title: "Amount Paid",
+      render: (data: number) => `₹${data}`
+    },
     { 
       data: "paymentTransactionId", 
-      title: "Transaction ID",
+      title: "Payment Transaction Id",
       render: (data: string) => data || 'N/A'
     },
     { 
       data: "paymentTransactionDateTime", 
-      title: "Transaction Date",
+      title: "Payment Transaction Date & Time",
       render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
     },
     { 
+      data: null, 
+      title: "Payment Transaction SubBillerId",
+      render: () => 'N/A'
+    },
+    { 
+      data: null, 
+      title: "Verification Proof Type",
+      render: () => 'N/A'
+    },
+    { 
+      data: null, 
+      title: "Verification Proof Id",
+      render: () => 'N/A'
+    },
+    { 
       data: "cancelBookingReason", 
-      title: "Cancel Reason",
+      title: "Cancel Booking Reason",
       render: (data: string) => data || 'N/A'
     },
     { 
       data: "cancellationMessage", 
-      title: "Cancellation Message",
+      title: "Cancellation message",
       render: (data: string) => data || 'N/A'
     },
     { 
       data: "refundRequestedDateTime", 
-      title: "Refund Requested",
+      title: "Refund Requested Date & Time",
       render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
     },
     {
@@ -710,7 +784,7 @@ export default function ReservationTable() {
     },
     { 
       data: "dateOfRefund", 
-      title: "Refund Date",
+      title: "Date of refund",
       render: (data: string) => data ? formatDateForDisplay(data.slice(0, 10)) : 'N/A'
     },
     {
@@ -1108,8 +1182,35 @@ export default function ReservationTable() {
                     </div>
                   </div>
 
+                  {/* Food & Reservation Source */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Food & Reservation Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Reserved From</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.reservedFrom || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Food Preference</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.foodPreference || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Foods Billed</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{(Number(selectedReservation.guests) || 0) + (Number(selectedReservation.extraGuests) || 0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Status Information */}
-                  <div>
+                  <div className="border-b pb-4">
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Status Information</h3>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="flex flex-col">
@@ -1161,6 +1262,115 @@ export default function ReservationTable() {
                             <span className="text-base font-medium text-gray-900">{selectedReservation.refundPercentage}%</span>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Payment Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Amount Payable</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm font-semibold text-gray-900">₹{selectedReservation.totalPayable.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Amount Paid</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm font-semibold text-gray-900">₹{selectedReservation.totalPayable.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Payment Transaction Id</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900 font-mono">{selectedReservation.paymentTransactionId || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Payment Transaction Date & Time</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.paymentTransactionDateTime ? formatDateForDisplay(selectedReservation.paymentTransactionDateTime.slice(0, 10)) : 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Payment Transaction SubBillerId</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">N/A</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Verification Information */}
+                  <div className="border-b pb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Verification Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Verification Proof Type</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">N/A</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Verification Proof Id</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">N/A</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cancellation & Refund Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Cancellation & Refund Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Cancel Booking Reason</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.cancelBookingReason || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <Label className="text-sm font-medium text-gray-700">Cancellation Message</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.cancellationMessage || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Refund Requested Date & Time</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.refundRequestedDateTime ? formatDateForDisplay(selectedReservation.refundRequestedDateTime.slice(0, 10)) : 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Date of Refund</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm text-gray-900">{selectedReservation.dateOfRefund ? formatDateForDisplay(selectedReservation.dateOfRefund.slice(0, 10)) : 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Refundable Amount</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm font-semibold text-gray-900">{selectedReservation.refundableAmount ? `₹${selectedReservation.refundableAmount.toLocaleString()}` : 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Amount Refunded</Label>
+                        <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                          <span className="text-sm font-semibold text-gray-900">{selectedReservation.amountRefunded ? `₹${selectedReservation.amountRefunded.toLocaleString()}` : 'N/A'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

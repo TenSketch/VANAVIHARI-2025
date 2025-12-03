@@ -66,7 +66,7 @@ export default function DailyOccupancyReport() {
       "Extra Guest(s)",
       "Children",
       "Total Guests",
-      "Total Foods",
+      "Foods Billed",
       "No. of Days",
       "Remaining Days",
     ];
@@ -193,7 +193,7 @@ export default function DailyOccupancyReport() {
     { title: "Extra Guest(s)", data: "extraGuests", defaultContent: "—" },
     { title: "Children", data: "children", defaultContent: "—" },
     { title: "Total Guests", data: "totalGuests", defaultContent: "—" },
-    { title: "Total Foods", data: "totalFoods", defaultContent: "—" },
+    { title: "Foods Billed", data: "totalFoods", defaultContent: "—" },
     { title: "No. of Days", data: "noOfDays", defaultContent: "—" },
     { title: "Remaining Days", data: "remainingDays", defaultContent: "—" },
   ];
@@ -267,7 +267,7 @@ export default function DailyOccupancyReport() {
                 <th>Extra Guest(s)</th>
                 <th>Children</th>
                 <th>Total Guests</th>
-                <th>Total Foods</th>
+                <th>Foods Billed</th>
                 <th>No. of Days</th>
                 <th>Remaining Days</th>
               </tr>

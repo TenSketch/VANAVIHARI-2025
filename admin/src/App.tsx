@@ -9,7 +9,7 @@ const ResortDashboardPage = lazy(() => import("./pages/dashboard/ResortDashboard
 const TentDashboardPage = lazy(() => import("./pages/dashboard/TentDashboardPage"));
 const TouristSpotDashboardPage = lazy(() => import("./pages/dashboard/TouristSpotDashboardPage"));
 
-const VanaReportPage = lazy(() => import("./pages/DailyOccupancyReport/VahavihariReport"));
+const VanaReportPage = lazy(() => import("./pages/DailyOccupancyReport/VanaVihariReport"));
 const JunglestarReportPage = lazy(() => import("./pages/DailyOccupancyReport/JungleStarReport"));
 const CheckInPage = lazy(() => import("./pages/frontdesk/CheckIn"));
 const CheckOutPage = lazy(() => import("./pages/frontdesk/CheckOut"));

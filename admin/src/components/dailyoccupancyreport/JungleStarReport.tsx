@@ -66,7 +66,7 @@ export default function DailyOccupancyReport() {
       "Extra Guest(s)",
       "Children",
       "Total Guests",
-      "Total Foods",
+      "Foods Billed",
       "No. of Days",
       "Remaining Days",
     ];
@@ -232,7 +232,7 @@ export default function DailyOccupancyReport() {
         row.status ? "—" : data || "—",
     },
     {
-      title: "Total Foods",
+      title: "Foods Billed",
       data: "totalFoods",
       defaultContent: "—",
       render: (data: any, _type: string, row: Reservation) =>
@@ -313,7 +313,7 @@ export default function DailyOccupancyReport() {
                 <th>Extra Guest(s)</th>
                 <th>Children</th>
                 <th>Total Guests</th>
-                <th>Total Foods</th>
+                <th>Foods Billed</th>
                 <th>No. of Days</th>
                 <th>Remaining Days</th>
               </tr>
