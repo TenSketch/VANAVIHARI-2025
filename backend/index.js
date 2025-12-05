@@ -16,6 +16,7 @@ import tentSpotRouter from './routes/tentSpotRoutes.js'
 import tentTypeRouter from './routes/tentTypeRoutes.js'
 import tentRouter from './routes/tentRoutes.js'
 import tentReservationRouter from './routes/tentReservationRoutes.js'
+import webhookRouter from './routes/webhookRoutes.js'
 import { expirePendingReservations } from './controllers/reservationController.js'
 import { expirePendingTentReservations } from './controllers/tentReservationController.js'
 
@@ -38,6 +39,7 @@ expirePendingTentReservations()
 //middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true })) // Add this for form data
+app.use(express.text({ type: 'text/plain' })) // Add this for raw text bodies
 app.use(cors({
     origin: [process.env.FRONTEND_URL, process.env.ADMIN_URL],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -64,6 +66,7 @@ app.use('/api/tent-spots', tentSpotRouter)
 app.use('/api/tent-types', tentTypeRouter)
 app.use('/api/tents', tentRouter)
 app.use('/api/tent-reservations', tentReservationRouter)
+app.use('/api/webhook', webhookRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'
