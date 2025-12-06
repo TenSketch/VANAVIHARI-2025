@@ -184,7 +184,7 @@ const routes: Routes = [
     path: 'resorts/test-rooms', component: TestRoomComponent
   },
   {
-    path: 'forgot-password/:userid/:token',
+    path: 'forgot-password/:token',
     component: ForgotPasswordComponent,
   },
   {

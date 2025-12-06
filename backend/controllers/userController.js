@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import Admin from '../models/adminModel.js'
 import userModel from '../models/userModel.js'
-import { generateVerificationToken, sendVerificationEmail } from '../services/emailService.js'
+import { generateVerificationToken, sendVerificationEmail, generatePasswordResetToken, sendPasswordResetEmail } from '../services/emailService.js'
 
 // route for user login
 const loginUser = async (req, res) => {
@@ -897,4 +897,186 @@ const resendVerificationEmail = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile, getAllUsers, updateUserById, deleteUserById, verifyEmail, resendVerificationEmail }
+// route for forgot password (request reset)
+const forgotPassword = async (req, res) => {
+  try {
+    const { email_id } = req.body
+
+    if (!email_id) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Email address is required'
+        }
+      })
+    }
+
+    // Email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(email_id)) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Please enter a valid email address'
+        }
+      })
+    }
+
+    // Find user by email
+    const user = await userModel.findOne({ email: email_id })
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return res.status(200).json({
+        code: 3000,
+        result: {
+          status: 'success',
+          msg: 'If an account exists with this email, you will receive a password reset link shortly.'
+        }
+      })
+    }
+
+    // Check cooldown period (60 seconds)
+    if (user.lastPasswordResetEmailSent) {
+      const timeSinceLastEmail = Date.now() - new Date(user.lastPasswordResetEmailSent).getTime()
+      const cooldownPeriod = 60 * 1000 // 60 seconds in milliseconds
+      
+      if (timeSinceLastEmail < cooldownPeriod) {
+        const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastEmail) / 1000)
+        return res.status(429).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: `Please wait ${remainingSeconds} seconds before requesting another password reset email.`,
+            remainingSeconds
+          }
+        })
+      }
+    }
+
+    // Generate password reset token
+    const resetToken = generatePasswordResetToken()
+    user.passwordResetToken = resetToken
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    user.lastPasswordResetEmailSent = new Date()
+    await user.save()
+
+    // Send password reset email
+    try {
+      await sendPasswordResetEmail(user, resetToken)
+      
+      res.status(200).json({
+        code: 3000,
+        result: {
+          status: 'success',
+          msg: 'Password reset link has been sent to your email. Please check your inbox.'
+        }
+      })
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError)
+      res.status(500).json({
+        code: 5000,
+        result: {
+          status: 'error',
+          msg: 'Failed to send password reset email. Please try again later.'
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Forgot password error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+// route for reset password (with token)
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params
+    const { password } = req.body
+
+    if (!token) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Reset token is required'
+        }
+      })
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'New password is required'
+        }
+      })
+    }
+
+    // Password validation (8+ chars, uppercase, lowercase, number, special char)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+        }
+      })
+    }
+
+    // Find user with this token
+    const user = await userModel.findOne({
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Invalid or expired reset token. Please request a new password reset.'
+        }
+      })
+    }
+
+    // Hash new password
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+    // Update password and clear reset token
+    user.password = hashedPassword
+    user.passwordResetToken = undefined
+    user.passwordResetExpires = undefined
+    user.lastPasswordResetEmailSent = undefined
+    await user.save()
+
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Password has been reset successfully! You can now login with your new password.'
+      }
+    })
+  } catch (error) {
+    console.error('Reset password error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile, getAllUsers, updateUserById, deleteUserById, verifyEmail, resendVerificationEmail, forgotPassword, resetPassword }

@@ -10,6 +10,10 @@ const userSchema = new mongoose.Schema({
     emailVerificationToken: { type: String },
     emailVerificationExpires: { type: Date },
     lastVerificationEmailSent: { type: Date }, // Track last resend time
+    // Password reset
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
+    lastPasswordResetEmailSent: { type: Date }, // Track last reset email time
     // Personal details for settings page
     dob: { type: Date },
     nationality: { type: String },
