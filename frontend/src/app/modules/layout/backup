@@ -273,24 +273,8 @@
     </div>
   </div>
 </footer>
-
-<!-- WhatsApp Floating Button (with support options) -->
-<div class="whatsapp-wrapper" (click)="$event.stopPropagation()">
-  <button class="whatsapp-float" (click)="toggleWhatsappOptions($event)" aria-haspopup="true" [attr.aria-expanded]="isWhatsappOptionsOpen">
-    <i class="fab fa-whatsapp" aria-hidden="true"></i>
-  </button>
-  <div class="whatsapp-options" *ngIf="isWhatsappOptionsOpen" role="menu" aria-label="WhatsApp support options">
-    <button class="wa-option" type="button" (click)="openWhatsapp('7382151617')" role="menuitem">
-      <i class="fa fa-headset me-2" aria-hidden="true"></i> Resort Support
-    </button>
-    <button class="wa-option" type="button" (click)="openWhatsapp('9840167444')" role="menuitem">
-      <i class="fa fa-tools me-2" aria-hidden="true"></i> Technical Support
-    </button>
-  </div>
-</div>
-
 <div class="modal" tabindex="-1" *ngIf="isModalVisible" style="display: block">
-  <div class="modal-overlay" [ngClass]="{'dark-overlay': isDarkMode}"></div>
+  <div class="modal-overlay" [ngClass]="{'dark-overlay': isDarkMode}"></div> <!-- Light/Dark overlay -->
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
