@@ -91,6 +91,8 @@ import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/to
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
+import { VerifyEmailComponent } from './auth/verify-email/verify-email.component';
+import { ResendVerificationComponent } from './auth/resend-verification/resend-verification.component';
 
 
 
@@ -139,7 +141,9 @@ import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.com
     TouristSpotsBookingComponent,
     TouristSpotsCheckoutComponent,
     TouristSpotsSuccessComponent,
-    TentCheckoutComponent
+    TentCheckoutComponent,
+    VerifyEmailComponent,
+    ResendVerificationComponent
 
   ],
   imports: [

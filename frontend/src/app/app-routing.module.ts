@@ -40,6 +40,8 @@ import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/to
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
+import { VerifyEmailComponent } from './auth/verify-email/verify-email.component';
+import { ResendVerificationComponent } from './auth/resend-verification/resend-verification.component';
 
 
 // const routes: Routes = [
@@ -126,6 +128,9 @@ const routes: Routes = [
   { path: 'sign-in', component: SignInComponent },
   { path: 'sign-up', component: SignUpComponent },
   { path: 'success', component: ShowSuccessMessageComponent },
+  { path: 'show-success-message', component: ShowSuccessMessageComponent },
+  { path: 'verify-email', component: VerifyEmailComponent },
+  { path: 'resend-verification', component: ResendVerificationComponent },
   {
     path: 'email-verification/:userid/:token',
     component: EmailVerificationComponent,

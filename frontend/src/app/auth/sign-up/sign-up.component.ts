@@ -165,18 +165,28 @@ export class SignUpComponent implements OnInit {
           next: (response) => {
             if (response.code == 3000 && response.result.status == 'success') {
               this.isLoading = false;
-              this.showSuccessAlert();
               this.showAlert = false;
               
-              // Store user token and data if provided
-              if (response.result.token) {
-                localStorage.setItem('userToken', response.result.token);
-                localStorage.setItem('userData', JSON.stringify(response.result.user));
+              // Check if email verification is required
+              if (response.result.requiresVerification) {
+                // Navigate to success message page with email
+                this.router.navigate(['/show-success-message'], {
+                  queryParams: { id: this.form.value.email_id }
+                });
+              } else {
+                // For admin-registered users or already verified
+                this.showSuccessAlert();
                 
-                // Set auth service data
-                this.authService.setAccessToken(response.result.token);
-                this.authService.setAccountUsername(response.result.user.email);
-                this.authService.setAccountUserFullname(response.result.user.name);
+                // Store user token and data if provided
+                if (response.result.token) {
+                  localStorage.setItem('userToken', response.result.token);
+                  localStorage.setItem('userData', JSON.stringify(response.result.user));
+                  
+                  // Set auth service data
+                  this.authService.setAccessToken(response.result.token);
+                  this.authService.setAccountUsername(response.result.user.email);
+                  this.authService.setAccountUserFullname(response.result.user.name);
+                }
               }
             } else if (response.code == 3000) {
               this.isLoading = false;

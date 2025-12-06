@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import Admin from '../models/adminModel.js'
 import userModel from '../models/userModel.js'
+import { generateVerificationToken, sendVerificationEmail } from '../services/emailService.js'
 
 // route for user login
 const loginUser = async (req, res) => {
@@ -52,6 +53,19 @@ const loginUser = async (req, res) => {
         result: { 
           status: 'error', 
           msg: 'Invalid email or password' 
+        }
+      })
+    }
+
+    // Check if email is verified (skip for admin-registered users)
+    if (!user.isEmailVerified && user.registerThrough === 'frontend') {
+      return res.status(403).json({ 
+        code: 3000,
+        result: { 
+          status: 'error', 
+          msg: 'Please verify your email before logging in. Check your inbox for the verification link.',
+          emailNotVerified: true,
+          email: user.email
         }
       })
     }
@@ -199,16 +213,54 @@ const registerUser = async (req, res) => {
     if (country) userData.country = country
 
     const newUser = new userModel(userData)
-    const savedUser = await newUser.save()
-
+    
     // Check if profile is completed
-    const profileCompleted = isProfileCompleted(savedUser)
+    const profileCompleted = isProfileCompleted(newUser)
     if (profileCompleted) {
-      savedUser.profileCompleted = true
-      await savedUser.save()
+      newUser.profileCompleted = true
     }
 
-    // Generate JWT token
+    // For admin-registered users, auto-verify email
+    if (req.body.registerThrough === 'admin') {
+      newUser.isEmailVerified = true
+    } else {
+      // For frontend registration, generate verification token
+      const verificationToken = generateVerificationToken()
+      newUser.emailVerificationToken = verificationToken
+      newUser.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+      newUser.lastVerificationEmailSent = new Date() // Track first email send time
+    }
+
+    const savedUser = await newUser.save()
+
+    // Send verification email for frontend registrations
+    if (req.body.registerThrough !== 'admin') {
+      try {
+        await sendVerificationEmail(savedUser, savedUser.emailVerificationToken)
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError)
+        // Continue with registration even if email fails
+      }
+
+      // Return success response without token (user must verify email first)
+      return res.status(201).json({ 
+        code: 3000,
+        result: { 
+          status: 'success', 
+          msg: 'Account created successfully! Please check your email to verify your account.',
+          user: {
+            id: savedUser._id,
+            name: savedUser.name,
+            email: savedUser.email,
+            phone: savedUser.phone
+          },
+          emailSent: true,
+          requiresVerification: true
+        }
+      })
+    }
+
+    // For admin registrations, return token immediately
     const token = jwt.sign(
       { 
         id: savedUser._id, 
@@ -219,12 +271,11 @@ const registerUser = async (req, res) => {
       { expiresIn: '7d' }
     )
 
-    // Return success response matching expected format
     res.status(201).json({ 
       code: 3000,
       result: { 
         status: 'success', 
-        msg: profileCompleted ? 'Account created successfully with complete profile!' : 'Account created successfully! Please verify your email.',
+        msg: 'Account created successfully with complete profile!',
         user: {
           id: savedUser._id,
           name: savedUser.name,
@@ -669,4 +720,181 @@ const deleteUserById = async (req, res) => {
   }
 }
 
-export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile, getAllUsers, updateUserById, deleteUserById }
+// route for verifying email
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.params
+
+    if (!token) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Verification token is required'
+        }
+      })
+    }
+
+    // Find user with this token
+    const user = await userModel.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Invalid or expired verification token. Please request a new verification email.'
+        }
+      })
+    }
+
+    // Verify the email
+    user.isEmailVerified = true
+    user.emailVerificationToken = undefined
+    user.emailVerificationExpires = undefined
+    user.lastVerificationEmailSent = undefined
+    await user.save()
+
+    // Check if profile is completed
+    const profileCompleted = isProfileCompleted(user)
+
+    // Generate JWT token
+    const jwtToken = jwt.sign(
+      { 
+        id: user._id, 
+        email: user.email,
+        name: user.name 
+      }, 
+      process.env.JWT_SECRET || 'devsecret', 
+      { expiresIn: '7d' }
+    )
+
+    res.status(200).json({
+      code: 3000,
+      result: {
+        status: 'success',
+        msg: 'Email verified successfully! Please complete your profile.',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone
+        },
+        token: jwtToken,
+        userfullname: user.name,
+        profileCompleted,
+        redirectToSettings: !profileCompleted // Flag to redirect to settings
+      }
+    })
+  } catch (error) {
+    console.error('Email verification error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+// route for resending verification email
+const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email_id } = req.body
+
+    if (!email_id) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'Email address is required'
+        }
+      })
+    }
+
+    // Find user by email
+    const user = await userModel.findOne({ email: email_id })
+    if (!user) {
+      return res.status(404).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'No account found with this email address'
+        }
+      })
+    }
+
+    // Check if already verified
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        code: 3000,
+        result: {
+          status: 'error',
+          msg: 'This email is already verified. You can login now.'
+        }
+      })
+    }
+
+    // Check cooldown period (60 seconds)
+    if (user.lastVerificationEmailSent) {
+      const timeSinceLastEmail = Date.now() - new Date(user.lastVerificationEmailSent).getTime()
+      const cooldownPeriod = 60 * 1000 // 60 seconds in milliseconds
+      
+      if (timeSinceLastEmail < cooldownPeriod) {
+        const remainingSeconds = Math.ceil((cooldownPeriod - timeSinceLastEmail) / 1000)
+        return res.status(429).json({
+          code: 3000,
+          result: {
+            status: 'error',
+            msg: `Please wait ${remainingSeconds} seconds before requesting another verification email.`,
+            remainingSeconds
+          }
+        })
+      }
+    }
+
+    // Generate new verification token
+    const verificationToken = generateVerificationToken()
+    user.emailVerificationToken = verificationToken
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    user.lastVerificationEmailSent = new Date() // Track when email was sent
+    await user.save()
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user, verificationToken)
+      
+      res.status(200).json({
+        code: 3000,
+        result: {
+          status: 'success',
+          msg: 'Verification email sent successfully! Please check your inbox.'
+        }
+      })
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError)
+      res.status(500).json({
+        code: 5000,
+        result: {
+          status: 'error',
+          msg: 'Failed to send verification email. Please try again later.'
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Resend verification error:', error)
+    res.status(500).json({
+      code: 5000,
+      result: {
+        status: 'error',
+        msg: 'Internal server error. Please try again.'
+      }
+    })
+  }
+}
+
+export { loginUser, registerUser, adminLogin, getUserProfile, updateUserProfile, getAllUsers, updateUserById, deleteUserById, verifyEmail, resendVerificationEmail }
