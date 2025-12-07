@@ -6,10 +6,10 @@ Email notifications are now fully integrated with the transaction polling system
 
 ## What Was Done
 
-### 1. Created Shared Email Service
-**File:** `backend/services/emailService.js`
+### 1. Created Shared Reservation Email Service
+**File:** `backend/services/reservationEmailService.js`
 
-Extracted the email sending logic into a reusable service that can be used by:
+Extracted the reservation email sending logic into a reusable service that can be used by:
 - Payment callback handler
 - Transaction polling system
 - Any other part of the application
@@ -109,11 +109,13 @@ Now imports and uses the shared email service instead of having its own copy.
 
 ## Files Modified
 
-1. ✅ `backend/services/emailService.js` - NEW (shared email service)
+1. ✅ `backend/services/reservationEmailService.js` - NEW (shared reservation email service)
 2. ✅ `backend/services/transactionPoller.js` - Added email integration
 3. ✅ `backend/controllers/paymentController.js` - Updated to use shared service
 4. ✅ `docs/TRANSACTION_POLLING_COMPLETE.md` - Updated documentation
 5. ✅ `docs/EMAIL_INTEGRATION_COMPLETE.md` - This document
+
+**Note:** Renamed to `reservationEmailService.js` to avoid conflict with existing `emailService.js` (used for verification emails)
 
 ## Testing
 

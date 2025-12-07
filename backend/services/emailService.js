@@ -1,100 +1,82 @@
-import Resort from '../models/resortModel.js';
-import Room from '../models/roomModel.js';
-import transporter from '../config/nodemailer.js';
-import { RESERVATION_SUCCESS_EMAIL_TEMPLATE, RESERVATION_SUCCESS_EMAIL_ADMIN_TEMPLATE } from '../config/emailTemplates.js';
+import crypto from 'crypto'
+import transporter from '../config/nodemailer.js'
+import { EMAIL_VERIFICATION_TEMPLATE, PASSWORD_RESET_EMAIL_TEMPLATE } from '../config/emailTemplates.js'
 
-/**
- * Send reservation success emails to user and admin
- * @param {Object} reservation - Reservation document
- * @param {Object} paymentTransaction - Payment transaction document
- */
-export async function sendReservationSuccessEmails(reservation, paymentTransaction) {
+// Generate verification token
+export const generateVerificationToken = () => {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+// Generate password reset token
+export const generatePasswordResetToken = () => {
+  return crypto.randomBytes(32).toString('hex')
+}
+
+// Send verification email
+export const sendVerificationEmail = async (user, token) => {
   try {
-    // Fetch resort details
-    let resortData = null;
-    if (reservation.resort) {
-      resortData = await Resort.findById(reservation.resort).lean();
-    }
-
-    // Fetch room details
-    let roomsData = [];
-    if (reservation.rooms && Array.isArray(reservation.rooms)) {
-      roomsData = await Room.find({ _id: { $in: reservation.rooms } }).lean();
-    }
-
-    const resortName = resortData?.resortName || reservation.rawSource?.resortName || 'Resort';
-    const roomList = roomsData.map(r => r.roomName || r.roomNumber).join(', ') || 'N/A';
+    const verificationLink = `${process.env.FRONTEND_URL}/#/verify-email?token=${token}`
     
-    // Format dates
-    const formatDate = (date) => new Date(date).toLocaleDateString('en-US', { 
-      year: 'numeric', month: 'long', day: 'numeric' 
-    });
+    const emailContent = EMAIL_VERIFICATION_TEMPLATE
+      .replace(/{{FULL_NAME}}/g, user.name)
+      .replace(/{{VERIFICATION_LINK}}/g, verificationLink)
 
-    // Prepare email data
-    const emailData = {
-      Full_Name: reservation.fullName,
-      Guest_Details: `${reservation.fullName}\n${reservation.email}\n${reservation.phone}\n${reservation.address1}, ${reservation.city}, ${reservation.state} - ${reservation.postalCode}`,
-      Reservation_Date: formatDate(reservation.reservationDate),
-      Booking_Id: reservation.bookingId,
-      Room_List: roomList,
-      Check_In: formatDate(reservation.checkIn),
-      Check_Out: formatDate(reservation.checkOut),
-      Total_Guests: (reservation.guests || 0) + (reservation.extraGuests || 0) + (reservation.children || 0),
-      Payment_Amount: `INR ${reservation.totalPayable?.toFixed(2)}`,
-      Transaction_ID: reservation.rawSource?.transactionId || paymentTransaction?.transactionId || 'N/A',
-      Payment_Date: formatDate(paymentTransaction?.updatedAt || new Date()),
-      Payment_Status: 'Confirmed',
-      Food_Providing: resortName.includes('Jungle Star') ? 'Yes' : 'No',
-      Contact_Person_Name: 'Mr. Veerababu',
-      Resort_Name: resortName,
-      Support_Number: '+919494151617',
-      Email: 'info@vanavihari.com',
-      Website: 'www.vanavihari.com'
-    };
+    // Use SENDER_EMAIL if configured, otherwise fall back to SMTP_USER
+    const senderEmail = process.env.SENDER_EMAIL 
+      ? process.env.SENDER_EMAIL.replace(/'/g, '') 
+      : process.env.SMTP_USER
 
-    // Replace placeholders in templates
-    let userEmail = RESERVATION_SUCCESS_EMAIL_TEMPLATE;
-    let adminEmail = RESERVATION_SUCCESS_EMAIL_ADMIN_TEMPLATE;
-
-    Object.keys(emailData).forEach(key => {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      userEmail = userEmail.replace(regex, emailData[key]);
-      adminEmail = adminEmail.replace(regex, emailData[key]);
-    });
-
-    // Handle conditional food menu (Nunjucks-style)
-    if (emailData.Food_Providing === 'Yes') {
-      userEmail = userEmail.replace(/{% if Food_Providing == "Yes" %}/g, '');
-      userEmail = userEmail.replace(/{% endif %}/g, '');
-    } else {
-      userEmail = userEmail.replace(/{% if Food_Providing == "Yes" %}[\s\S]*?{% endif %}/g, '');
+    const mailOptions = {
+      from: `"Vanavihari Booking System" <${senderEmail}>`,
+      to: user.email,
+      subject: 'Verify Your Email - Vanavihari',
+      html: emailContent
     }
 
-    // Send email to user
-    await transporter.sendMail({
-      from: process.env.SENDER_EMAIL,
-      to: reservation.email,
-      subject: `Booking Confirmation - ${reservation.bookingId}`,
-      html: userEmail
-    });
-
-    console.log(`✅ Confirmation email sent to user: ${reservation.email}`);
-
-    // Send email to admin
-    await transporter.sendMail({
-      from: process.env.SENDER_EMAIL,
-      to: process.env.ADMIN_EMAIL || 'info@vanavihari.com',
-      subject: `New Booking - ${reservation.bookingId} - ${resortName}`,
-      html: adminEmail
-    });
-
-    console.log(`✅ Notification email sent to admin`);
-
-    return { success: true };
-
+    console.log(`Attempting to send verification email to ${user.email}...`)
+    const info = await transporter.sendMail(mailOptions)
+    console.log(`✅ Verification email sent successfully to ${user.email}`)
+    console.log(`Message ID: ${info.messageId}`)
+    return true
   } catch (error) {
-    console.error('❌ Error sending reservation emails:', error);
-    // Don't throw error - email failure shouldn't break the payment flow
-    return { success: false, error: error.message };
+    console.error('❌ Error sending verification email:', error.message)
+    console.error('Full error:', error)
+    throw new Error('Failed to send verification email')
+  }
+}
+
+// Note: Welcome email removed as per requirements
+// Users will be redirected to settings page to complete profile after verification
+
+// Send password reset email
+export const sendPasswordResetEmail = async (user, token) => {
+  try {
+    const resetLink = `${process.env.FRONTEND_URL}/#/forgot-password/${token}`
+    
+    const emailContent = PASSWORD_RESET_EMAIL_TEMPLATE
+      .replace(/{{FULL_NAME}}/g, user.name)
+      .replace(/{{RESET_LINK}}/g, resetLink)
+
+    // Use SENDER_EMAIL if configured, otherwise fall back to SMTP_USER
+    const senderEmail = process.env.SENDER_EMAIL 
+      ? process.env.SENDER_EMAIL.replace(/'/g, '') 
+      : process.env.SMTP_USER
+
+    const mailOptions = {
+      from: `"Vanavihari Booking System" <${senderEmail}>`,
+      to: user.email,
+      subject: 'Password Reset Request - Vanavihari',
+      html: emailContent
+    }
+
+    console.log(`Attempting to send password reset email to ${user.email}...`)
+    const info = await transporter.sendMail(mailOptions)
+    console.log(`✅ Password reset email sent successfully to ${user.email}`)
+    console.log(`Message ID: ${info.messageId}`)
+    return true
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error.message)
+    console.error('Full error:', error)
+    throw new Error('Failed to send password reset email')
   }
 }

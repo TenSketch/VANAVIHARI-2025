@@ -1,5 +1,5 @@
 import { retrieveTransaction } from './retrieveTransaction.js';
-import { sendReservationSuccessEmails } from './emailService.js';
+import { sendReservationSuccessEmails } from './reservationEmailService.js';
 import Reservation from '../models/reservationModel.js';
 import PaymentTransaction from '../models/paymentTransactionModel.js';
 

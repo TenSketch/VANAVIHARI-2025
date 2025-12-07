@@ -2,7 +2,7 @@ import { encryptRequest, signEncryptedRequest, decryptResponse, verifySignature 
 import { sendToBillDesk } from "../services/sendToBilldesk.js";
 import { retrieveTransaction } from "../services/retrieveTransaction.js";
 import { startTransactionPolling, stopTransactionPolling } from "../services/transactionPoller.js";
-import { sendReservationSuccessEmails } from "../services/emailService.js";
+import { sendReservationSuccessEmails } from "../services/reservationEmailService.js";
 import Reservation from "../models/reservationModel.js";
 import PaymentTransaction from "../models/paymentTransactionModel.js";
 import Resort from "../models/resortModel.js";
