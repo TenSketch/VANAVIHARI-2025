@@ -15,9 +15,9 @@ When a user initiates payment:
 
 ### 2. Automatic Polling (Every 5 Minutes)
 The system checks transaction status:
-- **Check #1**: Immediately after payment initiation
-- **Check #2**: 5 minutes later
-- **Check #3**: 10 minutes later
+- **Check #1**: 5 minutes after payment initiation
+- **Check #2**: 10 minutes after payment initiation
+- **Check #3**: 15 minutes after payment initiation
 - **Auto-stops**: After 15 minutes or when payment confirmed
 
 ### 3. Status Detection & Updates

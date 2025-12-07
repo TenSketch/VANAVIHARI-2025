@@ -20,18 +20,17 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken 
   console.log(`🔄 Starting transaction polling for booking: ${bookingId}`);
   console.log(`   Order ID (bookingId): ${bookingId}`);
   console.log(`   BD Order ID: ${bdOrderId}`);
-  console.log(`   Will check every 5 minutes for 15 minutes`);
+  console.log(`   Will check at 5, 10, and 15 minutes`);
 
   let checkCount = 0;
   const maxChecks = 3; // 3 checks over 15 minutes
   const intervalMinutes = 5;
 
-  // Poll immediately on start - pass bookingId (orderid) not bdOrderId
-  pollTransaction(bookingId, bookingId, mercid, authToken, checkCount);
-
-
-  // Set up interval for subsequent checks
+  // Set up interval - first check will be after 5 minutes (not immediate)
   const intervalId = setInterval(async () => {
+    // Pass bookingId (orderid) not bdOrderId
+    await pollTransaction(bookingId, bookingId, mercid, authToken, checkCount);
+    
     checkCount++;
     
     if (checkCount >= maxChecks) {
@@ -39,9 +38,6 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken 
       stopTransactionPolling(bookingId);
       return;
     }
-
-    // Pass bookingId (orderid) not bdOrderId
-    await pollTransaction(bookingId, bookingId, mercid, authToken, checkCount);
   }, intervalMinutes * 60 * 1000); // Convert minutes to milliseconds
 
   // Store interval ID
