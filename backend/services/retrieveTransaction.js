@@ -13,13 +13,14 @@ export async function retrieveTransaction(bdOrderId, mercid, authToken = null) {
     const traceId = "TID" + Math.random().toString(36).slice(2, 14).toUpperCase();
     const timestamp = Date.now().toString();
 
-    // Request body - same as order creation pattern
+    // Request body - includes both mercid and bdorderid
     const requestBody = {
-      mercid: mercid || process.env.BILLDESK_MERCID
+      mercid: mercid || process.env.BILLDESK_MERCID,
+      bdorderid: bdOrderId
     };
 
     const BASE_URL = process.env.BILLDESK_API_ENDPOINT;
-    const url = `${BASE_URL}payments/ve1_2/transactions/get/${bdOrderId}`;
+    const url = `${BASE_URL}payments/ve1_2/transactions/get`;
     
     console.log('\n=== RETRIEVE TRANSACTION REQUEST ===');
     console.log('URL:', url);

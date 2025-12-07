@@ -42,18 +42,21 @@ authorization: {OToken from order creation} (optional)
 ---
 
 ### 3. Transaction Retrieve
-**Endpoint:** `POST https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get/{bdorderid}`
+**Endpoint:** `POST https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get`
 
 **Purpose:** Get transaction details after payment is completed
 
-**Authentication:** Requires authorization token
+**Authentication:** Encrypted + Signed request (same as order creation)
 
 **Body:**
 ```json
 {
-  "mercid": "BDUAT2K673"
+  "mercid": "BDUAT2K673",
+  "bdorderid": "OAQV28FVC1I37UFW"
 }
 ```
+
+**Note:** The `bdorderid` goes in the request body, NOT in the URL path!
 
 **Headers:**
 ```
