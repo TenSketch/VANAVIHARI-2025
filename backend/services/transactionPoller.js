@@ -9,7 +9,7 @@ const activePolls = new Map();
  * Start polling for a transaction status
  * Checks every 5 minutes for 15 minutes (3 checks total)
  */
-export function startTransactionPolling(bookingId, bdOrderId, mercid) {
+export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken = null) {
   // Don't start if already polling
   if (activePolls.has(bookingId)) {
     console.log(`⏭️ Already polling for booking: ${bookingId}`);
@@ -25,7 +25,7 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid) {
   const intervalMinutes = 5;
 
   // Poll immediately on start
-  pollTransaction(bookingId, bdOrderId, mercid, checkCount);
+  pollTransaction(bookingId, bdOrderId, mercid, authToken, checkCount);
 
 
   // Set up interval for subsequent checks
@@ -38,7 +38,7 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid) {
       return;
     }
 
-    await pollTransaction(bookingId, bdOrderId, mercid, checkCount);
+    await pollTransaction(bookingId, bdOrderId, mercid, authToken, checkCount);
   }, intervalMinutes * 60 * 1000); // Convert minutes to milliseconds
 
   // Store interval ID
@@ -60,13 +60,13 @@ export function stopTransactionPolling(bookingId) {
 /**
  * Perform a single poll check
  */
-async function pollTransaction(bookingId, bdOrderId, mercid, checkNumber) {
+async function pollTransaction(bookingId, bdOrderId, mercid, authToken, checkNumber) {
   console.log(`\n📊 Poll Check #${checkNumber + 1} for booking: ${bookingId}`);
   console.log(`   Time: ${new Date().toISOString()}`);
 
   try {
     // Retrieve transaction from BillDesk
-    const result = await retrieveTransaction(bdOrderId, mercid);
+    const result = await retrieveTransaction(bdOrderId, mercid, authToken);
 
     if (!result.success) {
       console.log(`❌ Failed to retrieve transaction: ${result.error}`);

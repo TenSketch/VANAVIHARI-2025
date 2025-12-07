@@ -4,9 +4,10 @@ import axios from 'axios';
  * Retrieve transaction status from BillDesk
  * @param {string} bdOrderId - BillDesk order ID
  * @param {string} mercid - Merchant ID
+ * @param {string} authToken - Authorization token from order creation
  * @returns {Promise<Object>} Transaction details
  */
-export async function retrieveTransaction(bdOrderId, mercid) {
+export async function retrieveTransaction(bdOrderId, mercid, authToken = null) {
   try {
     const traceId = "TID" + Math.random().toString(36).slice(2, 14).toUpperCase();
     const timestamp = Date.now().toString();
@@ -23,14 +24,22 @@ export async function retrieveTransaction(bdOrderId, mercid) {
     console.log('BD-TraceID:', traceId);
     console.log('BD-Timestamp:', timestamp);
     console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+    console.log('Auth Token:', authToken ? 'Present' : 'Missing');
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/jose',
+      'BD-Traceid': traceId,
+      'BD-Timestamp': timestamp
+    };
+
+    // Add authorization header if token is provided
+    if (authToken) {
+      headers['authorization'] = authToken;
+    }
 
     const response = await axios.post(url, requestBody, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/jose',
-        'BD-Traceid': traceId,
-        'BD-Timestamp': timestamp
-      },
+      headers,
       timeout: 30000 // 30 second timeout
     });
 

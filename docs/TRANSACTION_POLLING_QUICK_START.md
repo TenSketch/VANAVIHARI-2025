@@ -108,13 +108,30 @@ GET /api/payment/transaction/:bookingId
 ```
 Requires authentication (JWT token in headers)
 
+## Important Fix Applied
+
+✅ **Authorization Header Issue Fixed**
+- BillDesk requires an `authorization` header for transaction retrieval
+- We now extract and store the auth token from order creation response
+- Token is stored in `reservation.rawSource.authToken`
+- Token is passed to all polling requests
+
+✅ **Callback Field Name Fixed**
+- BillDesk sends `encrypted_response` (not `transaction_response`)
+- Callback handler now checks for `encrypted_response` first
+
 ## Troubleshooting
 
 ### No Logs Appearing?
 - Check if payment was initiated successfully
 - Verify `bdOrderId` exists in PaymentTransaction collection
 
-### API Errors?
+### API Errors (401 Authentication)?
+- ✅ **FIXED**: Auth token now extracted from BillDesk response
+- Token stored in reservation and passed to all API calls
+- Check logs for "Auth Token: Present" message
+
+### API Errors (Other)?
 - Check BillDesk credentials in `.env`
 - Verify you're using UAT endpoint for testing
 - Check if `bdOrderId` is valid

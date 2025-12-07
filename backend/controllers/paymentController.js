@@ -211,21 +211,27 @@ export const initiatePayment = async (req, res) => {
       });
       await paymentTransaction.save();
 
-      // Update reservation with payment transaction reference
+      // Extract authorization token from BillDesk response for future API calls
+      const authToken = billdeskResponse.links?.[1]?.headers?.authorization || null;
+      
+      // Update reservation with payment transaction reference and auth token
       await Reservation.findOneAndUpdate(
         { bookingId },
-        { paymentTransactionId: paymentTransaction._id.toString() }
+        { 
+          paymentTransactionId: paymentTransaction._id.toString(),
+          $set: { 'rawSource.authToken': authToken }
+        }
       );
 
       // Return data for frontend to submit form
       // Note: Form uses 'merchantid' but BillDesk response has 'mercid'
       const merchantId = billdeskResponse.mercid || billdeskResponse.links?.[1]?.parameters?.mercid || process.env.BILLDESK_MERCID;
       const bdorderid = billdeskResponse.bdorderid;
+      const rdata = billdeskResponse.links?.[1]?.parameters?.rdata;
       
       // Start polling for transaction status (every 5 mins for 15 mins)
-      startTransactionPolling(bookingId, bdorderid, merchantId);
+      startTransactionPolling(bookingId, bdorderid, merchantId, authToken);
       console.log(`🔄 Started transaction polling for booking: ${bookingId}`);
-      const rdata = billdeskResponse.links?.[1]?.parameters?.rdata;
       const formAction = billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
       
       console.log('\n=== Payment Data for Frontend ===');
@@ -291,7 +297,8 @@ export const handlePaymentCallback = async (req, res) => {
 
     // BillDesk sends encrypted response in different field names
     // Try multiple sources
-    const encryptedResponse = req.body?.transaction_response 
+    const encryptedResponse = req.body?.encrypted_response
+      || req.body?.transaction_response 
       || req.body?.msg 
       || req.query?.msg 
       || req.body?.response 
@@ -304,7 +311,9 @@ export const handlePaymentCallback = async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL}/booking-failed?error=no_response`);
     }
 
-    console.log("✅ Found encrypted response in:", req.body?.transaction_response ? 'transaction_response' : 'msg');
+    console.log("✅ Found encrypted response in:", 
+      req.body?.encrypted_response ? 'encrypted_response' : 
+      req.body?.transaction_response ? 'transaction_response' : 'msg');
 
     const encKey = process.env.BILLDESK_ENCRYPTION_KEY;
     const signKey = process.env.BILLDESK_SIGNING_KEY;
@@ -435,14 +444,19 @@ export const retrieveTransactionStatus = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Payment transaction not found' });
     }
 
+    // Find reservation to get auth token from rawSource
+    const reservation = await Reservation.findOne({ bookingId }).lean();
+    const authToken = reservation?.rawSource?.authToken || null;
+
     const bdOrderId = paymentTransaction.bdOrderId;
     const mercid = process.env.BILLDESK_MERCID;
 
     console.log(`\n🔍 Manual transaction retrieval for booking: ${bookingId}`);
     console.log(`   BD Order ID: ${bdOrderId}`);
+    console.log(`   Auth Token: ${authToken ? 'Present' : 'Missing'}`);
 
     // Retrieve transaction from BillDesk
-    const result = await retrieveTransaction(bdOrderId, mercid);
+    const result = await retrieveTransaction(bdOrderId, mercid, authToken);
 
     if (!result.success) {
       return res.status(500).json({
