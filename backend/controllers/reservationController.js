@@ -7,15 +7,6 @@ import transporter from '../config/nodemailer.js'
 import { checkRoomAvailability } from '../utils/roomAvailability.js'
 
 
-function sendMail({ to, subject, html }) {
-  console.log('SendMail function called with:', { to, subject: subject.substring(0, 50) + '...' });
-  return transporter.sendMail({
-    from: process.env.SENDER_EMAIL,
-    to,
-    subject,
-    html
-  })
-}
 
 // Utility function to expire pending reservations
 export const expirePendingReservations = async () => {

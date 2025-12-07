@@ -1,5 +1,7 @@
 import { encryptRequest, signEncryptedRequest, decryptResponse, verifySignature } from "../services/billdeskCrypto.js";
 import { sendToBillDesk } from "../services/sendToBilldesk.js";
+import { retrieveTransaction } from "../services/retrieveTransaction.js";
+import { startTransactionPolling, stopTransactionPolling } from "../services/transactionPoller.js";
 import Reservation from "../models/reservationModel.js";
 import PaymentTransaction from "../models/paymentTransactionModel.js";
 import Resort from "../models/resortModel.js";
@@ -219,6 +221,10 @@ export const initiatePayment = async (req, res) => {
       // Note: Form uses 'merchantid' but BillDesk response has 'mercid'
       const merchantId = billdeskResponse.mercid || billdeskResponse.links?.[1]?.parameters?.mercid || process.env.BILLDESK_MERCID;
       const bdorderid = billdeskResponse.bdorderid;
+      
+      // Start polling for transaction status (every 5 mins for 15 mins)
+      startTransactionPolling(bookingId, bdorderid, merchantId);
+      console.log(`🔄 Started transaction polling for booking: ${bookingId}`);
       const rdata = billdeskResponse.links?.[1]?.parameters?.rdata;
       const formAction = billdeskResponse.links?.[1]?.href || 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
       
@@ -387,6 +393,8 @@ export const handlePaymentCallback = async (req, res) => {
       // Send email notifications for successful payments
       if (paymentTransaction.status === 'success') {
         console.log(`📧 Sending confirmation emails to ${reservation.email}...`);
+        // Stop polling since payment is confirmed
+        stopTransactionPolling(bookingId);
         // Send emails asynchronously (don't wait for completion)
         sendReservationSuccessEmails(reservation, paymentTransaction)
           .then(() => console.log('✅ Emails sent successfully'))
@@ -409,5 +417,55 @@ export const handlePaymentCallback = async (req, res) => {
   } catch (err) {
     console.error("handlePaymentCallback Error:", err);
     return res.redirect(`${process.env.FRONTEND_URL}/booking-failed?error=callback_error`);
+  }
+};
+
+// Manual endpoint to retrieve transaction status
+export const retrieveTransactionStatus = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    if (!bookingId) {
+      return res.status(400).json({ success: false, error: 'Booking ID is required' });
+    }
+
+    // Find payment transaction
+    const paymentTransaction = await PaymentTransaction.findOne({ bookingId }).lean();
+    if (!paymentTransaction) {
+      return res.status(404).json({ success: false, error: 'Payment transaction not found' });
+    }
+
+    const bdOrderId = paymentTransaction.bdOrderId;
+    const mercid = process.env.BILLDESK_MERCID;
+
+    console.log(`\n🔍 Manual transaction retrieval for booking: ${bookingId}`);
+    console.log(`   BD Order ID: ${bdOrderId}`);
+
+    // Retrieve transaction from BillDesk
+    const result = await retrieveTransaction(bdOrderId, mercid);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve transaction',
+        details: result.error
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      bookingId,
+      bdOrderId,
+      transactionData: result.data,
+      traceId: result.traceId,
+      timestamp: result.timestamp
+    });
+
+  } catch (err) {
+    console.error("retrieveTransactionStatus Error:", err);
+    return res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 };
