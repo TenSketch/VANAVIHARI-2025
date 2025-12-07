@@ -17,6 +17,7 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken 
   }
 
   console.log(`🔄 Starting transaction polling for booking: ${bookingId}`);
+  console.log(`   Order ID (bookingId): ${bookingId}`);
   console.log(`   BD Order ID: ${bdOrderId}`);
   console.log(`   Will check every 5 minutes for 15 minutes`);
 
@@ -24,8 +25,8 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken 
   const maxChecks = 3; // 3 checks over 15 minutes
   const intervalMinutes = 5;
 
-  // Poll immediately on start
-  pollTransaction(bookingId, bdOrderId, mercid, authToken, checkCount);
+  // Poll immediately on start - pass bookingId (orderid) not bdOrderId
+  pollTransaction(bookingId, bookingId, mercid, authToken, checkCount);
 
 
   // Set up interval for subsequent checks
@@ -38,7 +39,8 @@ export function startTransactionPolling(bookingId, bdOrderId, mercid, authToken 
       return;
     }
 
-    await pollTransaction(bookingId, bdOrderId, mercid, authToken, checkCount);
+    // Pass bookingId (orderid) not bdOrderId
+    await pollTransaction(bookingId, bookingId, mercid, authToken, checkCount);
   }, intervalMinutes * 60 * 1000); // Convert minutes to milliseconds
 
   // Store interval ID
@@ -60,13 +62,13 @@ export function stopTransactionPolling(bookingId) {
 /**
  * Perform a single poll check
  */
-async function pollTransaction(bookingId, bdOrderId, mercid, authToken, checkNumber) {
+async function pollTransaction(bookingId, orderid, mercid, authToken, checkNumber) {
   console.log(`\n📊 Poll Check #${checkNumber + 1} for booking: ${bookingId}`);
   console.log(`   Time: ${new Date().toISOString()}`);
 
   try {
-    // Retrieve transaction from BillDesk
-    const result = await retrieveTransaction(bdOrderId, mercid, authToken);
+    // Retrieve transaction from BillDesk using orderid (bookingId)
+    const result = await retrieveTransaction(orderid, mercid, authToken);
 
     if (!result.success) {
       console.log(`❌ Failed to retrieve transaction: ${result.error}`);

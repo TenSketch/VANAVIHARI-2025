@@ -52,11 +52,14 @@ authorization: {OToken from order creation} (optional)
 ```json
 {
   "mercid": "BDUAT2K673",
-  "bdorderid": "OAQV28FVC1I37UFW"
+  "orderid": "VM0712482512006"
 }
 ```
 
-**Note:** The `bdorderid` goes in the request body, NOT in the URL path!
+**Important Notes:**
+- Use `orderid` (your original booking ID), NOT `bdorderid` (BillDesk's internal ID)
+- The `orderid` goes in the request body, NOT in the URL path
+- BillDesk error: "Either transactionid or mercid and orderid are required"
 
 **Headers:**
 ```

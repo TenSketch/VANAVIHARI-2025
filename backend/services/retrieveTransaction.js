@@ -3,20 +3,20 @@ import { encryptRequest, signEncryptedRequest, verifyAndDecryptResponse } from '
 
 /**
  * Retrieve transaction status from BillDesk
- * @param {string} bdOrderId - BillDesk order ID
+ * @param {string} orderid - Original order ID (bookingId like VM0712482512006)
  * @param {string} mercid - Merchant ID
  * @param {string} authToken - Authorization token (not used, kept for compatibility)
  * @returns {Promise<Object>} Transaction details
  */
-export async function retrieveTransaction(bdOrderId, mercid, authToken = null) {
+export async function retrieveTransaction(orderid, mercid, authToken = null) {
   try {
     const traceId = "TID" + Math.random().toString(36).slice(2, 14).toUpperCase();
     const timestamp = Date.now().toString();
 
-    // Request body - includes both mercid and bdorderid
+    // Request body - BillDesk wants "orderid" (our bookingId), not "bdorderid"
     const requestBody = {
       mercid: mercid || process.env.BILLDESK_MERCID,
-      bdorderid: bdOrderId
+      orderid: orderid
     };
 
     const BASE_URL = process.env.BILLDESK_API_ENDPOINT;
