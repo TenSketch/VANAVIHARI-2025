@@ -2,15 +2,16 @@ import { encryptRequest, signEncryptedRequest, decryptResponse, verifySignature 
 import { sendToBillDesk } from "../services/sendToBilldesk.js";
 import { retrieveTransaction } from "../services/retrieveTransaction.js";
 import { startTransactionPolling, stopTransactionPolling } from "../services/transactionPoller.js";
+import { sendReservationSuccessEmails } from "../services/emailService.js";
 import Reservation from "../models/reservationModel.js";
 import PaymentTransaction from "../models/paymentTransactionModel.js";
 import Resort from "../models/resortModel.js";
 import Room from "../models/roomModel.js";
-import transporter from "../config/nodemailer.js";
-import { RESERVATION_SUCCESS_EMAIL_TEMPLATE, RESERVATION_SUCCESS_EMAIL_ADMIN_TEMPLATE } from "../config/emailTemplates.js";
 
-// Helper function to send reservation success emails
-async function sendReservationSuccessEmails(reservation, paymentTransaction) {
+// Email function moved to backend/services/emailService.js for reusability
+
+// Legacy function kept for reference (now using shared service)
+async function sendReservationSuccessEmailsLegacy(reservation, paymentTransaction) {
   try {
     // Fetch resort details
     let resortData = null;
