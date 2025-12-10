@@ -9,17 +9,18 @@ import "datatables.net-buttons/js/buttons.colVis.js";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import "datatables.net-buttons-dt/css/buttons.dataTables.css";
 
-import staticSeed from "./allTouristSpots.json";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from 'react-router';
 import { usePermissions } from '@/lib/AdminProvider'
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TouristSpotDetailPanel from "@/components/touristSpot/TouristSpotDetailPanel";
 
 DataTable.use(DT);
 
 interface TouristSpot {
   id: string;
-  _id?: string;
+  _id: string;
   name: string;
   category?: string;
   entryFees?: number;
@@ -29,16 +30,22 @@ interface TouristSpot {
   description?: string;
   address?: string;
   mapEmbed?: string;
-  images?: Array<string | { url: string }>;
+  images?: Array<string | { url?: string }>;
 }
 
 export default function AllTouristSpots() {
   const tableRef = useRef(null);
   const perms = usePermissions();
-  const [spots, setSpots] = useState<TouristSpot[]>(staticSeed as any);
+  const [spots, setSpots] = useState<TouristSpot[]>([]);
+  const permsRef = useRef(perms)
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true);
   const spotsRef = useRef(spots);
+  const [selectedSpot, setSelectedSpot] = useState<TouristSpot | null>(null);
+  const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  const [startEditOnOpen, setStartEditOnOpen] = useState(false);
   useEffect(() => { spotsRef.current = spots }, [spots])
+  useEffect(() => { permsRef.current = perms }, [perms])
 
   const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
 
@@ -126,6 +133,60 @@ export default function AllTouristSpots() {
 
     return () => { document.head.removeChild(style); };
   }, []);
+
+  // Handle action buttons and row click
+  useEffect(() => {
+    const handleClick = (event: Event) => {
+      const target = event.target as HTMLElement
+      const button = target.closest('button') as HTMLElement | null
+      if (button?.classList.contains('edit-btn') || button?.classList.contains('disable-btn')) {
+        event.stopPropagation()
+        const id = button.getAttribute('data-id') || ''
+        const spot = spotsRef.current.find(s => s.id === id)
+        if (!spot) return
+        if (button.classList.contains('edit-btn')) {
+          if (!permsRef.current.canEdit) return
+          setSelectedSpot(spot)
+          setStartEditOnOpen(true)
+          setIsDetailPanelOpen(true)
+        } else if (button.classList.contains('disable-btn')) {
+          if (!permsRef.current.canDisable) return
+          // delete
+          (async () => {
+            try {
+              const token = localStorage.getItem('admin_token')
+              const headers: Record<string,string> = {}
+              if (token) headers['Authorization'] = `Bearer ${token}`
+              const res = await fetch(`${apiBase}/api/touristspots/${id}`, { method: 'DELETE', headers })
+              const data = await res.json().catch(() => null)
+              if (!res.ok) throw new Error(data?.error || 'Failed to delete')
+              // remove from list
+              setSpots(prev => prev.filter(p => p.id !== id))
+            } catch (err: any) {
+              console.error('Failed to delete tourist spot', err)
+              alert('Failed to delete tourist spot: ' + (err.message || String(err)))
+            }
+          })()
+        }
+        return
+      }
+
+      // Row click - open detail side panel
+      const row = target.closest('tr')
+      if (row && row.parentElement?.tagName === 'TBODY') {
+        const idx = Array.from(row.parentElement.children).indexOf(row as any)
+        const spot = spotsRef.current[idx]
+        if (spot) {
+          setSelectedSpot(spot)
+          setStartEditOnOpen(permsRef.current.canEdit)
+          setIsDetailPanelOpen(true)
+        }
+      }
+    }
+
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [apiBase, navigate])
 
   const columns = [
     { data: 'id', title: 'ID' },
@@ -229,6 +290,20 @@ export default function AllTouristSpots() {
           }}
         />
       </div>
+
+      {selectedSpot && (
+        <TouristSpotDetailPanel
+          spot={selectedSpot}
+          isOpen={isDetailPanelOpen}
+          startEditing={startEditOnOpen}
+          canEdit={perms.canEdit}
+          onClose={() => { setIsDetailPanelOpen(false); setSelectedSpot(null); setStartEditOnOpen(false); }}
+          onSpotUpdated={(updated) => {
+            setSpots(prev => prev.map(s => s._id === updated._id ? { ...s, ...updated } : s))
+            setSelectedSpot(prev => prev ? { ...prev, ...updated } : prev)
+          }}
+        />
+      )}
     </div>
   );
 }

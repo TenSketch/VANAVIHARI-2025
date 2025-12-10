@@ -1,8 +1,10 @@
 import { Component, AfterViewInit, OnDestroy } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { TouristBookingSelection } from '../../shared/tourist-spot-selection/tourist-spot-selection.component';
-import { TOURIST_SPOT_CATEGORIES, TouristSpotCategory, TouristSpotConfig } from './tourist-spots.data';
+import { TouristSpotCategory, TouristSpotConfig } from './tourist-spots.data';
+import { TouristSpotService } from '../../services/tourist-spot.service';
 
 export interface BookedTouristSpot {
   id: string;
@@ -53,7 +55,7 @@ interface TimeFilter {
 })
 export class TouristSpotsBookingComponent implements AfterViewInit, OnDestroy {
   bookedSpots: BookedTouristSpot[] = [];
-  categories: TouristSpotCategory[] = TOURIST_SPOT_CATEGORIES;
+  categories: TouristSpotCategory[] = [];
   filteredCategories: TouristSpotCategory[] = [];
 
   // Accordion state
@@ -94,9 +96,9 @@ export class TouristSpotsBookingComponent implements AfterViewInit, OnDestroy {
   constructor(
     private router: Router,
     private breakpointObserver: BreakpointObserver
+    ,
+    private touristSpotService: TouristSpotService
   ) {
-    // Build lookup map
-    this.categories.forEach(cat => cat.spots.forEach(s => this.spotMap[s.id] = s));
     // Load persisted state if present
     const raw = localStorage.getItem(this.storageKey);
     if (raw) {
@@ -106,12 +108,20 @@ export class TouristSpotsBookingComponent implements AfterViewInit, OnDestroy {
         this.bookedSpots = [];
       }
     }
-    // Initialize filtered  
-    this.applyFilters();
-
-    // Initialize hero images from first images found in categories (fallback safe list)
-    this.initHeroImages();
-    this.startAutoplay();
+    // Fetch spots from backend and build categories
+    this.loadTouristSpots()
+      .then(() => {
+        this.applyFilters();
+        this.initHeroImages();
+        this.startAutoplay();
+      })
+      .catch(err => {
+        console.warn('Failed to load tourist spots from backend, falling back to defaults', err);
+        // still initialize visuals even if load failed
+        this.applyFilters();
+        this.initHeroImages();
+        this.startAutoplay();
+      });
 
     // Detect mobile breakpoint
     this.breakpointObserver
@@ -151,6 +161,66 @@ export class TouristSpotsBookingComponent implements AfterViewInit, OnDestroy {
         'assets/img/TOURIST-PLACES/Amruthadhara-Waterfalls.jpg',
         'assets/img/TOURIST-PLACES/MPCA.jpg'
       ];
+    }
+  }
+
+  private async loadTouristSpots(): Promise<void> {
+    try {
+      const resp: any = await firstValueFrom(this.touristSpotService.getAllTouristSpots());
+      const list: any[] = Array.isArray(resp?.touristSpots) ? resp.touristSpots : [];
+
+      // Map backend spots to TouristSpotConfig and group by category
+      const groups: { [key: string]: TouristSpotConfig[] } = {};
+      for (const s of list) {
+        const id = s._id || s.slug || String(Math.random()).slice(2,8);
+        const category = s.category || 'Other';
+        const cfg: TouristSpotConfig = {
+          id,
+          name: s.name || s.title || 'Untitled',
+          location: s.address || '',
+          category: (category === 'Trek' || category === 'trek' || category === 'Trekking' || category === 'Trekking Trails') ? 'Trek' : (category === 'Waterfall' || category === 'waterfall') ? 'Waterfall' : (category === 'ViewPoint' || /view/i.test(category)) ? 'ViewPoint' : (category === 'Picnic' || /picnic/i.test(category)) ? 'Picnic' : 'Eco',
+          typeLabel: s.category || '',
+          images: Array.isArray(s.images) ? s.images.map((i:any) => typeof i === 'string' ? i : (i.url || '')) : [],
+          fees: {
+            entryPerPerson: Number(s.entryFees || 0),
+            parkingPerVehicle: Number(s.parking2W || s.parking || 0),
+            cameraPerCamera: Number(s.cameraFees || 0),
+            parkingTwoWheeler: s.parking2W ? Number(s.parking2W) : undefined,
+            parkingFourWheeler: s.parking4W ? Number(s.parking4W) : undefined,
+          },
+          addOns: [],
+          timing: 'morning-evening',
+          detailsFragment: s.slug || undefined,
+          difficulty: undefined,
+          distanceKm: undefined,
+          elevationGainM: undefined,
+          ticketsLeftToday: s.ticketsLeftToday ?? undefined
+        };
+
+        const catKey = cfg.category;
+        if (!groups[catKey]) groups[catKey] = [];
+        groups[catKey].push(cfg);
+        // set map
+        this.spotMap[cfg.id] = cfg;
+      }
+
+      // Build categories array preserving a friendly ordering
+      const order = ['Waterfall', 'Picnic', 'Trek', 'ViewPoint', 'Eco'];
+      const built: TouristSpotCategory[] = [];
+      for (const k of order) {
+        if (groups[k] && groups[k].length) {
+          built.push({ key: k.toLowerCase(), title: k, icon: k === 'Waterfall' ? '🌊' : k === 'Picnic' ? '🏞️' : k === 'Trek' ? '🥾' : k === 'ViewPoint' ? '🌅' : '🏞️', spots: groups[k] });
+        }
+      }
+      // append any other categories
+      for (const k of Object.keys(groups)) {
+        if (!order.includes(k)) built.push({ key: k.toLowerCase(), title: k, icon: '📍', spots: groups[k] });
+      }
+
+      this.categories = built;
+    } catch (e) {
+      console.warn('Error loading tourist spots', e);
+      // fallback remains as empty categories
     }
   }
 
