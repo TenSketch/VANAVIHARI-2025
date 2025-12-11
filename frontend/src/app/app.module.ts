@@ -81,7 +81,7 @@ import { ForgotPasswordComponent } from './auth/forgot-password/forgot-password.
 import { ResetPasswordComponent } from './auth/reset-password/reset-password.component';
 import { RecaptchaModule, RecaptchaFormsModule } from 'ng-recaptcha';
 import { TestRoomComponent } from './modules/test-room/test-room.component';
-import { BookTentComponent } from './modules/resorts/book-tent/book-tent.component';
+import { BookTentComponent } from './modules/book-tent/book-tent.component';
 import { CancelRequestComponent } from './modules/cancel-request/cancel-request.component';
 import { TestBookingsComponent } from './modules/test-bookings/test-bookings.component';
 import { CancelStatusComponent } from './modules/cancel-status/cancel-status.component';
@@ -91,6 +91,8 @@ import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/to
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
+import { VerifyEmailComponent } from './auth/verify-email/verify-email.component';
+import { ResendVerificationComponent } from './auth/resend-verification/resend-verification.component';
 
 
 
@@ -139,7 +141,9 @@ import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.com
     TouristSpotsBookingComponent,
     TouristSpotsCheckoutComponent,
     TouristSpotsSuccessComponent,
-    TentCheckoutComponent
+    TentCheckoutComponent,
+    VerifyEmailComponent,
+    ResendVerificationComponent
 
   ],
   imports: [

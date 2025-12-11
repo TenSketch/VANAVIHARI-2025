@@ -5,8 +5,11 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const Layout = lazy(() => import('./components/shared/Layout'))
 const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
-const ReportPage = lazy(() => import("./pages/dashboard/ReportPage"));
-const VanaReportPage = lazy(() => import("./pages/DailyOccupancyReport/VahavihariReport"));
+const ResortDashboardPage = lazy(() => import("./pages/dashboard/ResortDashboardPage"));
+const TentDashboardPage = lazy(() => import("./pages/dashboard/TentDashboardPage"));
+const TouristSpotDashboardPage = lazy(() => import("./pages/dashboard/TouristSpotDashboardPage"));
+
+const VanaReportPage = lazy(() => import("./pages/DailyOccupancyReport/VanaVihariReport"));
 const JunglestarReportPage = lazy(() => import("./pages/DailyOccupancyReport/JungleStarReport"));
 const CheckInPage = lazy(() => import("./pages/frontdesk/CheckIn"));
 const CheckOutPage = lazy(() => import("./pages/frontdesk/CheckOut"));
@@ -69,9 +72,9 @@ function App() {
             <Layout />
           </ProtectedRoute>
         }>
-          <Route path="dashboard/report" element={<ReportPage />} />
-          <Route path="tent/dashboard" element={<ReportPage />} />
-          <Route path="tourist/dashboard" element={<ReportPage />} />
+          <Route path="dashboard/report" element={<ResortDashboardPage />} />
+          <Route path="tent/dashboard" element={<TentDashboardPage />} />
+          <Route path="tourist/dashboard" element={<TouristSpotDashboardPage />} />
           <Route path="dailyoccupanyreport/vanavihari" element={<VanaReportPage/>} />
           <Route path="dailyoccupanyreport/junglestar" element={<JunglestarReportPage/>} />
           <Route path="frontdesk/checkin" element={<CheckInPage/>} />

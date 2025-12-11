@@ -7,15 +7,6 @@ import transporter from '../config/nodemailer.js'
 import { checkRoomAvailability } from '../utils/roomAvailability.js'
 
 
-function sendMail({ to, subject, html }) {
-  console.log('SendMail function called with:', { to, subject: subject.substring(0, 50) + '...' });
-  return transporter.sendMail({
-    from: process.env.SENDER_EMAIL,
-    to,
-    subject,
-    html
-  })
-}
 
 // Utility function to expire pending reservations
 export const expirePendingReservations = async () => {
@@ -137,14 +128,28 @@ export const getUserBookings = async (req, res) => {
           }
         }
         
-        // Fetch room details
+        // Fetch room details with cottage type populated
         let roomsData = []
         if (reservation.rooms && Array.isArray(reservation.rooms)) {
           const validRoomIds = reservation.rooms.filter(id => mongoose.Types.ObjectId.isValid(id))
           if (validRoomIds.length > 0) {
-            roomsData = await Room.find({ 
+            const rooms = await Room.find({ 
               _id: { $in: validRoomIds } 
-            }).select('roomNumber roomId roomName').lean()
+            }).select('roomNumber roomId roomName cottageType').lean()
+            
+            // Populate cottageType for each room
+            roomsData = await Promise.all(
+              rooms.map(async (room) => {
+                let cottageTypeData = null
+                if (room.cottageType && mongoose.Types.ObjectId.isValid(room.cottageType)) {
+                  cottageTypeData = await CottageType.findById(room.cottageType).select('name description').lean()
+                }
+                return {
+                  ...room,
+                  cottageType: cottageTypeData
+                }
+              })
+            )
           }
         }
         

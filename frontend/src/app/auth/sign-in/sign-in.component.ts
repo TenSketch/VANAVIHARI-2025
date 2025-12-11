@@ -127,8 +127,19 @@ export class SignInComponent implements OnInit {
             console.error('Login error:', err);
             
             // Handle different error scenarios
-            if (err.error && err.error.result && err.error.result.msg) {
-              this.showSnackBarAlert(err.error.result.msg);
+            if (err.error && err.error.result) {
+              // Check if email is not verified
+              if (err.error.result.emailNotVerified) {
+                this.showSnackBarAlert(err.error.result.msg, false);
+                // Redirect to resend verification page after 2 seconds
+                setTimeout(() => {
+                  this.router.navigate(['/resend-verification']);
+                }, 2000);
+              } else if (err.error.result.msg) {
+                this.showSnackBarAlert(err.error.result.msg);
+              } else {
+                this.showSnackBarAlert('Login failed. Please try again.');
+              }
             } else if (err.status === 0) {
               this.showSnackBarAlert('Unable to connect to server. Please check your connection.');
             } else {

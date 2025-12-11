@@ -186,6 +186,42 @@ export default function AddReservationForm() {
     fetchResortData();
   }, [formData.resort, apiUrl]);
 
+  // Calculate min and max dates based on selected resort
+  const getDateLimits = () => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 90);
+
+    // Format dates as YYYY-MM-DD for HTML date input
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Determine min date based on resort
+    let minDate = formatDate(today);
+    
+    if (selectedResortData) {
+      const resortName = selectedResortData.resortName.toLowerCase();
+      // Jungle Star, Valamuru: next day onwards
+      if (resortName.includes('jungle star') || resortName.includes('valamuru')) {
+        minDate = formatDate(tomorrow);
+      }
+      // Vanavihari, Maredumilli: today onwards (default)
+    }
+
+    return {
+      minDate,
+      maxDate: formatDate(maxDate),
+    };
+  };
+
+  const dateLimits = getDateLimits();
+
   // Calculate pricing whenever relevant fields change
   useEffect(() => {
     if (formData.rooms.length === 0) {
@@ -644,6 +680,9 @@ export default function AddReservationForm() {
                   name="checkIn"
                   value={formData.checkIn}
                   onChange={handleChange}
+                  min={dateLimits.minDate}
+                  max={dateLimits.maxDate}
+                  disabled={!formData.resort}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
                 />
               </div>
@@ -656,6 +695,13 @@ export default function AddReservationForm() {
                   name="checkOut"
                   value={formData.checkOut}
                   onChange={handleChange}
+                  min={formData.checkIn ? (() => {
+                    const checkInDate = new Date(formData.checkIn);
+                    checkInDate.setDate(checkInDate.getDate() + 1);
+                    return checkInDate.toISOString().split('T')[0];
+                  })() : dateLimits.minDate}
+                  max={dateLimits.maxDate}
+                  disabled={!formData.resort || !formData.checkIn}
                   className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 transition-colors bg-slate-50"
                 />
               </div>

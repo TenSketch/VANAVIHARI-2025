@@ -29,8 +29,9 @@ DataTable.use(DT);
 interface TentType {
   id: string;
   sno: number;
-  tentId: string;
   tentType: string;
+  accommodationType: string;
+  tentBase: string;
   dimensions: string;
   brand: string;
   features: string;
@@ -51,37 +52,15 @@ export default function AllTentTypesTable() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editTentType, setEditTentType] = useState("");
+  const [editAccommodationType, setEditAccommodationType] = useState("");
+  const [editTentBase, setEditTentBase] = useState("");
   const [editDimensions, setEditDimensions] = useState("");
   const [editBrand, setEditBrand] = useState("");
   const [editFeatures, setEditFeatures] = useState("");
   const [editPrice, setEditPrice] = useState("");
   const [editAmenities, setEditAmenities] = useState("");
 
-  // Generate Tent ID based on location and tent type
-  const generateTentId = (tentType: string, allTents: any[], currentIndex: number, location: string = 'V'): string => {
-    const locationCode = location.toUpperCase();
-    let typeCode = 'TX'; // Default for unknown types
-    
-    if (tentType.toLowerCase().includes('2-person') || tentType.toLowerCase().includes('2 person')) {
-      typeCode = 'T2';
-    } else if (tentType.toLowerCase().includes('4-person') || tentType.toLowerCase().includes('4 person')) {
-      typeCode = 'T4';
-    }
-    
-    // Count how many tents of the same type come before this one
-    const sameTypeTentsBefore = allTents.slice(0, currentIndex).filter((t: any) => {
-      const tType = (t.tentType || '').toLowerCase();
-      if (typeCode === 'T2') {
-        return tType.includes('2-person') || tType.includes('2 person');
-      } else if (typeCode === 'T4') {
-        return tType.includes('4-person') || tType.includes('4 person');
-      }
-      return false;
-    }).length;
-    
-    const number = String(sameTypeTentsBefore + 1).padStart(2, '0');
-    return `${locationCode}-${typeCode}-${number}`;
-  };
+
 
   // Fetch tent types from backend
   useEffect(() => {
@@ -102,8 +81,9 @@ export default function AllTentTypesTable() {
         const mapped = list.map((t: any, idx: number) => ({
           id: t._id,
           sno: idx + 1,
-          tentId: generateTentId(t.tentType || '', list, idx),
           tentType: t.tentType || '',
+          accommodationType: t.accommodationType || '',
+          tentBase: t.tentBase || '',
           dimensions: t.dimensions || '',
           brand: t.brand || '',
           features: t.features || '',
@@ -130,8 +110,9 @@ export default function AllTentTypesTable() {
   const exportToExcel = () => {
     const headers = [
       "S.No",
-      "Tent ID",
       "Tent Type",
+      "Accommodation Type",
+      "Tent Base",
       "Dimensions",
       "Brand",
       "Features",
@@ -145,8 +126,9 @@ export default function AllTentTypesTable() {
       ...tentTypes.map((tent) => {
         return [
           tent.sno,
-          `"${tent.tentId}"`,
           `"${tent.tentType.replace(/"/g, '""')}"`,
+          `"${tent.accommodationType.replace(/"/g, '""')}"`,
+          `"${tent.tentBase.replace(/"/g, '""')}"`,
           `"${tent.dimensions.replace(/"/g, '""')}"`,
           `"${tent.brand.replace(/"/g, '""')}"`,
           `"${tent.features.replace(/"/g, '""').replace(/\n/g, ' ')}"`,
@@ -170,6 +152,8 @@ export default function AllTentTypesTable() {
   const openForView = (tent: TentType) => {
     setSelectedTent(tent);
     setEditTentType(tent.tentType);
+    setEditAccommodationType(tent.accommodationType);
+    setEditTentBase(tent.tentBase);
     setEditDimensions(tent.dimensions);
     setEditBrand(tent.brand);
     setEditFeatures(tent.features);
@@ -185,22 +169,51 @@ export default function AllTentTypesTable() {
     setSheetMode('edit')
   };
 
-  const toggleActiveStatus = (tent: TentType) => {
+  const toggleActiveStatus = async (tent: TentType) => {
     if (!permsRef.current.canDisable) return
-    setTentTypes((prev) =>
-      prev.map((t) =>
-        t.id === tent.id ? { ...t, isActive: !t.isActive } : t
-      )
-    );
-    if (selectedTent && selectedTent.id === tent.id) {
-      setSelectedTent({ ...tent, isActive: !tent.isActive });
+    
+    try {
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('admin_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${apiBase}/api/tent-types/${tent.id}/toggle-status`, {
+        method: 'PATCH',
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle status');
+      }
+
+      // Update local state
+      setTentTypes((prev) =>
+        prev.map((t) =>
+          t.id === tent.id ? { ...t, isActive: !t.isActive } : t
+        )
+      );
+      if (selectedTent && selectedTent.id === tent.id) {
+        setSelectedTent({ ...tent, isActive: !tent.isActive });
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle status:', err);
+      alert('Failed to toggle status: ' + (err.message || String(err)));
     }
   };
 
   const columns = [
     { data: "sno", title: "S.No" },
-    { data: "tentId", title: "Tent ID" },
     { data: "tentType", title: "Tent Type" },
+    { data: "accommodationType", title: "Accommodation Type" },
+    { data: "tentBase", title: "Tent Base" },
     { data: "dimensions", title: "Dimensions" },
     { data: "brand", title: "Brand" },
     {
@@ -386,16 +399,29 @@ export default function AllTentTypesTable() {
                 </div>
 
                 <div>
-                  <Label>Tent ID</Label>
-                  <div className="p-3 bg-gray-50 rounded-md border font-mono text-blue-600">{selectedTent.tentId}</div>
-                </div>
-
-                <div>
                   <Label>Tent Type</Label>
                   {sheetMode === 'edit' ? (
                     <Input value={editTentType} onChange={(e) => setEditTentType(e.target.value)} />
                   ) : (
                     <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentType}</div>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Accommodation Type</Label>
+                  {sheetMode === 'edit' ? (
+                    <Input value={editAccommodationType} onChange={(e) => setEditAccommodationType(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.accommodationType}</div>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Tent Base</Label>
+                  {sheetMode === 'edit' ? (
+                    <Input value={editTentBase} onChange={(e) => setEditTentBase(e.target.value)} />
+                  ) : (
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentBase}</div>
                   )}
                 </div>
 
@@ -477,25 +503,68 @@ export default function AllTentTypesTable() {
                   <>
                     <Button variant="outline" onClick={() => setSheetMode('view')}>Cancel</Button>
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!perms.canEdit) return
-                        setTentTypes((prev) =>
-                          prev.map((t) =>
-                            t.id === selectedTent.id
-                              ? {
-                                  ...t,
-                                  tentType: editTentType,
-                                  dimensions: editDimensions,
-                                  brand: editBrand,
-                                  features: editFeatures,
-                                  price: Number(editPrice),
-                                  amenities: editAmenities,
-                                }
-                              : t
-                          )
-                        );
-                        setSheetMode('view')
-                        setIsDetailSheetOpen(false);
+                        
+                        try {
+                          const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+                          const token = localStorage.getItem('admin_token');
+                          
+                          const updateData = {
+                            tentType: editTentType,
+                            accommodationType: editAccommodationType,
+                            tentBase: editTentBase,
+                            dimensions: editDimensions,
+                            brand: editBrand,
+                            features: editFeatures,
+                            pricePerDay: Number(editPrice),
+                            amenities: editAmenities.split(',').map(a => a.trim()).filter(Boolean),
+                          };
+
+                          const headers: Record<string, string> = {
+                            'Content-Type': 'application/json',
+                          };
+                          if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                          }
+
+                          const response = await fetch(`${apiBase}/api/tent-types/${selectedTent.id}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify(updateData),
+                          });
+
+                          const data = await response.json();
+
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Failed to update tent type');
+                          }
+
+                          // Update local state
+                          setTentTypes((prev) =>
+                            prev.map((t) =>
+                              t.id === selectedTent.id
+                                ? {
+                                    ...t,
+                                    tentType: editTentType,
+                                    accommodationType: editAccommodationType,
+                                    tentBase: editTentBase,
+                                    dimensions: editDimensions,
+                                    brand: editBrand,
+                                    features: editFeatures,
+                                    price: Number(editPrice),
+                                    amenities: editAmenities,
+                                  }
+                                : t
+                            )
+                          );
+                          setSheetMode('view')
+                          setIsDetailSheetOpen(false);
+                          alert('Tent type updated successfully!');
+                        } catch (err: any) {
+                          console.error('Failed to update tent type:', err);
+                          alert('Failed to update tent type: ' + (err.message || String(err)));
+                        }
                       }}
                       disabled={!perms.canEdit}
                       title={!perms.canEdit ? 'You do not have permission to save' : undefined}

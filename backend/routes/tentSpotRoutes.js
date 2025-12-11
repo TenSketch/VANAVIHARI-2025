@@ -1,19 +1,26 @@
-import express from 'express'
-import multer from 'multer'
-import { createTentSpot, listTentSpots, getTentSpot, updateTentSpot, toggleDisableTentSpot } from '../controllers/tentSpotController.js'
+import express from 'express';
+import {
+  createTentSpot,
+  getAllTentSpots,
+  getTentSpotById,
+  getTentSpotBySlug,
+  updateTentSpot,
+  toggleTentSpotStatus,
+  deleteTentSpot,
+} from '../controllers/tentSpotController.js';
+import requirePermission from '../middlewares/requirePermission.js';
 
-const router = express.Router()
+const tentSpotRouter = express.Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'tmp/'),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
-})
-const upload = multer({ storage })
+// Public routes
+tentSpotRouter.get('/', getAllTentSpots);
+tentSpotRouter.get('/slug/:slug', getTentSpotBySlug);
+tentSpotRouter.get('/:id', getTentSpotById);
 
-router.post('/add', upload.none(), createTentSpot)
-router.get('/', listTentSpots)
-router.get('/:id', getTentSpot)
-router.put('/:id', updateTentSpot)
-router.patch('/:id/disable', toggleDisableTentSpot)
+// Protected routes (require admin authentication and permissions)
+tentSpotRouter.post('/', requirePermission('canEdit'), createTentSpot);
+tentSpotRouter.put('/:id', requirePermission('canEdit'), updateTentSpot);
+tentSpotRouter.patch('/:id/toggle-status', requirePermission('canDisable'), toggleTentSpotStatus);
+tentSpotRouter.delete('/:id', requirePermission('canEdit'), deleteTentSpot);
 
-export default router
+export default tentSpotRouter;

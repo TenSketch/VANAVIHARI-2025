@@ -1,12 +1,7 @@
 import { environment } from '@/environments/environment';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Component } from '@angular/core';
-import {
-  FormGroup,
-  FormBuilder,
-  Validators,
-  FormControl,
-} from '@angular/forms';
+import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 
@@ -17,15 +12,12 @@ import { ActivatedRoute, Router } from '@angular/router';
 })
 export class ForgotPasswordComponent {
   form: FormGroup;
-  repeat_password: any;
   password_hide = true;
   repeate_password_hide = true;
   api_url: any;
   showLoader = false;
-  client_key: any;
-  email_id: any;
-  userId: any;
   token: any;
+  message = '';
 
   constructor(
     private formBuilder: FormBuilder,
@@ -35,16 +27,11 @@ export class ForgotPasswordComponent {
     private router: Router
   ) {
     this.api_url = environment.API_URL;
-    this.client_key = '6Lc1LuopAAAAANFzqMeEI67Y-o8Zt-lhlsMn1CWQ';
-    this.route.queryParams.subscribe((queryParams) => {
-      this.email_id = queryParams['email'];
-      console.log('Email:', this.email_id);
-    });
 
+    // Get token from route params
     this.route.params.subscribe((params) => {
-      this.userId = params['userid'];
       this.token = params['token'];
-      console.log(this.userId, this.token);
+      console.log('Reset token:', this.token);
     });
   }
 
@@ -53,16 +40,15 @@ export class ForgotPasswordComponent {
       {
         password: [
           '',
-          Validators.compose([
+          [
             Validators.required,
             Validators.minLength(8),
             Validators.pattern(
               /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/
             ),
-          ]),
+          ],
         ],
-        repeat_password: ['', Validators.compose([Validators.required])],
-        recaptcha: ['', Validators.required],
+        repeat_password: ['', [Validators.required]],
       },
       {
         validators: this.passwordMatchValidator,
@@ -86,36 +72,50 @@ export class ForgotPasswordComponent {
     } else {
       form.get('repeat_password')?.setErrors(null);
     }
-
     return null;
   }
 
   onSubmit() {
+    if (this.form.invalid) {
+      return;
+    }
+
     this.showLoader = true;
-    let params = new HttpParams()
-      .set('userid', this.userId)
-      .set('token', this.token)
-      .set('password', this.form.value.password);
+
+    const payload = {
+      password: this.form.value.password,
+    };
 
     this.http
-      .get<any>(this.api_url + '?api_type=update_password', { params })
+      .post<any>(
+        `${this.api_url}/api/user/reset-password/${this.token}`,
+        payload
+      )
       .subscribe({
         next: (response) => {
-          this.showSnackBarAlert(response.result.status);
           this.showLoader = false;
-          if (response.result.status == 'success') {
-            this.router.navigate(['/sign-in']);
+          if (response.code === 3000 && response.result.status === 'success') {
+            this.showSnackBarAlert(response.result.msg);
+            setTimeout(() => {
+              this.router.navigate(['/sign-in']);
+            }, 2000);
+          } else {
+            this.message = response.result.msg || 'Failed to reset password';
+            this.showSnackBarAlert(this.message);
           }
         },
         error: (err) => {
-          this.showSnackBarAlert(err);
           this.showLoader = false;
+          this.message =
+            err.error?.result?.msg ||
+            'Failed to reset password. Please try again.';
+          this.showSnackBarAlert(this.message);
         },
       });
   }
 
   showSnackBarAlert(msg = '') {
-    var snackBar = this.snackBar.open(msg, 'Close', {
+    this.snackBar.open(msg, 'Close', {
       duration: 5000,
       horizontalPosition: 'right',
     });

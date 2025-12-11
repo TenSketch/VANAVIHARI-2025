@@ -8,9 +8,10 @@ import { ConfirmationModalComponent } from '../shared/confirmation-modal/confirm
 import { BreadcrumbsComponent } from './components/breadcrumbs/breadcrumbs.component';
 import { GalleryComponent } from './gallery/gallery.component';
 import { SearchResortComponent } from './search-resort/search-resort.component';
+import { SearchTentComponent } from './search-tent/search-tent.component';
 import { TouristSpotSelectionComponent } from './tourist-spot-selection/tourist-spot-selection.component';
 
-import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'; // Import FormsModule and ReactiveFormsModule
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -28,13 +29,15 @@ import { LightboxModule } from 'ng-gallery/lightbox';
     BreadcrumbsComponent,
     GalleryComponent,
     SearchResortComponent,
+    SearchTentComponent,
     TouristSpotSelectionComponent,
   ],
   imports: [
     CommonModule,
     SharedRoutingModule,
-  RouterModule,
+    RouterModule,
     FormsModule,
+    ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -44,6 +47,6 @@ import { LightboxModule } from 'ng-gallery/lightbox';
     GalleryModule,
     LightboxModule
   ],
-  exports: [GalleryComponent, SearchResortComponent, TouristSpotSelectionComponent],
+  exports: [GalleryComponent, SearchResortComponent, SearchTentComponent, TouristSpotSelectionComponent],
 })
 export class SharedModule {}

@@ -29,10 +29,14 @@ interface Tent {
   id: string;
   sno: number;
   tentSpot: string;
-  tentSize: 2 | 4;
+  tentSpotName: string;
+  tentType: string;
+  tentTypeName: string;
+  noOfGuests: number;
   tentId: string;
   rate: number;
-  imageName: string | null;
+  images: Array<{ url: string; public_id: string }>;
+  isActive: boolean;
 }
 
 export default function AllTentsTable() {
@@ -48,93 +52,39 @@ export default function AllTentsTable() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // Editable fields
-  const [editTentSpot, setEditTentSpot] = useState("");
-  const [editTentSize, setEditTentSize] = useState<2 | 4>(2);
+  const [editNoOfGuests, setEditNoOfGuests] = useState<number>(0);
   const [editRate, setEditRate] = useState<number>(0);
 
-  // Load tents from localStorage (since we're using local storage for demo)
+  // Fetch tents from backend
   useEffect(() => {
-    const loadTents = () => {
+    const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+    const fetchTents = async () => {
       setIsLoading(true);
       setLoadError(null);
       try {
-        let stored = localStorage.getItem('tentsDemo') || '[]';
-        let list = JSON.parse(stored);
-        
-        // Add sample data if no tents exist
-        if (list.length === 0) {
-          const sampleTents = [
-            {
-              id: 'tent-sample-1',
-              sno: 1,
-              resort: 'Vanavihari',
-              tentSize: 4,
-              tentId: 'V-T4',
-              rate: 3500,
-            },
-            {
-              id: 'tent-sample-2',
-              sno: 2,
-              resort: 'Vanavihari',
-              tentSize: 2,
-              tentId: 'V-T2',
-              rate: 2000,
-            },
-            {
-              id: 'tent-sample-3',
-              sno: 3,
-              resort: 'Karthikavanam',
-              tentSize: 4,
-              tentId: 'K-T4',
-              rate: 3500,
-            },
-            {
-              id: 'tent-sample-4',
-              sno: 4,
-              resort: 'Karthikavanam',
-              tentSize: 2,
-              tentId: 'K-T2',
-              rate: 2000,
-            },
-            {
-              id: 'tent-sample-5',
-              sno: 5,
-              resort: 'Vanavihari',
-              tentSize: 4,
-              tentId: 'V-T4',
-              rate: 3500,
-            }
-          ];
-          localStorage.setItem('tentsDemo', JSON.stringify(sampleTents));
-          list = sampleTents;
+        const res = await fetch(`${apiBase}/api/tents`);
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || `Failed to fetch tents (status ${res.status})`);
         }
+        const data = await res.json();
+        const list = Array.isArray(data.tents) ? data.tents : [];
         
-        const mapped = list.map((t: any, idx: number) => {
-          // Auto-assign sno if missing or invalid, ensuring sequential numbering
-          let autoSno = t.sno;
-          if (!autoSno || typeof autoSno !== 'number' || autoSno <= 0) {
-            autoSno = idx + 1;
-          }
-          
-          return {
-            id: t.id || `tent-${idx}`,
-            sno: autoSno,
-            tentSpot: t.resort || 'Vanavihari',
-            tentSize: t.tentSize || 2,
-            tentId: t.tentId || '',
-            rate: t.rate || 0,
-            imageName: t.imageName || null,
-          };
-        });
-        
-        // Ensure all sno values are unique and sequential
-        const sortedMapped = mapped.sort((a: Tent, b: Tent) => a.sno - b.sno);
-        const reindexed = sortedMapped.map((tent: Tent, index: number) => ({
-          ...tent,
-          sno: index + 1
+        const mapped = list.map((t: any, idx: number) => ({
+          id: t._id,
+          sno: idx + 1,
+          tentSpot: t.tentSpot?._id || '',
+          tentSpotName: t.tentSpot?.spotName || 'Unknown',
+          tentType: t.tentType?._id || '',
+          tentTypeName: t.tentType?.tentType || 'Unknown',
+          noOfGuests: t.noOfGuests || 0,
+          tentId: t.tentId || '',
+          rate: t.rate || 0,
+          images: t.images || [],
+          isActive: !t.isDisabled,
         }));
         
-        setTents(reindexed);
+        setTents(mapped);
       } catch (err: any) {
         console.error('Failed to load tents', err);
         setLoadError(err.message || 'Failed to load tents');
@@ -143,7 +93,7 @@ export default function AllTentsTable() {
       }
     };
 
-    loadTents();
+    fetchTents();
   }, []);
 
   useEffect(()=>{ tentsRef.current = tents }, [tents])
@@ -154,9 +104,11 @@ export default function AllTentsTable() {
       "S.No",
       "Tent Spot",
       "Tent Type",
+      "No. of Guests",
       "Tent ID",
       "Rate (₹)",
-      "Image"
+      "Images",
+      "Status"
     ];
 
     const csvContent = [
@@ -164,11 +116,13 @@ export default function AllTentsTable() {
       ...tents.map((tent) => {
         return [
           tent.sno,
-          `"${tent.tentSpot}"`,
-          `"${tent.tentSize} Person"`,
+          `"${tent.tentSpotName}"`,
+          `"${tent.tentTypeName}"`,
+          tent.noOfGuests,
           `"${tent.tentId}"`,
           tent.rate,
-          `"${tent.imageName || 'No image'}"`
+          tent.images.length,
+          `"${tent.isActive ? 'Active' : 'Inactive'}"`
         ].join(",");
       })
     ].join("\n");
@@ -185,11 +139,50 @@ export default function AllTentsTable() {
 
   const openForView = (tent: Tent) => {
     setSelectedTent(tent);
-    setEditTentSpot(tent.tentSpot);
-    setEditTentSize(tent.tentSize);
+    setEditNoOfGuests(tent.noOfGuests);
     setEditRate(tent.rate);
     setSheetMode('view')
     setIsDetailSheetOpen(true);
+  };
+
+  const toggleActiveStatus = async (tent: Tent) => {
+    if (!permsRef.current.canDisable) return
+    
+    try {
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('admin_token');
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${apiBase}/api/tents/${tent.id}/toggle-status`, {
+        method: 'PATCH',
+        headers,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to toggle status');
+      }
+
+      // Update local state
+      setTents((prev) =>
+        prev.map((t) =>
+          t.id === tent.id ? { ...t, isActive: !t.isActive } : t
+        )
+      );
+      if (selectedTent && selectedTent.id === tent.id) {
+        setSelectedTent({ ...tent, isActive: !tent.isActive });
+      }
+    } catch (err: any) {
+      console.error('Failed to toggle status:', err);
+      alert('Failed to toggle status: ' + (err.message || String(err)));
+    }
   };
 
   const handleEdit = (tent: Tent) => {
@@ -200,12 +193,9 @@ export default function AllTentsTable() {
 
   const columns = [
     { data: "sno", title: "S.No" },
-    { data: "tentSpot", title: "Tent Spot" },
-    { 
-      data: "tentSize", 
-      title: "Tent Type",
-      render: (data: number) => `${data} Person`
-    },
+    { data: "tentSpotName", title: "Tent Spot" },
+    { data: "tentTypeName", title: "Tent Type" },
+    { data: "noOfGuests", title: "No. of Guests" },
     { data: "tentId", title: "Tent ID" },
     { 
       data: "rate", 
@@ -213,9 +203,19 @@ export default function AllTentsTable() {
       render: (data: number) => `₹${data.toLocaleString()}`
     },
     {
-      data: "imageName",
-      title: "Image",
-      render: () => "",
+      data: "images",
+      title: "Images",
+      render: (data: any[]) => data && data.length > 0 ? `${data.length} image(s)` : "No images",
+    },
+    {
+      data: "isActive",
+      title: "Status",
+      render: (data: boolean) => `
+        <span style="padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 500;
+        color: ${data ? "#15803d" : "#b91c1c"};
+        background-color: ${data ? "#dcfce7" : "#fee2e2"};">
+          ${data ? "Active" : "Inactive"}
+        </span>`,
     },
     {
       data: null,
@@ -268,47 +268,53 @@ export default function AllTentsTable() {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!perms.canEdit || !selectedTent) return;
     
-    const updatedTents = tents.map((t) =>
-      t.id === selectedTent.id
-        ? {
-            ...t,
-            tentSpot: editTentSpot,
-            tentSize: editTentSize,
-            rate: editRate,
-          }
-        : t
-    );
-    
-    // Reindex sno to ensure sequential numbering
-    const reindexedTents = updatedTents
-      .sort((a, b) => a.sno - b.sno)
-      .map((tent, index) => ({ ...tent, sno: index + 1 }));
-    
-    setTents(reindexedTents);
-    
-    // Update localStorage with proper sno assignment
     try {
-      const dataToSave = updatedTents
-        .sort((a, b) => a.sno - b.sno)
-        .map((t, index) => ({
-          id: t.id,
-          sno: index + 1, // Ensure sequential sno
-          resort: t.tentSpot,
-          tentSize: t.tentSize,
-          tentId: t.tentId,
-          rate: t.rate,
-          imageName: t.imageName,
-        }));
-      localStorage.setItem('tentsDemo', JSON.stringify(dataToSave));
-    } catch (err) {
-      console.error('Failed to update localStorage', err);
+      const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:5000';
+      const token = localStorage.getItem('admin_token');
+      
+      const updateData = {
+        noOfGuests: editNoOfGuests,
+        rate: editRate,
+      };
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiBase}/api/tents/${selectedTent.id}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update tent');
+      }
+
+      // Update local state
+      setTents((prev) =>
+        prev.map((t) =>
+          t.id === selectedTent.id
+            ? { ...t, noOfGuests: editNoOfGuests, rate: editRate }
+            : t
+        )
+      );
+      
+      setSheetMode('view');
+      setIsDetailSheetOpen(false);
+      alert('Tent updated successfully!');
+    } catch (err: any) {
+      console.error('Failed to update tent:', err);
+      alert('Failed to update tent: ' + (err.message || String(err)));
     }
-    
-    setSheetMode('view');
-    setIsDetailSheetOpen(false);
   };
 
   return (
@@ -372,12 +378,14 @@ export default function AllTentsTable() {
             columnControl: ["order"],
             columnDefs: [
               { targets: 0, width: '50px', className: 'dt-center' }, // S.No
-              { targets: 1, width: '120px' }, // Tent Spot
-              { targets: 2, width: '100px' }, // Tent Type
-              { targets: 3, width: '100px' }, // Tent ID
-              { targets: 4, width: '100px' }, // Rate
-              { targets: 5, width: '80px' }, // Image
-              { targets: 6, width: '160px', orderable: false, searchable: false }, // Actions
+              { targets: 1, width: '150px' }, // Tent Spot
+              { targets: 2, width: '150px' }, // Tent Type
+              { targets: 3, width: '80px' }, // No. of Guests
+              { targets: 4, width: '100px' }, // Tent ID
+              { targets: 5, width: '100px' }, // Rate
+              { targets: 6, width: '100px' }, // Images
+              { targets: 7, width: '80px' }, // Status
+              { targets: 8, width: '160px', orderable: false, searchable: false }, // Actions
               { targets: '_all', visible: true },
             ],
           }}
@@ -412,39 +420,30 @@ export default function AllTentsTable() {
 
                 <div>
                   <Label>Tent Spot</Label>
-                  {sheetMode === 'edit' ? (
-                    <select
-                      value={editTentSpot}
-                      onChange={(e) => setEditTentSpot(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md bg-slate-50"
-                    >
-                      <option value="Vanavihari">Vanavihari</option>
-                      <option value="Karthikavanam">Karthikavanam</option>
-                    </select>
-                  ) : (
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentSpot}</div>
-                  )}
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentSpotName}</div>
                 </div>
 
                 <div>
                   <Label>Tent Type</Label>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentTypeName}</div>
+                </div>
+
+                <div>
+                  <Label>No. of Guests</Label>
                   {sheetMode === 'edit' ? (
-                    <select
-                      value={editTentSize}
-                      onChange={(e) => setEditTentSize(Number(e.target.value) as 2 | 4)}
-                      className="w-full px-3 py-2 border rounded-md bg-slate-50"
-                    >
-                      <option value={2}>2 Person</option>
-                      <option value={4}>4 Person</option>
-                    </select>
+                    <Input
+                      type="number"
+                      value={editNoOfGuests}
+                      onChange={(e) => setEditNoOfGuests(Number(e.target.value))}
+                    />
                   ) : (
-                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentSize} Person</div>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.noOfGuests}</div>
                   )}
                 </div>
 
                 <div>
                   <Label>Tent ID</Label>
-                  <div className="mt-1 p-3 bg-gray-50 rounded-md border">{selectedTent.tentId}</div>
+                  <div className="mt-1 p-3 bg-gray-50 rounded-md border font-mono text-blue-600">{selectedTent.tentId}</div>
                 </div>
 
                 <div>
@@ -461,13 +460,38 @@ export default function AllTentsTable() {
                 </div>
 
                 <div>
-                  <Label>Image</Label>
+                  <Label>Images</Label>
                   <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                    {selectedTent.imageName ? (
-                      <span className="text-green-600">✓ {selectedTent.imageName}</span>
+                    {selectedTent.images && selectedTent.images.length > 0 ? (
+                      <div className="space-y-2">
+                        <span className="text-green-600">✓ {selectedTent.images.length} image(s) uploaded</span>
+                        <div className="grid grid-cols-2 gap-2 mt-2">
+                          {selectedTent.images.map((img, idx) => (
+                            <img 
+                              key={idx} 
+                              src={img.url} 
+                              alt={`Tent ${idx + 1}`}
+                              className="w-full h-24 object-cover rounded border"
+                            />
+                          ))}
+                        </div>
+                      </div>
                     ) : (
-                      <span className="text-red-600">✗ No image uploaded</span>
+                      <span className="text-red-600">✗ No images uploaded</span>
                     )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Status</Label>
+                  <div className="mt-1">
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedTent.isActive 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {selectedTent.isActive ? 'Active' : 'Inactive'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -482,6 +506,14 @@ export default function AllTentsTable() {
                       title={!perms.canEdit ? 'You do not have permission to edit' : undefined}
                     >
                       Edit
+                    </Button>
+                    <Button
+                      variant={selectedTent.isActive ? "destructive" : "default"}
+                      onClick={() => { if (!perms.canDisable) return; toggleActiveStatus(selectedTent) }}
+                      disabled={!perms.canDisable}
+                      title={!perms.canDisable ? 'You do not have permission to change status' : undefined}
+                    >
+                      {selectedTent.isActive ? "Deactivate" : "Activate"}
                     </Button>
                     <Button variant="outline" onClick={() => setIsDetailSheetOpen(false)}>Close</Button>
                   </>

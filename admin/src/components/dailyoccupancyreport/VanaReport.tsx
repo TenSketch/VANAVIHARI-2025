@@ -7,8 +7,7 @@ import "datatables.net-buttons/js/buttons.colVis.js";
 import "datatables.net-columncontrol-dt";
 import "datatables.net-columncontrol-dt/css/columnControl.dataTables.css";
 
-import reservations from "./vanadata.json";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 DataTable.use(DT);
 
@@ -27,56 +26,80 @@ interface Reservation {
   remainingDays?: number;
 }
 
-const reservationData: Reservation[] = reservations;
-
-// ✅ Export to Excel function (copied from JungleStar version)
-const exportToExcel = () => {
-  const headers = [
-    "Room Name",
-    "Booking ID",
-    "Guest Name",
-    "Paid Amount",
-    "Guest(s)",
-    "Extra Guest(s)",
-    "Children",
-    "Total Guests",
-    "Total Foods",
-    "No. of Days",
-    "Remaining Days",
-  ];
-
-  const csvRows = [
-    headers.join(","),
-    ...reservationData
-      .filter((row) => !row.status)
-      .map((row) =>
-        [
-          `"${row.roomName}"`,
-          `"${row.bookingId || ""}"`,
-          `"${row.guestName || ""}"`,
-          row.paidAmount ?? "",
-          row.guests ?? "",
-          row.extraGuests ?? "",
-          row.children ?? "",
-          row.totalGuests ?? "",
-          row.totalFoods ?? "",
-          row.noOfDays ?? "",
-          row.remainingDays ?? "",
-        ].join(",")
-      ),
-  ];
-
-  const csvContent = csvRows.join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "Daily_Occupancy_Report_Vanavihari.csv");
-  link.click();
-};
-
 export default function DailyOccupancyReport() {
   const tableRef = useRef(null);
+  const apiUrl = (import.meta.env.VITE_API_URL as string) || 'http://localhost:5000';
+  const [reservationData, setReservationData] = useState<Reservation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch data from backend
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${apiUrl}/api/reports/daily-occupancy/slug/vanavihari`);
+        const result = await response.json();
+        
+        if (result.success) {
+          setReservationData(result.data || []);
+        } else {
+          console.error('Failed to fetch report data:', result.error);
+        }
+      } catch (error) {
+        console.error('Error fetching report data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [apiUrl]);
+
+  // ✅ Export to Excel function
+  const exportToExcel = () => {
+    const headers = [
+      "Room Name",
+      "Booking ID",
+      "Guest Name",
+      "Paid Amount",
+      "Guest(s)",
+      "Extra Guest(s)",
+      "Children",
+      "Total Guests",
+      "Foods Billed",
+      "No. of Days",
+      "Remaining Days",
+    ];
+
+    const csvRows = [
+      headers.join(","),
+      ...reservationData
+        .filter((row) => !row.status)
+        .map((row) =>
+          [
+            `"${row.roomName}"`,
+            `"${row.bookingId || ""}"`,
+            `"${row.guestName || ""}"`,
+            row.paidAmount ?? "",
+            row.guests ?? "",
+            row.extraGuests ?? "",
+            row.children ?? "",
+            row.totalGuests ?? "",
+            row.totalFoods ?? "",
+            row.noOfDays ?? "",
+            row.remainingDays ?? "",
+          ].join(",")
+        ),
+    ];
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "Daily_Occupancy_Report_Vanavihari.csv");
+    link.click();
+  };
 
   const today = new Date().toLocaleDateString("en-IN", {
     weekday: "long",
@@ -170,10 +193,21 @@ export default function DailyOccupancyReport() {
     { title: "Extra Guest(s)", data: "extraGuests", defaultContent: "—" },
     { title: "Children", data: "children", defaultContent: "—" },
     { title: "Total Guests", data: "totalGuests", defaultContent: "—" },
-    { title: "Total Foods", data: "totalFoods", defaultContent: "—" },
+    { title: "Foods Billed", data: "totalFoods", defaultContent: "—" },
     { title: "No. of Days", data: "noOfDays", defaultContent: "—" },
     { title: "Remaining Days", data: "remainingDays", defaultContent: "—" },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="p-6 w-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading report data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 w-full">
@@ -233,7 +267,7 @@ export default function DailyOccupancyReport() {
                 <th>Extra Guest(s)</th>
                 <th>Children</th>
                 <th>Total Guests</th>
-                <th>Total Foods</th>
+                <th>Foods Billed</th>
                 <th>No. of Days</th>
                 <th>Remaining Days</th>
               </tr>

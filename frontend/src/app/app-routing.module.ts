@@ -22,7 +22,7 @@ import { ChangePasswordComponent } from './modules/change-password/change-passwo
 import { BookingStatusComponent } from './modules/booking-status/booking-status.component';
 import { BookingStatusTestComponent } from './modules/booking-status-test/booking-status-test.component';
 import { RoomsComponent } from './modules/resorts/rooms/rooms.component';
-import { BookTentComponent } from './modules/resorts/book-tent/book-tent.component';
+import { BookTentComponent } from './modules/book-tent/book-tent.component';
 import { ReadPaymentTransactionResponseComponent } from './auth/read-payment-transaction-response/read-payment-transaction-response.component';
 import { PaymentPoliciesComponent } from './modules/payment-policies/payment-policies.component';
 import { ContactUsComponent } from './modules/contact-us/contact-us.component';
@@ -40,6 +40,8 @@ import { TouristSpotsBookingComponent } from './modules/tourist-spots-booking/to
 import { TouristSpotsCheckoutComponent } from './modules/tourist-spots-checkout/tourist-spots-checkout.component';
 import { TouristSpotsSuccessComponent } from './modules/tourist-spots-success/tourist-spots-success.component';
 import { TentCheckoutComponent } from './modules/tent-checkout/tent-checkout.component';
+import { VerifyEmailComponent } from './auth/verify-email/verify-email.component';
+import { ResendVerificationComponent } from './auth/resend-verification/resend-verification.component';
 
 
 // const routes: Routes = [
@@ -126,6 +128,9 @@ const routes: Routes = [
   { path: 'sign-in', component: SignInComponent },
   { path: 'sign-up', component: SignUpComponent },
   { path: 'success', component: ShowSuccessMessageComponent },
+  { path: 'show-success-message', component: ShowSuccessMessageComponent },
+  { path: 'verify-email', component: VerifyEmailComponent },
+  { path: 'resend-verification', component: ResendVerificationComponent },
   {
     path: 'email-verification/:userid/:token',
     component: EmailVerificationComponent,
@@ -161,12 +166,13 @@ const routes: Routes = [
   { path: 'booking-status', component: BookingStatusComponent },
   { path: 'resorts/rooms', component: RoomsComponent },
   { path: 'tourist-destination', component: TouristPlacesComponent },
-  { path: 'tourist-places', component: TouristSpotsBookingComponent },
-  { path: 'tourist-spots-checkout', component: TouristSpotsCheckoutComponent },
-  { path: 'tent-checkout', component: TentCheckoutComponent },
-  { path: 'tourist-spots-success', component: TouristSpotsSuccessComponent },
-  { path: 'vanavihari/book-tent', component: BookTentComponent },
-  { path: 'karthikavanm/book-tent', component: BookTentComponent },
+  // { path: 'tourist-places', component: TouristSpotsBookingComponent },
+  // { path: 'tourist-spots-checkout', component: TouristSpotsCheckoutComponent },
+  // { path: 'tent-checkout', component: TentCheckoutComponent },
+  // { path: 'tourist-spots-success', component: TouristSpotsSuccessComponent },
+  // { path: 'book-tent/:slug', component: BookTentComponent },
+  // { path: 'vanavihari/book-tent', redirectTo: 'book-tent/vanavihari-marudemalli', pathMatch: 'full' },
+  // { path: 'karthikavanm/book-tent', redirectTo: 'book-tent/karthikavanm', pathMatch: 'full' },
   { path: 'dashboard', component: SettingsComponent },
   { path: 'resort-listing', component: ResortListingComponent },
   { path: 'change-password', component: ChangePasswordComponent },
@@ -178,7 +184,7 @@ const routes: Routes = [
     path: 'resorts/test-rooms', component: TestRoomComponent
   },
   {
-    path: 'forgot-password/:userid/:token',
+    path: 'forgot-password/:token',
     component: ForgotPasswordComponent,
   },
   {

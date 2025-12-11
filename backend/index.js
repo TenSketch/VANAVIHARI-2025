@@ -13,10 +13,10 @@ import paymentRouter from './routes/paymentRoutes.js'
 import adminAuth from './middlewares/adminAuth.js'
 import reportsRouter from './routes/reportsRoute.js'
 import tentSpotRouter from './routes/tentSpotRoutes.js'
-import touristSpotRouter from './routes/touristSpotRoutes.js'
 import tentTypeRouter from './routes/tentTypeRoutes.js'
 import tentRouter from './routes/tentRoutes.js'
 import tentReservationRouter from './routes/tentReservationRoutes.js'
+import webhookRouter from './routes/webhookRoutes.js'
 import { expirePendingReservations } from './controllers/reservationController.js'
 import { expirePendingTentReservations } from './controllers/tentReservationController.js'
 
@@ -39,16 +39,7 @@ expirePendingTentReservations()
 //middleware
 app.use(express.json())
 app.use(express.urlencoded({ extended: true })) // Add this for form data
-
-// CORS: allow configured origins plus local dev defaults to unblock Angular/Vite
-const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    process.env.ADMIN_URL,
-    'http://localhost:4200',
-    'http://localhost:5173',
-    'http://localhost:3000'
-].filter(Boolean)
-
+app.use(express.text({ type: 'text/plain' })) // Add this for raw text bodies
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -77,10 +68,10 @@ app.use('/api/logs', logRouter)
 app.use('/api/payment', paymentRouter)
 app.use('/api/reports', reportsRouter)
 app.use('/api/tent-spots', tentSpotRouter)
-app.use('/api/touristspots', touristSpotRouter)
 app.use('/api/tent-types', tentTypeRouter)
 app.use('/api/tents', tentRouter)
 app.use('/api/tent-reservations', tentReservationRouter)
+app.use('/api/webhook', webhookRouter)
 
 // ensure tmp folder is served (used temporarily by multer before upload to cloudinary)
 import path from 'path'

@@ -1,6 +1,6 @@
 import { environment } from '@/environments/environment';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -9,15 +9,21 @@ import { Router } from '@angular/router';
   templateUrl: './reset-password.component.html',
   styleUrls: ['./reset-password.component.scss'],
 })
-export class ResetPasswordComponent {
+export class ResetPasswordComponent implements OnDestroy {
   form: FormGroup;
-  showLoader=false;
-  disableSubmit = false
-  api_url:any 
-  message=''
+  showLoader = false;
+  disableSubmit = false;
+  api_url: any;
+  message = '';
+  countdown = 0;
+  private countdownInterval: any;
 
-  constructor(private formBuilder: FormBuilder, private router:Router,    private http: HttpClient    ) {
-    this.api_url = environment.API_URL
+  constructor(
+    private formBuilder: FormBuilder,
+    private router: Router,
+    private http: HttpClient
+  ) {
+    this.api_url = environment.API_URL;
   }
 
   ngOnInit() {
@@ -26,31 +32,74 @@ export class ResetPasswordComponent {
     });
   }
 
-  onSubmit(){
-    this.showLoader = true
-      // console.log(this.form.value.email_address)
-      const params = new HttpParams().set('email_id', this.form.value.email_address ?? '');
+  ngOnDestroy() {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+  }
+
+  onSubmit() {
+    if (this.form.invalid || this.countdown > 0) {
+      return;
+    }
+
+    this.showLoader = true;
+    this.disableSubmit = true;
+
+    const payload = {
+      email_id: this.form.value.email_address,
+    };
+
     this.http
-      .get<any>(this.api_url + '?api_type=reset_password', { params })
+      .post<any>(this.api_url + '/api/user/forgot-password', payload)
       .subscribe({
         next: (response) => {
-          this.showLoader = false
-           this.message=(response.result.msg)
+          this.showLoader = false;
+          if (response.code === 3000 && response.result.status === 'success') {
+            this.message = response.result.msg;
+            this.startCountdown(60);
+          } else {
+            this.message = response.result.msg || 'Failed to send reset email';
+            this.disableSubmit = false;
+          }
         },
         error: (err) => {
           this.showLoader = false;
+          if (err.status === 429 && err.error?.result?.remainingSeconds) {
+            this.message = err.error.result.msg;
+            this.startCountdown(err.error.result.remainingSeconds);
+          } else {
+            this.message =
+              err.error?.result?.msg ||
+              'Failed to send reset email. Please try again.';
+            this.disableSubmit = false;
+          }
         },
       });
   }
 
-  goToSignin(){
+  startCountdown(seconds: number) {
+    this.countdown = seconds;
+    this.disableSubmit = true;
+
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+    }
+
+    this.countdownInterval = setInterval(() => {
+      this.countdown--;
+      if (this.countdown <= 0) {
+        clearInterval(this.countdownInterval);
+        this.disableSubmit = false;
+      }
+    }, 1000);
+  }
+
+  goToSignin() {
     this.router.navigate(['/sign-in']);
-
   }
 
-  goToSignup(){
+  goToSignup() {
     this.router.navigate(['/sign-up']);
-
   }
-
 }

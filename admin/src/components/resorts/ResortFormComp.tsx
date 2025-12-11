@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload } from "lucide-react";
+import { fetchWithAuth } from "@/lib/apiUtils";
 
 interface ResortFormData {
   resortName: string;
@@ -157,16 +158,8 @@ const ResortFormComp = () => {
   const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000'
   
   // Get token from localStorage
-  const token = localStorage.getItem('admin_token')
-  
-  const headers: Record<string, string> = {}
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-
-  fetch(apiBase + '/api/resorts/add', {
+  fetchWithAuth(apiBase + '/api/resorts/add', {
       method: 'POST',
-      headers,
       body: form,
     })
       .then(async (res) => {
