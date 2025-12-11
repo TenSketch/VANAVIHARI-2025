@@ -32,7 +32,6 @@ const LoginPage = () => {
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e && typeof e.preventDefault === 'function') e.preventDefault()
-    console.log('handleLogin called', { email, password })
     setError('')
     setLoading(true)
     try {

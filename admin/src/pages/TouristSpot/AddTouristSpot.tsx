@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +26,52 @@ const AddTouristSpot = () => {
     const [success, setSuccess] = useState<string | null>(null);
         const [added, setAdded] = useState<any[]>([]);
         const [newImages, setNewImages] = useState<File[]>([]);
+        const [existingImages, setExistingImages] = useState<any[]>([])
+        const [isEditMode, setIsEditMode] = useState(false)
+        const [editingId, setEditingId] = useState<string | null>(null)
+        const navigate = useNavigate()
+
+        useEffect(() => {
+            // check for ?id= param
+            try {
+                const params = new URLSearchParams(window.location.search)
+                const id = params.get('id')
+                if (id) {
+                    ;(async () => {
+                        try {
+                            const res = await fetch(`${apiBase}/api/touristspots/${encodeURIComponent(id)}`)
+                            if (!res.ok) return
+                            const data = await res.json()
+                            const s = data?.touristSpot
+                            if (!s) return
+                            setIsEditMode(true)
+                            setEditingId(id)
+                            setForm({
+                                name: s.name || '',
+                                category: s.category || 'TREK',
+                                entryFees: s.entryFees ? String(s.entryFees) : '',
+                                parking2W: s.parking2W ? String(s.parking2W) : '',
+                                parking4W: s.parking4W ? String(s.parking4W) : '',
+                                cameraFees: s.cameraFees ? String(s.cameraFees) : '',
+                                maxSlotsPerDay: '',
+                                maxMembersPerSlot: s.maxMembersPerSlot ? String(s.maxMembersPerSlot) : '',
+                                description: s.description || '',
+                                address: s.address || '',
+                                mapEmbed: s.mapEmbed || '',
+                            })
+                            // normalize images (array of {url, public_id} or strings)
+                            if (Array.isArray(s.images)) {
+                                setExistingImages(s.images.map((i:any) => (typeof i === 'string' ? { url: i } : i)))
+                            }
+                        } catch (e) {
+                            console.warn('Failed to load tourist spot for edit', e)
+                        }
+                    })()
+                }
+            } catch (e) {
+                // ignore
+            }
+        }, [])
 
     const handleAdd = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -37,7 +84,75 @@ const AddTouristSpot = () => {
                     if (!form.name || form.entryFees === '') {
                         throw new Error('Spot Name and Entry Fee are required');
                     }
-                // If there are images, send multipart/form-data
+                // If in edit mode, call PUT to update
+                if (isEditMode && editingId) {
+                    const token = localStorage.getItem('admin_token')
+                    // If there are images (new uploads), use FormData, otherwise send JSON
+                    if (newImages.length > 0) {
+                        const formData = new FormData();
+                        newImages.forEach((f) => formData.append('images', f));
+                        formData.append('name', form.name.trim());
+                        formData.append('category', form.category.trim());
+                        if (form.entryFees !== '') formData.append('entryFees', String(Number(form.entryFees)));
+                        if (form.parking2W !== '') formData.append('parking2W', String(Number(form.parking2W)));
+                        if (form.parking4W !== '') formData.append('parking4W', String(Number(form.parking4W)));
+                        if (form.cameraFees !== '') formData.append('cameraFees', String(Number(form.cameraFees)));
+                        if (form.description) formData.append('description', form.description);
+                        if (form.address) formData.append('address', form.address);
+                        if (form.maxSlotsPerDay !== '') formData.append('maxSlotsPerDay', String(Number(form.maxSlotsPerDay)));
+                        if (form.maxMembersPerSlot !== '') formData.append('maxMembersPerSlot', String(Number(form.maxMembersPerSlot)));
+                        if (form.mapEmbed) formData.append('mapEmbed', form.mapEmbed);
+
+                        const res = await fetch(`${apiBase}/api/touristspots/${encodeURIComponent(editingId)}`, {
+                            method: 'PUT',
+                            headers: token ? { 'Authorization': `Bearer ${token}` } : undefined as any,
+                            body: formData,
+                        });
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => null);
+                            throw new Error((errData && errData.error) || res.statusText || 'Failed to update');
+                        }
+                        const data = await res.json().catch(() => null);
+                        const saved = data?.touristSpot || data || {};
+                        setSuccess('Tourist spot updated successfully');
+                        // navigate back to list
+                        navigate('/touristspots/all')
+                        return
+                    } else {
+                        const payload: any = {
+                            name: form.name.trim(),
+                            category: form.category.trim(),
+                        };
+                        if (form.entryFees !== '') payload.entryFees = Number(form.entryFees);
+                        if (form.parking2W !== '') payload.parking2W = Number(form.parking2W);
+                        if (form.parking4W !== '') payload.parking4W = Number(form.parking4W);
+                        if (form.cameraFees !== '') payload.cameraFees = Number(form.cameraFees);
+                        if (form.description) payload.description = form.description;
+                        if (form.address) payload.address = form.address;
+                        if (form.maxSlotsPerDay !== '') payload.maxSlotsPerDay = Number(form.maxSlotsPerDay);
+                        if (form.maxMembersPerSlot !== '') payload.maxMembersPerSlot = Number(form.maxMembersPerSlot);
+                        if (form.mapEmbed) payload.mapEmbed = form.mapEmbed;
+
+                        const token = localStorage.getItem('admin_token')
+                        const res = await fetch(`${apiBase}/api/touristspots/${encodeURIComponent(editingId)}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                            },
+                            body: JSON.stringify(payload),
+                        });
+                        if (!res.ok) {
+                            const errData = await res.json().catch(() => null);
+                            throw new Error((errData && errData.error) || res.statusText || 'Failed to update');
+                        }
+                        const data = await res.json().catch(() => null);
+                        setSuccess('Tourist spot updated successfully');
+                        navigate('/touristspots/all')
+                        return
+                    }
+                }
+                // If there are images, send multipart/form-data for create
                 if (newImages.length > 0) {
                     const formData = new FormData();
                     newImages.forEach((f) => formData.append('images', f));
@@ -206,7 +321,7 @@ const AddTouristSpot = () => {
 
                     <div className="flex gap-4 pt-2">
                         <Button type="button" onClick={handleAdd} disabled={isSaving} className="bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg">
-                            {isSaving ? 'Saving...' : 'Add Tourist Spot'}
+                            {isSaving ? (isEditMode ? 'Updating...' : 'Saving...') : (isEditMode ? 'Update Tourist Spot' : 'Add Tourist Spot')}
                         </Button>
                         <Button type="button" onClick={handleReset} variant="ghost" disabled={isSaving} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-3 px-6 rounded-lg">
                             Reset

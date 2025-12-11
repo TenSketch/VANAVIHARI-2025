@@ -41,7 +41,12 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true })) // Add this for form data
 app.use(express.text({ type: 'text/plain' })) // Add this for raw text bodies
 app.use(cors({
-    origin: [process.env.FRONTEND_URL, process.env.ADMIN_URL],
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true)
+        }
+        return callback(new Error('Not allowed by CORS'))
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization', 'token'],
     exposedHeaders: ['Content-Type', 'Authorization', 'token'],
